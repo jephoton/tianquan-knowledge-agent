@@ -4,29 +4,29 @@
 
 ## Milestone
 
-**M0 — Project bootstrap** → ✅ complete  
-**Next:** M1 — Data model & mock sources
+**M0 — Project bootstrap** → complete  
+**M1 — Data model & mock sources** → complete  
+**Next:** M2 — Policy engine
 
 ## What exists
 
 - [x] Git repository initialized.
-- [x] `.gitignore` created.
-- [x] `README.md` created.
-- [x] `docs/plan.md` — source of truth with roadmap and submission deliverables.
-- [x] `docs/architecture.md` — system design, trust boundaries, module map.
-- [x] `docs/current-state.md` — this file.
-- [x] `docs/decisions/` — 3 ADRs (TLA+, pre-LLM filtering, mock connectors).
-- [x] Repo structure scaffolded (`frontend/`, `backend/`, `formal/`, `tests/`).
-- [x] Initial commit pushed.
-- [x] Miora added to tech stack for frontend UI generation.
+- [x] `docs/` handoff layer: plan, architecture, current-state, decisions, dev-log.
+- [x] Repo structure scaffolded.
+- [x] **Core data model** (`backend/models.py`): Source, SensitivityLevel, Action, DecisionResult, User, ACL, Resource, Decision.
+- [x] **Auth module**: `identity.py` (7 seed users) + `roles.py` (7 roles).
+- [x] **Four mock connectors**: Confluence (5), Jira (6), Slack (5), GDrive (4) = 20 resources.
+- [x] **33 tests passing**: model, users, roles, all connectors, cross-source.
+- [x] Miora added to tech stack.
+- [x] Development log started with M0 screenshot.
 
 ## What's next
 
-1. **M1 — Data model & mock sources**
-   - Define resource data model (source, resource_id, title, content, ACL, sensitivity).
-   - Build mock connectors for Confluence, Jira, Slack, Google Drive.
-   - Create seed data with varied ACLs across all four platforms.
-   - Include scenarios for all 5 demos (authorized access, denial, revocation, audit, formal verification).
+1. **M2 — Policy engine**
+   - Authorization decision function: `decide(user, resource, action) -> Decision`.
+   - Source-specific permission mapping to common model.
+   - ACL versioning support.
+   - Unit tests for positive and negative cases.
 
 ## Blockers
 
