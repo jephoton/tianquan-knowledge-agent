@@ -11,7 +11,7 @@
 - **Tool:** CodeBuddy
 - **Task:** Read Track 4 (Aspire FinTech) challenge from handbook PDF. Analyzed the challenge requirements. Designed the VeriBrain project concept. Wrote formal plan, architecture, and ADRs. Scaffolded repo structure.
 - **Summary:** Initial project planning session. Read the Aspire "Internal Brain" challenge. Compared user's original idea (formally constrained enterprise agents) against the track requirements. Refined scope to focus on permission-aware retrieval as the core, with formal methods as the differentiator. Created the handoff layer (`docs/`), roadmap with 13 milestones, 3 ADRs, and repo skeleton.
-- **Screenshot captured:** N (session is this conversation — capture screenshot before closing)
+- **Screenshot captured:** Y — [Screenshot 2026-09-27 215926.png](Screenshot%202026-09-27%20215926.png)
 
 ---
 

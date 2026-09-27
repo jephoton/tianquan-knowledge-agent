@@ -212,7 +212,7 @@ All items below must be completed before considering the project submission-read
 
 The CodeBuddy/WorkBuddy conversation proof is a **required deliverable** that must be captured during development, not reconstructed at the end. The handbook requires a minimum of 3 screenshots or screen recordings of chat logs.
 
-Track this in [`docs/dev-log.md`](dev-log.md). Each entry should record:
+Track this in [`docs/dev-log/dev-log.md`](dev-log/dev-log.md). Each entry should record:
 
 - Date
 - Tool used (CodeBuddy / WorkBuddy / Miora)
