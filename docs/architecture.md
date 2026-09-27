@@ -233,8 +233,9 @@ The specification is an abstract model. The implementation should be tested agai
 | Decision       | Choice          | Rationale                                          |
 |----------------|-----------------|----------------------------------------------------|
 | Backend        | Python / FastAPI | Fast to prototype, async support, good for LLM work |
-| Frontend       | React + TypeScript | Component-based, type-safe, fast iteration       |
+| Frontend       | React + TypeScript (Miora-generated UI) | Component-based, type-safe, fast iteration. Miora used for UI generation. |
 | Formal model   | TLA+ / TLC      | Best for temporal safety properties, revocation     |
 | Audit log      | Hash-chained JSON | Simple, transparent, demonstrable tamper-evidence |
 | LLM            | Tencent Cloud LLM | Track requirement to use Tencent Cloud AI products |
+| UI design      | Miora            | Tencent Cloud AI creative studio for production-grade UI |
 | Dev tool       | CodeBuddy        | Required proof of usage for submission             |

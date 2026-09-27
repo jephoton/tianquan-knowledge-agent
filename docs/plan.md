@@ -139,10 +139,11 @@ A small verified `isAllowed(user, resource, action)` function proving that retur
 | Layer        | Technology            |
 |--------------|----------------------|
 | Backend      | Python / FastAPI      |
-| Frontend     | React + TypeScript    |
+| Frontend     | React + TypeScript (UI generated via Miora) |
 | Formal model | TLA+ / TLC            |
 | Audit log    | Hash-chained JSON     |
 | LLM          | Tencent Cloud LLM via WorkBuddy / ADP |
+| UI design    | Miora (Tencent Cloud AI creative studio) |
 | Dev tool     | CodeBuddy (required for proof of usage) |
 
 ## 7. Repo structure
@@ -168,25 +169,44 @@ docs/
 
 ## 8. Roadmap & milestones
 
+**Target deadline:** 12 October 2026 (buffer before the real submission deadline on 16 Oct). No hard per-milestone dates — progress is tracked by checkpoint completion, not calendar dates.
+
 Each milestone is a checkpoint: code committed, tests passing, `current-state.md` updated, commit pushed.
 
-| Milestone | Target | Exit criteria |
-|-----------|--------|---------------|
-| **M0 — Project bootstrap** | 2026-09-27 | Git repo initialized. Handoff docs created. Repo structure scaffolded. Initial commit pushed. |
-| **M1 — Data model & mock sources** | 2026-09-28 | Mock connectors for Confluence, Jira, Slack, GDrive with realistic permission semantics. Document/ticket/message/file data model defined. Seed data with varied ACLs. |
-| **M2 — Policy engine** | 2026-09-29 | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning. Unit tests for positive and negative cases. |
-| **M3 — Permission-aware retrieval pipeline** | 2026-09-30 | Candidate search → policy filter → context assembler. LLM never sees denied content. Integration tests proving LLM context contains only authorized documents. |
-| **M4 — TLA+ formal specification** | 2026-09-30 | `formal/access_control.tla` with all 7 invariants. TLC model-checks all invariants pass. At least one counterexample found in a deliberately broken variant. |
-| **M5 — Audit trail** | 2026-10-01 | Hash-chained event log. Audit event schema. Tamper detection. Audit query API. Tests for chain integrity and tamper detection. |
-| **M6 — LLM answer agent** | 2026-10-02 | Orchestrator + answer agent. Grounded answers with citations. Query → retrieval → answer → audit end-to-end. |
-| **M7 — Live revocation handling** | 2026-10-03 | Permission change API. Revocation reflected in subsequent queries. No stale-permitted content served. Demo 3 working. |
-| **M8 — Frontend UI** | 2026-10-05 | Query console, policy inspector panel (ALLOW/DENY cards), audit explorer, demo persona switcher. All 4 demo scenarios visible in UI. |
-| **M9 — No-metadata-leak & negative cases** | 2026-10-06 | Demo 2 working. Denial does not reveal existence. Audit logs denied attempts. |
-| **M10 — End-to-end integration & polish** | 2026-10-08 | All 5 demos working end-to-end. Architecture diagram. Trust-boundary diagram. CodeBuddy/WorkBuddy usage proof captured. |
-| **M11 — Stretch: delegated action agent** | 2026-10-10 | Bounded delegation. `effective_agent_permissions ⊆ delegating_user_permissions`. "Export to Finance" action through permission checks. |
-| **M12 — Stretch: Dafny verification** | 2026-10-11 | Verified `isAllowed` function. Subset proof. |
-| **M13 — Final preparation** | 2026-10-14 | Demo video recorded. Project description written. Submission package ready. |
-| **SUBMISSION** | 2026-10-16 | Submitted before deadline. |
+| Milestone | Exit criteria |
+|-----------|---------------|
+| **M0 — Project bootstrap** ✅ | Git repo initialized. Handoff docs created. Repo structure scaffolded. Initial commit pushed. |
+| **M1 — Data model & mock sources** | Mock connectors for Confluence, Jira, Slack, GDrive with realistic permission semantics. Document/ticket/message/file data model defined. Seed data with varied ACLs. |
+| **M2 — Policy engine** | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning. Unit tests for positive and negative cases. |
+| **M3 — Permission-aware retrieval pipeline** | Candidate search → policy filter → context assembler. LLM never sees denied content. Integration tests proving LLM context contains only authorized documents. |
+| **M4 — TLA+ formal specification** | `formal/access_control.tla` with all 7 invariants. TLC model-checks all invariants pass. At least one counterexample found in a deliberately broken variant. |
+| **M5 — Audit trail** | Hash-chained event log. Audit event schema. Tamper detection. Audit query API. Tests for chain integrity and tamper detection. |
+| **M6 — LLM answer agent** | Orchestrator + answer agent. Grounded answers with citations. Query → retrieval → answer → audit end-to-end. |
+| **M7 — Live revocation handling** | Permission change API. Revocation reflected in subsequent queries. No stale-permitted content served. Demo 3 working. |
+| **M8 — Frontend UI** | Miora-generated UI. Query console, policy inspector panel (ALLOW/DENY cards), audit explorer, demo persona switcher. All 4 demo scenarios visible in UI. |
+| **M9 — No-metadata-leak & negative cases** | Demo 2 working. Denial does not reveal existence. Audit logs denied attempts. |
+| **M10 — End-to-end integration & polish** | All 5 demos working end-to-end. Architecture diagram. Trust-boundary diagram. CodeBuddy/WorkBuddy usage proof captured. |
+| **M11 — Stretch: delegated action agent** | Bounded delegation. `effective_agent_permissions ⊆ delegating_user_permissions`. "Export to Finance" action through permission checks. |
+| **M12 — Stretch: Dafny verification** | Verified `isAllowed` function. Subset proof. |
+| **M13 — Submission preparation** | All submission deliverables completed (see below). |
+| **SUBMIT** | Submit before 16 Oct deadline. |
+
+### M13 — Submission deliverables
+
+All items below must be completed before considering the project submission-ready:
+
+| # | Deliverable | Required | Details |
+|---|------------|----------|---------|
+| 1 | Project title | ✅ | "VeriBrain" |
+| 2 | Short blurb | ✅ | Under 10 words: "Auditable AI answers that never overstep access rights." |
+| 3 | Project description | ✅ | Overview, real-world scenario insights, comprehensive solution design (business + technical architecture), how prompts drive AI generation, business value. |
+| 4 | CodeBuddy / WorkBuddy conversation history | ✅ | Min 3 screenshots/screen recordings of chat logs from CodeBuddy or WorkBuddy during development. |
+| 5 | Cover image | ✅ | 16:9 image, recommended 380×216px. Generate via Miora. |
+| 6 | Demo video | Optional | 5–8 min: project overview, core agent features, build approach reflection with CodeBuddy/WorkBuddy tips. |
+| 7 | Project link | Optional | Live URL or demo link. Bonus points. |
+| 8 | GitHub repository | ✅ | Complete source code. |
+| 9 | Architecture diagram | ✅ | System architecture + trust-boundary diagram. |
+| 10 | Worked examples | ✅ | Each of the 5 demo scenarios with a worked example in the submission. |
 
 ## 9. Git workflow
 

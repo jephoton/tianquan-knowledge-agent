@@ -4,27 +4,29 @@
 
 ## Milestone
 
-**M0 — Project bootstrap** → in progress
+**M0 — Project bootstrap** → ✅ complete  
+**Next:** M1 — Data model & mock sources
 
 ## What exists
 
 - [x] Git repository initialized.
 - [x] `.gitignore` created.
 - [x] `README.md` created.
-- [x] `docs/plan.md` — source of truth with roadmap.
+- [x] `docs/plan.md` — source of truth with roadmap and submission deliverables.
 - [x] `docs/architecture.md` — system design, trust boundaries, module map.
 - [x] `docs/current-state.md` — this file.
-- [x] `docs/decisions/` — ADR directory.
-- [ ] Repo structure scaffolded (`frontend/`, `backend/`, `formal/`, `tests/`).
-- [ ] Initial commit pushed.
+- [x] `docs/decisions/` — 3 ADRs (TLA+, pre-LLM filtering, mock connectors).
+- [x] Repo structure scaffolded (`frontend/`, `backend/`, `formal/`, `tests/`).
+- [x] Initial commit pushed.
+- [x] Miora added to tech stack for frontend UI generation.
 
 ## What's next
 
-1. Scaffold backend module structure.
-2. Scaffold frontend.
-3. Create TLA+ formal directory.
-4. Initial commit.
-5. Begin M1: data model & mock sources.
+1. **M1 — Data model & mock sources**
+   - Define resource data model (source, resource_id, title, content, ACL, sensitivity).
+   - Build mock connectors for Confluence, Jira, Slack, Google Drive.
+   - Create seed data with varied ACLs across all four platforms.
+   - Include scenarios for all 5 demos (authorized access, denial, revocation, audit, formal verification).
 
 ## Blockers
 
