@@ -200,13 +200,27 @@ All items below must be completed before considering the project submission-read
 | 1 | Project title | ✅ | "VeriBrain" |
 | 2 | Short blurb | ✅ | Under 10 words: "Auditable AI answers that never overstep access rights." |
 | 3 | Project description | ✅ | Overview, real-world scenario insights, comprehensive solution design (business + technical architecture), how prompts drive AI generation, business value. |
-| 4 | CodeBuddy / WorkBuddy conversation history | ✅ | Min 3 screenshots/screen recordings of chat logs from CodeBuddy or WorkBuddy during development. |
+| 4 | CodeBuddy / WorkBuddy conversation history | ✅ | Min 3 screenshots/screen recordings of chat logs from CodeBuddy or WorkBuddy during development. **Track continuously from M0** — see dev log below. |
 | 5 | Cover image | ✅ | 16:9 image, recommended 380×216px. Generate via Miora. |
 | 6 | Demo video | Optional | 5–8 min: project overview, core agent features, build approach reflection with CodeBuddy/WorkBuddy tips. |
 | 7 | Project link | Optional | Live URL or demo link. Bonus points. |
 | 8 | GitHub repository | ✅ | Complete source code. |
 | 9 | Architecture diagram | ✅ | System architecture + trust-boundary diagram. |
 | 10 | Worked examples | ✅ | Each of the 5 demo scenarios with a worked example in the submission. |
+
+### Development log (ongoing — track from M0)
+
+The CodeBuddy/WorkBuddy conversation proof is a **required deliverable** that must be captured during development, not reconstructed at the end. The handbook requires a minimum of 3 screenshots or screen recordings of chat logs.
+
+Track this in [`docs/dev-log.md`](dev-log.md). Each entry should record:
+
+- Date
+- Tool used (CodeBuddy / WorkBuddy / Miora)
+- What was being worked on (milestone + task)
+- Brief summary of what the conversation accomplished
+- Screenshot/screen recording captured? (Y/N)
+
+**Rule:** Take a screenshot at the end of any significant CodeBuddy/WorkBuddy session. Don't wait until M13 — by then the conversation history will be lost.
 
 ## 9. Git workflow
 
