@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-28 (M6 complete)
+> **Last updated:** 2026-09-28 (M7 complete)
 
 ---
 
@@ -182,7 +182,7 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | **M4 — TLA+ formal specification** ✅ | `formal/access_control.tla` encoding INV1–INV4, INV6, INV7 (INV5 deferred to M11). TLC (`MC_safe`) checks all pass; `MC_broken` (filter-after-retrieval) yields an INV1 counterexample at depth 4. Demo 5 ready. |
 | **M5 — Audit trail** ✅ | Hash-chained event log (`SHA256(prev + canonical_json)`). Canonical audit event schema. Tamper/reorder/deletion detection. Audit query API (by user/resource/decision/time). 18 tests for chain integrity and tamper detection. |
 | **M6 — LLM answer agent** ✅ | Orchestrator + answer agent. Grounded answers with citations (INV6), no-metadata-leak on empty context (INV7). Query → retrieval → audit → answer → audit end-to-end with a verifiable chain. LLM behind `LLMClient` interface (ADR-0005); stub for tests, live provider deferred. 15 tests. |
-| **M7 — Live revocation handling** | Permission change API. Revocation reflected in subsequent queries. No stale-permitted content served. Demo 3 working. |
+| **M7 — Live revocation handling** ✅ | `PermissionAdmin` revoke/grant (user + role) bumping `acl_version`, wired into the orchestrator. Revocation reflected in the next query with no reindex; no stale-permitted content served; audit records DENY at the new ACL version. Demo 3 working. 10 tests. |
 | **M8 — Frontend UI** | Miora-generated UI. Query console, policy inspector panel (ALLOW/DENY cards), audit explorer, demo persona switcher. All 4 demo scenarios visible in UI. |
 | **M9 — No-metadata-leak & negative cases** | Demo 2 working. Denial does not reveal existence. Audit logs denied attempts. |
 | **M10 — End-to-end integration & polish** | All 5 demos working end-to-end. Architecture diagram. Trust-boundary diagram. CodeBuddy/WorkBuddy usage proof captured. |

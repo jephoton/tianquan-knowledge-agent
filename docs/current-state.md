@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M6 complete)
+> **Last updated:** 2026-09-28 (M7 complete)
 
 ## Milestone
 
@@ -11,7 +11,8 @@
 **M4 — TLA+ formal specification** → complete  
 **M5 — Audit trail** → complete  
 **M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
-**Next:** M7 — Live revocation handling
+**M7 — Live revocation handling** → complete  
+**Next:** M8 — Frontend UI
 
 ## What exists
 
@@ -46,32 +47,38 @@
   - `llm_client.py` — `LLMClient` protocol + deterministic `StubLLMClient` (ADR-0005). Answer agent depends on the interface, never a provider SDK.
   - `answer_agent.py` — grounded answers from the assembled context; strips citations not backed by context (INV6); returns the canonical no-leak message on empty context (INV7).
   - `orchestrator.py` — `Orchestrator.handle(user, query)` runs retrieval → audits every decision → answers → audits the answer event; returns `{query_id, answer, citations, decisions, audit_chain_head, no_access}`.
-- [x] **108 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15).
+- [x] **Live permission admin** (`backend/policy/admin.py`):
+  - `PermissionAdmin` (over the same connectors the pipeline uses) — `revoke_user`/`revoke_role`/`grant_user`/`grant_role` wrap `update_acl` (bumps `acl_version`) and return an `ACLChange` with the version transition (e.g. "v1 → v2") for the policy inspector.
+  - Exposed on the orchestrator as `.admin`; a revoke is reflected in the next `handle` call with no reindex (Demo 3), and the audit trail records the DENY at the new ACL version (INV3 end-to-end).
+- [x] **118 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10).
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M7 — Live revocation handling (planned)
+### M8 — Frontend UI (planned)
 
-**Goal:** a permission-change API so a revocation is reflected in subsequent
-queries with no stale-permitted content served — Demo 3 working end to end.
+**Goal:** Miora-generated React UI surfacing all demo scenarios — query console,
+policy inspector (ALLOW/DENY cards with reason + permission source + ACL
+version), audit explorer, and a demo persona switcher.
 
-**Note:** the enforcement already exists. The permission filter re-fetches live
-ACLs (M3), the freshness checker detects stale snapshots (M2), and
-`test_revocation_after_indexing_is_honored` already proves a post-index
-revocation is honored. M7 is mostly about exposing this as an admin action and
-making the ACL-version transition visible for the demo.
+**Note:** the backend already returns everything the UI needs. `QueryResponse`
+carries `answer`, `citations`, `decisions` (each with reason + acl_version +
+policy_version), and `audit_chain_head`; `AuditQueryEngine` backs the audit
+explorer; `ACLChange.version_transition` backs the revocation demo panel.
 
 **Outline:**
 
-- `backend/api/admin_routes.py` (or an admin service) — `revoke(resource_id,
-  user/role)` and `grant(...)` wrapping the connectors' `update_acl` (which
-  already bumps `acl_version`).
-- Surface the before/after ACL version in the query response / policy inspector
-  so Demo 3 can show "ACL v17 → v18, DENY due to revoked membership".
-- Tests: run a query (allowed) → revoke → same query now excludes the resource
-  and the audit trail shows the DENY at the new ACL version.
+- Likely needs a thin FastAPI layer (`backend/api/`) to expose the orchestrator,
+  audit query, and admin actions over REST — the module map already reserves
+  `query_routes.py`, `audit_routes.py`, `admin_routes.py`.
+- Miora generates the React components against those endpoints.
+- Persona switcher = pick a seed user (alice/bob/charlie/diana/…) and re-run.
+- Wire the 4 UI-visible demo scenarios (1–4); Demo 5 (TLA+) is shown separately.
+
+**Decision to consider:** whether to build the FastAPI layer as its own small
+milestone before the UI, since M8 depends on it. Fold-in vs split — decide at
+M8 start.
 
 ## Blockers
 

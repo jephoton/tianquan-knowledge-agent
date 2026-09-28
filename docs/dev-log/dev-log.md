@@ -78,6 +78,15 @@
 
 ---
 
+### 2026-09-28 — M7: live revocation handling (Demo 3)
+
+- **Tool:** CodeBuddy
+- **Task:** Implemented live permission revocation/grant and wired it into the orchestrator.
+- **Summary:** Built `PermissionAdmin` (`backend/policy/admin.py`) with `revoke_user`/`revoke_role`/`grant_user`/`grant_role`, each wrapping the connectors' `update_acl` (which bumps `acl_version`) and returning an `ACLChange` capturing the version transition for the policy inspector. User revocation uses deny-list precedence so it's definitive. Exposed it on the orchestrator as `.admin` over the same connector instances the pipeline uses, so a revoke propagates to the next query with no reindex — this is the whole point of the M3 live-ACL design paying off. Verified Demo 3 end to end: Alice cites db-migration-plan, revoke_role('engineer') bumps v1→v2, next query excludes it, audit records the DENY at v2. 10 tests; full suite 118 passing. Marked M7 complete, outlined M8 (frontend UI) and flagged that M8 likely needs a thin FastAPI layer first.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
