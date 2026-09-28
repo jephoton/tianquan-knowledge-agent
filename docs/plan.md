@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-28 (M4 complete)
+> **Last updated:** 2026-09-28 (M5 complete)
 
 ---
 
@@ -180,7 +180,7 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | **M2 — Policy engine** ✅ | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning + freshness checking. Unit tests for positive and negative cases (22 tests). |
 | **M3 — Permission-aware retrieval pipeline** ✅ | Candidate search → policy filter → context assembler. LLM never sees denied content. 20 integration tests proving LLM context contains only authorized documents (INV1/INV2/INV3, revocation, role differentiation). |
 | **M4 — TLA+ formal specification** ✅ | `formal/access_control.tla` encoding INV1–INV4, INV6, INV7 (INV5 deferred to M11). TLC (`MC_safe`) checks all pass; `MC_broken` (filter-after-retrieval) yields an INV1 counterexample at depth 4. Demo 5 ready. |
-| **M5 — Audit trail** | Hash-chained event log. Audit event schema. Tamper detection. Audit query API. Tests for chain integrity and tamper detection. |
+| **M5 — Audit trail** ✅ | Hash-chained event log (`SHA256(prev + canonical_json)`). Canonical audit event schema. Tamper/reorder/deletion detection. Audit query API (by user/resource/decision/time). 18 tests for chain integrity and tamper detection. |
 | **M6 — LLM answer agent** | Orchestrator + answer agent. Grounded answers with citations. Query → retrieval → answer → audit end-to-end. |
 | **M7 — Live revocation handling** | Permission change API. Revocation reflected in subsequent queries. No stale-permitted content served. Demo 3 working. |
 | **M8 — Frontend UI** | Miora-generated UI. Query console, policy inspector panel (ALLOW/DENY cards), audit explorer, demo persona switcher. All 4 demo scenarios visible in UI. |

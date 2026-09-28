@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M4 complete)
+> **Last updated:** 2026-09-28 (M5 complete)
 
 ## Milestone
 
@@ -9,7 +9,8 @@
 **M2 — Policy engine** → complete  
 **M3 — Permission-aware retrieval pipeline** → complete  
 **M4 — TLA+ formal specification** → complete  
-**Next:** M5 — Audit trail
+**M5 — Audit trail** → complete  
+**Next:** M6 — LLM answer agent
 
 ## What exists
 
@@ -30,40 +31,51 @@
   - `permission_filter.py` — `PermissionFilter.filter` re-fetches **live** ACLs per candidate, runs `PolicyEngine`, records freshness, drops denied resources (INV1/INV2). Returns allowed set + all decisions for audit.
   - `context_assembler.py` — `ContextAssembler.assemble` builds a bounded, citation-marked context; exposes `is_authorized_citation` for later INV6 validation.
   - `pipeline.py` — `RetrievalPipeline.run(user, query)` wires search → filter → assemble.
-- [x] **75 tests passing**: M1 (33) + M2 (22) + M3 retrieval (20).
 - [x] **TLA+ formal spec** (`formal/`):
   - `access_control.tla` — query-lifecycle state machine (search → decide → retrieve → answer, with revocation) parameterised by a `BROKEN` flag.
   - `MC_safe` (BROKEN=FALSE) — TLC checks INV1/INV2/INV3/INV4/INV6/INV7, all hold (28 states, no error).
   - `MC_broken` (BROKEN=TRUE, filter-after-retrieval) — TLC finds an INV1 counterexample at depth 4 (over-fetched denied resource reaches the context). This is Demo 5.
   - INV5 (delegation/no-privilege-escalation) deferred to M11 stretch.
   - Verified runnable via bundled `tla2tools.jar` + Java 25; TLC output artifacts gitignored.
+- [x] **Audit trail** (`backend/audit/`):
+  - `event_schema.py` — canonical `AuditEvent` + deterministic JSON payload (sorted keys, ISO-8601 UTC); `event_from_decision` builds one from a policy `Decision`.
+  - `hash_chain.py` — `HashChain`: `event_hash = SHA256(prev_hash + canonical_json)`, append/verify, detects field tampering, broken links, reordering, and deletion; JSON persistence.
+  - `audit_query.py` — `AuditQueryEngine` filters by user / resource-substring / query / decision / action / time window and reports chain verification status (Demo 4).
+- [x] **93 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18).
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M5 — Audit trail (planned)
+### M6 — LLM answer agent (planned)
 
-**Goal:** a tamper-evident, hash-chained audit log with a query API and tests
-for chain integrity and tamper detection (INV4 at the implementation level).
+**Goal:** orchestrator + answer agent producing grounded, cited answers from
+the assembled context, end to end: query → retrieval → answer → audit.
 
-**Outline (module map already reserves `backend/audit/`):**
+**Outline (module map reserves `backend/agents/`):**
 
-- `event_schema.py` — canonical `AuditEvent` (see architecture.md §4): event_id,
-  timestamp, user_id, query_id, resource_id, action, decision, reason,
-  acl_version, policy_version, previous_hash, event_hash.
-- `hash_chain.py` — `event_hash = SHA256(previous_hash + canonical_json(event))`;
-  append + verify-chain + detect-tamper.
-- `audit_query.py` — filter events by user / resource / query / time window
-  (backs Demo 4, the compliance-officer inquiry).
-- Wire the retrieval pipeline's `FilterOutcome.decisions` into audit events so
-  every allow/deny is recorded (closes the loop with INV4).
-- Tests: chain verifies clean; mutating any event breaks verification;
-  every decision produces exactly one event.
+- `orchestrator.py` — `Orchestrator.handle(user, query)` runs the retrieval
+  pipeline, appends every decision to the hash chain, calls the answer agent,
+  then audits the answer event. Returns `{answer, citations, decisions,
+  audit_chain_head}` (matches architecture.md §5 return shape).
+- `answer_agent.py` — generates an answer grounded ONLY in the assembled
+  context, with citation markers back to allowed resources. Validate every
+  citation via `AssembledContext.is_authorized_citation` (INV6). No-metadata-
+  leak on empty context: return the canonical "I could not find accessible
+  information…" message (feeds Demo 2 / M9).
+- **LLM integration:** Tencent Cloud LLM via WorkBuddy/ADP (track requirement).
+  Wrap behind an interface with a deterministic stub so tests run offline;
+  the real client is swapped in for the demo.
+- Tests: answer cites only allowed resources; empty/denied context yields the
+  no-leak message; end-to-end run produces a verifiable audit chain.
+
+**Decision to make:** LLM client abstraction (stub vs live) — likely a small
+ADR once the WorkBuddy/ADP surface is confirmed.
 
 ## Blockers
 
-None.
+None. (M6 will need Tencent Cloud LLM credentials for the live path; the
+stubbed path unblocks all implementation and tests in the meantime.)
 
 ## Key decisions made
 

@@ -51,6 +51,15 @@
 
 ---
 
+### 2026-09-28 — M5: tamper-evident audit trail
+
+- **Tool:** CodeBuddy
+- **Task:** Implemented the M5 hash-chained audit trail and query API.
+- **Summary:** Built `event_schema` (canonical AuditEvent with deterministic sorted-key JSON payload, `event_from_decision`), `hash_chain` (`event_hash = SHA256(prev_hash + canonical_json)`, append/verify, JSON persistence), and `audit_query` (filter by user/resource-substring/query/decision/action/time window, reports chain verification — backs Demo 4). Verified end to end against the M3 pipeline: 6 real decisions chained and verified, tampering a field detected. Wrote 18 tests covering clean verification, field tampering, decision-flip, broken links, reordering, deletion, INV4 (every pipeline decision audited incl. denies), query filters, and time windows. Full suite: 93 passing. Marked M5 complete, outlined M6 (LLM answer agent) and flagged the LLM-client stub-vs-live decision.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
