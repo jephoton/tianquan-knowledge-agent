@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-27
+> **Last updated:** 2026-09-28
 
 ---
 
@@ -176,8 +176,8 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | Milestone | Exit criteria |
 |-----------|---------------|
 | **M0 — Project bootstrap** ✅ | Git repo initialized. Handoff docs created. Repo structure scaffolded. Initial commit pushed. |
-| **M1 — Data model & mock sources** | Mock connectors for Confluence, Jira, Slack, GDrive with realistic permission semantics. Document/ticket/message/file data model defined. Seed data with varied ACLs. |
-| **M2 — Policy engine** | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning. Unit tests for positive and negative cases. |
+| **M1 — Data model & mock sources** ✅ | Mock connectors for Confluence, Jira, Slack, GDrive with realistic permission semantics. Document/ticket/message/file data model defined. Seed data with varied ACLs. |
+| **M2 — Policy engine** ✅ | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning + freshness checking. Unit tests for positive and negative cases (22 tests). |
 | **M3 — Permission-aware retrieval pipeline** | Candidate search → policy filter → context assembler. LLM never sees denied content. Integration tests proving LLM context contains only authorized documents. |
 | **M4 — TLA+ formal specification** | `formal/access_control.tla` with all 7 invariants. TLC model-checks all invariants pass. At least one counterexample found in a deliberately broken variant. |
 | **M5 — Audit trail** | Hash-chained event log. Audit event schema. Tamper detection. Audit query API. Tests for chain integrity and tamper detection. |

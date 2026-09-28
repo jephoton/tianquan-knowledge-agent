@@ -15,6 +15,15 @@
 
 ---
 
+### 2026-09-28 — M2: Policy engine + handoff-layer steering
+
+- **Tool:** CodeBuddy
+- **Task:** Onboarded to the repo via the handoff layer. Added a global-style steering rule for the persistent handoff layer + conventional-commit discipline. Committed and completed M2 (policy engine).
+- **Summary:** Read the full handoff layer (plan, architecture, current-state, ADRs, dev-log) to understand VeriBrain. Created `.kiro/steering/handoff-layer.md` codifying the docs/ handoff structure and commit conventions. Found uncommitted M2 policy code (policy_engine, permission_mapping, freshness_checker) with no tests; verified it imports and matches the data model, wrote 22 positive/negative/freshness tests (all 55 tests pass), then committed engine and tests as separate atomic commits. Updated current-state.md and plan.md to mark M2 complete and set M3 (retrieval pipeline) as next.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
