@@ -24,6 +24,7 @@ from backend.agents.llm_client import LLMClient, StubLLMClient
 from backend.audit.hash_chain import HashChain
 from backend.connectors.base import BaseConnector
 from backend.models import Action, Decision, User
+from backend.policy.admin import PermissionAdmin
 from backend.retrieval.context_assembler import Citation
 from backend.retrieval.pipeline import RetrievalPipeline
 
@@ -58,16 +59,27 @@ class Orchestrator:
         audit_chain: HashChain | None = None,
         max_context_chars: int = 8000,
     ):
+        self._connectors = list(connectors)
         self._pipeline = RetrievalPipeline(
-            connectors, max_context_chars=max_context_chars,
+            self._connectors, max_context_chars=max_context_chars,
         )
         self._answer_agent = AnswerAgent(llm or StubLLMClient())
         self._audit = audit_chain or HashChain()
+        self._admin = PermissionAdmin(self._connectors)
 
     @property
     def audit(self) -> HashChain:
         """The audit chain (for inspection / query in the demo)."""
         return self._audit
+
+    @property
+    def admin(self) -> PermissionAdmin:
+        """Live permission admin over the SAME connectors the pipeline uses.
+
+        A revoke/grant here is reflected in the next `handle` call without a
+        reindex, because the permission filter re-fetches live ACLs (Demo 3).
+        """
+        return self._admin
 
     def reindex(self) -> int:
         return self._pipeline.reindex()
