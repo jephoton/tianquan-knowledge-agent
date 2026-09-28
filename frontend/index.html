@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://unpkg.com" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/js/all.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * {
+      scrollbar-width: none;
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+  </style>
+</head>
+
+<body class="bg-[#0c0c0c] text-[#e8dcc8] min-h-screen overflow-x-hidden" style="font-family:'SF Mono','Menlo','Consolas',monospace;">
+
+<!-- Scanline overlay -->
+<div class="pointer-events-none fixed inset-0 z-[9999]" style="background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px);"></div>
+<!-- Vignette overlay -->
+<div class="pointer-events-none fixed inset-0 z-[9998]" style="background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.4) 100%);"></div>
+
+<style type="text/tailwindcss">
+  @theme {
+    --color-crt-bg: #0c0c0c;
+    --color-crt-surface: #141414;
+    --color-crt-text: #e8dcc8;
+    --color-crt-muted: #6b6150;
+    --color-crt-amber: #ffb000;
+    --color-crt-deny: #8a3a3a;
+    --color-crt-deny-text: #c47a7a;
+    --color-crt-border: rgba(232, 220, 200, 0.08);
+    --color-crt-border-hover: rgba(232, 220, 200, 0.15);
+    --color-crt-input-bg: #0a0a0a;
+    --color-crt-verified: #3a8a5a;
+  }
+
+  @keyframes blink-cursor {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+</style>
+
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  .phosphor-text { text-shadow: 0 0 2px currentColor; }
+  .phosphor-glow { text-shadow: 0 0 8px currentColor; }
+  .phosphor-glow-box { box-shadow: 0 0 12px rgba(255,176,0,0.3); }
+  .phosphor-glow-box:hover { box-shadow: 0 0 20px rgba(255,176,0,0.5); }
+
+  .blink-cursor { animation: blink-cursor 1s step-end infinite; }
+  .glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+  .crt-card {
+    background: #141414;
+    border: 1px solid rgba(232, 220, 200, 0.08);
+    border-radius: 2px;
+    transition: border-color 0.2s, background-color 0.2s;
+  }
+  .crt-card:hover {
+    border-color: rgba(232, 220, 200, 0.15);
+    background: #1a1a1a;
+  }
+
+  .allow-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(255,176,0,0.15);
+    color: #ffb000;
+    font-size: 11px;
+    text-shadow: 0 0 6px currentColor;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+  }
+  .allow-pill::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #ffb000;
+    box-shadow: 0 0 4px #ffb000;
+  }
+
+  .deny-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(138,58,58,0.15);
+    color: #c47a7a;
+    font-size: 11px;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+  }
+  .deny-pill::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #c47a7a;
+  }
+
+  .persona-chip {
+    padding: 4px 12px;
+    border: 1px solid rgba(232,220,200,0.08);
+    border-radius: 2px;
+    background: transparent;
+    color: #6b6150;
+    font-size: 12px;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .persona-chip:hover {
+    border-color: rgba(232,220,200,0.15);
+    color: #e8dcc8;
+  }
+  .persona-chip.active {
+    border-color: #ffb000;
+    color: #ffb000;
+    text-shadow: 0 0 8px #ffb000;
+    background: rgba(255,176,0,0.06);
+  }
+
+  .log-row {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(232,220,200,0.04);
+    font-size: 12px;
+    line-height: 1.7;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .log-row:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b6150;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+  }
+
+  .crt-input {
+    background: #0a0a0a;
+    border: 1px solid rgba(232,220,200,0.1);
+    border-radius: 2px;
+    color: #e8dcc8;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .crt-input::placeholder { color: #4a4540; }
+  .crt-input:focus {
+    border-color: rgba(255,176,0,0.3);
+  }
+
+  .outline-btn {
+    padding: 6px 16px;
+    border: 1px solid rgba(232,220,200,0.15);
+    border-radius: 2px;
+    background: transparent;
+    color: #e8dcc8;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .outline-btn:hover {
+    background: rgba(255,176,0,0.1);
+    border-color: #ffb000;
+    color: #ffb000;
+    text-shadow: 0 0 8px #ffb000;
+  }
+
+  .audit-table { width: 100%; border-collapse: collapse; }
+  .audit-table th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b6150;
+    text-align: left;
+    padding: 6px 12px 6px 0;
+    border-bottom: 1px solid rgba(232,220,200,0.08);
+    font-weight: 400;
+  }
+  .audit-table td {
+    font-size: 12px;
+    color: #6b6150;
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid rgba(232,220,200,0.04);
+    white-space: nowrap;
+  }
+
+  .filter-field {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #6b6150;
+  }
+  .filter-field label {
+    color: #6b6150;
+    white-space: nowrap;
+  }
+  .filter-field input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(232,220,200,0.12);
+    color: #e8dcc8;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 12px;
+    padding: 2px 4px;
+    outline: none;
+    width: 120px;
+  }
+  .filter-field input:focus { border-bottom-color: rgba(255,176,0,0.4); }
+</style>
+
+<!-- ====== TOP BAR ====== -->
+<header class="w-full" style="border-bottom:1px solid rgba(232,220,200,0.08);">
+  <div class="max-w-[1440px] mx-auto flex items-center justify-between px-12 py-3">
+    <div class="flex items-center gap-2">
+      <span class="text-[28px] font-normal phosphor-text" style="color:#e8dcc8;">VeriBrain</span>
+      <span class="blink-cursor text-[#ffb000] text-[28px] phosphor-glow" style="font-weight:300;">|</span>
+    </div>
+    <div class="flex items-center gap-6">
+      <span class="section-label" style="font-size:11px;">system operational</span>
+      <span id="health-dot" style="color:#3a8a5a;font-size:11px;text-shadow:0 0 4px #3a8a5a;">&#9679;</span>
+      <span id="current-user" style="color:#6b6150;font-size:12px;">[--] --</span>
+    </div>
+  </div>
+</header>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="max-w-[1440px] mx-auto px-12 py-8 flex flex-col gap-8">
+
+  <!-- PERSONA SWITCHER -->
+  <section>
+    <div class="section-label mb-3">active persona</div>
+    <div id="persona-list" class="flex items-center gap-3 flex-wrap">
+      <span style="color:#6b6150;font-size:12px;">loading personas...</span>
+    </div>
+  </section>
+
+  <!-- QUERY CONSOLE -->
+  <section class="crt-card p-6">
+    <div class="section-label mb-4">query console</div>
+    <div class="flex gap-3 items-start">
+      <div class="flex-1 relative">
+        <input id="query-input" type="text" class="crt-input" placeholder="> enter policy query..." style="padding-right:24px;" />
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 blink-cursor text-[#ffb000] phosphor-glow text-sm select-none">&#9646;</span>
+      </div>
+      <button id="ask-btn" class="phosphor-glow-box" style="background:#ffb000;color:#0c0c0c;font-family:'SF Mono','Menlo','Consolas',monospace;font-size:13px;padding:8px 24px;border:none;border-radius:2px;cursor:pointer;font-weight:600;letter-spacing:0.03em;">ASK</button>
+    </div>
+
+    <!-- Answer area -->
+    <div class="mt-5 pt-5" style="border-top:1px solid rgba(232,220,200,0.06);">
+      <div class="section-label mb-3">response</div>
+      <div id="answer-text" class="phosphor-text" style="font-size:13px;line-height:1.8;color:#6b6150;">
+        &gt; awaiting query...
+      </div>
+      <div id="answer-citations" class="mt-3 flex gap-4 flex-wrap" style="font-size:11px;color:#6b6150;"></div>
+    </div>
+  </section>
+
+  <!-- STATS ROW -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">audit events</div>
+      <div id="stat-total" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">allowed</div>
+      <div id="stat-allowed" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">denied</div>
+      <div id="stat-denied" style="font-size:32px;font-weight:700;color:#c47a7a;">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">chain integrity</div>
+      <div id="stat-chain" style="font-size:32px;font-weight:700;color:#3a8a5a;" class="phosphor-glow">--</div>
+    </div>
+  </div>
+
+  <!-- TWO-COLUMN: POLICY INSPECTOR + AUDIT EXPLORER -->
+  <div class="grid grid-cols-2 gap-6">
+
+    <!-- POLICY INSPECTOR -->
+    <section class="crt-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-label">policy inspector</div>
+        <div id="inspector-summary" style="font-size:12px;">
+          <span style="color:#6b6150;">no query yet</span>
+        </div>
+      </div>
+
+      <div id="inspector-rows" class="flex flex-col">
+        <div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; run a query to see policy decisions</span></div>
+      </div>
+
+      <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+        <div style="font-size:11px;color:#6b6150;">
+          policy engine: VeriBrain &middot; fail-closed &middot; live ACL evaluation
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIT EXPLORER -->
+    <section class="crt-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-label">audit explorer</div>
+        <span id="chain-badge" style="color:#6b6150;font-size:11px;">[CHAIN --]</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="flex gap-6 mb-4 items-end">
+        <div class="filter-field">
+          <label>[user_id]:</label>
+          <input id="f-user" type="text" placeholder="all" />
+        </div>
+        <div class="filter-field">
+          <label>[decision]:</label>
+          <input id="f-decision" type="text" placeholder="allow|deny" />
+        </div>
+        <div class="filter-field">
+          <label>[resource]:</label>
+          <input id="f-resource" type="text" placeholder="substring" />
+        </div>
+        <button id="audit-refresh" class="outline-btn" style="padding:3px 10px;font-size:11px;">refresh</button>
+        <button id="audit-verify" class="outline-btn" style="padding:3px 10px;font-size:11px;">verify chain</button>
+      </div>
+
+      <!-- Events table -->
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>timestamp</th>
+            <th>user</th>
+            <th>action</th>
+            <th>resource</th>
+            <th>result</th>
+            <th>hash</th>
+          </tr>
+        </thead>
+        <tbody id="audit-body">
+          <tr><td colspan="6" style="color:#6b6150;">no events yet</td></tr>
+        </tbody>
+      </table>
+
+      <div class="mt-3 flex items-center justify-between">
+        <span id="audit-count" style="font-size:11px;color:#6b6150;">showing 0 events</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- REVOCATION CONTROLS -->
+  <section class="crt-card p-6">
+    <div class="section-label mb-4">revocation controls</div>
+    <div class="grid grid-cols-3 gap-6">
+      <div>
+        <div class="filter-field mb-3">
+          <label>[resource_id]:</label>
+          <input id="rev-resource" type="text" placeholder="e.g. confluence:db-migration-plan" style="width:100%;" />
+        </div>
+        <div class="filter-field">
+          <label>[subject]:</label>
+          <input id="rev-subject" type="text" placeholder="e.g. engineer or alice" style="width:100%;" />
+        </div>
+      </div>
+      <div>
+        <div class="filter-field mb-3">
+          <label>[subject_kind]:</label>
+          <input id="rev-kind" type="text" placeholder="user | role" value="role" style="width:100%;" />
+        </div>
+      </div>
+      <div class="flex items-end gap-3">
+        <button id="revoke-btn" class="outline-btn">[REVOKE]</button>
+        <button id="grant-btn" class="outline-btn">[GRANT]</button>
+      </div>
+    </div>
+    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+      <div id="rev-status" style="font-size:11px;color:#6b6150;">
+        no revocations this session
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-4" style="border-top:1px solid rgba(232,220,200,0.06);">
+    <div class="flex items-center justify-between">
+      <span style="font-size:11px;color:#6b6150;">VeriBrain &middot; permission-aware enterprise knowledge agent</span>
+      <span id="footer-status" style="font-size:11px;color:#6b6150;">api: connecting...</span>
+    </div>
+  </footer>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:10000;background:#141414;border:1px solid #ffb000;color:#ffb000;padding:10px 16px;border-radius:2px;font-family:'SF Mono','Menlo','Consolas',monospace;font-size:12px;box-shadow:0 0 12px rgba(255,176,0,0.3);max-width:360px;"></div>
+
+</body>
+<script>if (window.lucide) lucide.createIcons();</script>
+<script src="app.js"></script>
+</html>
