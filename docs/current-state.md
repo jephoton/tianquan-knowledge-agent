@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M3 complete)
+> **Last updated:** 2026-09-28 (M4 complete)
 
 ## Milestone
 
@@ -8,7 +8,8 @@
 **M1 — Data model & mock sources** → complete  
 **M2 — Policy engine** → complete  
 **M3 — Permission-aware retrieval pipeline** → complete  
-**Next:** M4 — TLA+ formal specification
+**M4 — TLA+ formal specification** → complete  
+**Next:** M5 — Audit trail
 
 ## What exists
 
@@ -30,35 +31,35 @@
   - `context_assembler.py` — `ContextAssembler.assemble` builds a bounded, citation-marked context; exposes `is_authorized_citation` for later INV6 validation.
   - `pipeline.py` — `RetrievalPipeline.run(user, query)` wires search → filter → assemble.
 - [x] **75 tests passing**: M1 (33) + M2 (22) + M3 retrieval (20).
+- [x] **TLA+ formal spec** (`formal/`):
+  - `access_control.tla` — query-lifecycle state machine (search → decide → retrieve → answer, with revocation) parameterised by a `BROKEN` flag.
+  - `MC_safe` (BROKEN=FALSE) — TLC checks INV1/INV2/INV3/INV4/INV6/INV7, all hold (28 states, no error).
+  - `MC_broken` (BROKEN=TRUE, filter-after-retrieval) — TLC finds an INV1 counterexample at depth 4 (over-fetched denied resource reaches the context). This is Demo 5.
+  - INV5 (delegation/no-privilege-escalation) deferred to M11 stretch.
+  - Verified runnable via bundled `tla2tools.jar` + Java 25; TLC output artifacts gitignored.
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M4 — TLA+ formal specification (planned)
+### M5 — Audit trail (planned)
 
-**Goal:** `formal/access_control.tla` modeling the access-control state machine
-with all 7 invariants; TLC model-checks them; a deliberately broken variant
-(filter-after-retrieval) yields a counterexample for the demo (Demo 5).
+**Goal:** a tamper-evident, hash-chained audit log with a query API and tests
+for chain integrity and tamper detection (INV4 at the implementation level).
 
-**Outline:**
+**Outline (module map already reserves `backend/audit/`):**
 
-- Model entities: Users, Roles, Resources, ACLs (with version), Queries,
-  Retrievals, the LLM context set, AuditEvents, Revocations.
-- Actions: submit query, search candidates, policy-decide, retrieve into
-  context, revoke permission, emit audit event.
-- Invariants to encode: INV1 RetrievedOnlyIfAuthorized, INV2
-  LLMSeesOnlyRetrievedContent, INV3 RevokedAccessNotReusable, INV4
-  EveryDecisionAudited, INV6 NoUnauthorizedCitation, INV7 NoMetadataLeakOnDeny
-  (INV5 delegation is a stretch, M11).
-- Broken variant: reorder so retrieval happens before the policy decision;
-  show TLC finds a state violating INV2.
-- Keep the model small (2-3 users, 2-3 resources, 1 revocation) so TLC
-  finishes fast and the state graph is explainable to judges.
-
-**Note:** the implementation already mirrors these invariants — M3 tests cover
-INV1/INV2/INV3 at the code level, so the TLA+ spec and the Python tests should
-tell the same story.
+- `event_schema.py` — canonical `AuditEvent` (see architecture.md §4): event_id,
+  timestamp, user_id, query_id, resource_id, action, decision, reason,
+  acl_version, policy_version, previous_hash, event_hash.
+- `hash_chain.py` — `event_hash = SHA256(previous_hash + canonical_json(event))`;
+  append + verify-chain + detect-tamper.
+- `audit_query.py` — filter events by user / resource / query / time window
+  (backs Demo 4, the compliance-officer inquiry).
+- Wire the retrieval pipeline's `FilterOutcome.decisions` into audit events so
+  every allow/deny is recorded (closes the loop with INV4).
+- Tests: chain verifies clean; mutating any event breaks verification;
+  every decision produces exactly one event.
 
 ## Blockers
 

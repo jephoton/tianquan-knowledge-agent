@@ -42,6 +42,15 @@
 
 ---
 
+### 2026-09-28 — M4: TLA+ formal specification
+
+- **Tool:** CodeBuddy + TLA+ VS Code extension (TLC via bundled tla2tools.jar, Java 25)
+- **Task:** Wrote and model-checked the TLA+ access-control specification.
+- **Summary:** Modeled the query lifecycle (search → decide → retrieve → answer, with revocation) as a state machine in `access_control.tla`, parameterised by a `BROKEN` flag. Encoded INV1–INV4, INV6, INV7 (INV5 delegation deferred to M11). Built MC harness modules to supply the `Authorized` ACL function that a .cfg literal can't express. Ran TLC: `MC_safe` passes all invariants (28 states); `MC_broken` (filter-after-retrieval) produces an INV1 counterexample at depth 4 — an over-fetched, denied resource (r2) reaches alice's context. That's the Demo 5 payoff. Cleaned up TLC output artifacts and gitignored them. Marked M4 complete, outlined M5 (audit trail).
+- **Screenshot captured:** N — capture at end of session (TLC output worth capturing for the demo).
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
