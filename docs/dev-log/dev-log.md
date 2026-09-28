@@ -60,6 +60,15 @@
 
 ---
 
+### 2026-09-28 — M6 pre-work: LLM client decision (ADR-0005)
+
+- **Tool:** CodeBuddy
+- **Task:** Decided the LLM integration approach before building M6, to avoid technical debt.
+- **Summary:** Discovered the WorkBuddy API is paywalled (requires Pro, not currently available). Decided to abstract the LLM behind an `LLMClient` interface: `StubLLMClient` (deterministic, offline) as the dev/test default, `TencentLLMClient` (WorkBuddy/ADP) as the demo adapter selected via config. Rationale: permission safety (INV1/INV2) is pre-LLM, so the model is a leaf/swappable component — "which LLM" is a deployment choice, not architecture. Recorded as ADR-0005 and logged the WorkBuddy Pro paywall as a tracked blocker with fallbacks (CodeBuddy usage proof; optional local model for the demo). No code written yet.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task

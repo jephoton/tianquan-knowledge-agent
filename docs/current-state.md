@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M5 complete)
+> **Last updated:** 2026-09-28 (M5 complete; M6 LLM-client decision made)
 
 ## Milestone
 
@@ -63,19 +63,24 @@ the assembled context, end to end: query → retrieval → answer → audit.
   citation via `AssembledContext.is_authorized_citation` (INV6). No-metadata-
   leak on empty context: return the canonical "I could not find accessible
   information…" message (feeds Demo 2 / M9).
-- **LLM integration:** Tencent Cloud LLM via WorkBuddy/ADP (track requirement).
-  Wrap behind an interface with a deterministic stub so tests run offline;
-  the real client is swapped in for the demo.
+- **LLM integration:** behind an `LLMClient` interface — see
+  [ADR-0005](decisions/0005-llm-client-abstraction.md). `StubLLMClient`
+  (deterministic, offline) is the default for dev/tests; `TencentLLMClient`
+  (WorkBuddy/ADP) is the demo adapter, swapped in via config.
 - Tests: answer cites only allowed resources; empty/denied context yields the
-  no-leak message; end-to-end run produces a verifiable audit chain.
+  no-leak message; end-to-end run produces a verifiable audit chain — all with
+  the stub client, no credentials required.
 
-**Decision to make:** LLM client abstraction (stub vs live) — likely a small
-ADR once the WorkBuddy/ADP surface is confirmed.
+**Decision made:** LLM client abstraction settled in ADR-0005.
 
 ## Blockers
 
-None. (M6 will need Tencent Cloud LLM credentials for the live path; the
-stubbed path unblocks all implementation and tests in the meantime.)
+- **WorkBuddy API requires a Pro upgrade** (not currently available), so the
+  live Tencent LLM path cannot be exercised yet. Mitigated by ADR-0005: M6 is
+  built and tested against `StubLLMClient` offline; the WorkBuddy adapter is a
+  config-level swap once Pro access lands. Fallbacks if it never does:
+  CodeBuddy (already the documented dev tool / usage proof) and/or a local
+  open-source model for the live demo.
 
 ## Key decisions made
 
