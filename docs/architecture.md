@@ -1,6 +1,6 @@
 # Architecture — VeriBrain
 
-> **Last updated:** 2026-09-27
+> **Last updated:** 2026-09-28
 
 ## 1. System overview
 
@@ -116,11 +116,19 @@ The authorization core.
 - `hash_chain.py` — `event_hash = SHA256(prev_hash + canonical_json(event))`.
 - `audit_query.py` — query API for compliance officers.
 
-### `backend/api/`
+### `backend/api/` (FastAPI — implemented)
 
-- `query_routes.py` — POST `/query`, GET `/query/{id}`.
+- `app.py` — application factory + module-level `app` (`uvicorn backend.api.app:app`).
+- `state.py` — shared singletons; a single `Orchestrator` so revocations persist across requests.
+- `schemas.py` — Pydantic request/response models (the frontend wire contract).
+- `query_routes.py` — POST `/query`.
 - `audit_routes.py` — GET `/audit`, GET `/audit/verify`.
 - `admin_routes.py` — POST `/admin/revoke`, POST `/admin/grant`.
+- Meta: GET `/health`, GET `/users` (persona switcher).
+
+The API is a thin adapter: authorization, retrieval, and audit all live in the
+layers below. Routes translate between the Pydantic wire models and the
+internal orchestrator/audit/admin services.
 
 ## 4. Data models
 

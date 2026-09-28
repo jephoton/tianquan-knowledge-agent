@@ -87,6 +87,15 @@
 
 ---
 
+### 2026-09-28 — M8 (part 1): REST API layer
+
+- **Tool:** CodeBuddy
+- **Task:** Built the FastAPI layer the frontend will code against (frontend itself deferred).
+- **Summary:** Added `backend/api/` — an app factory (`app.py`), shared state with a single orchestrator so revocations persist across requests (`state.py`), Pydantic wire models (`schemas.py`), and three routers: `/query`, `/audit` + `/audit/verify`, `/admin/revoke` + `/admin/grant`, plus `/health` and `/users` for the persona switcher. The API is a thin adapter — all authorization/retrieval/audit logic stays in the layers below. Introduced the project's first runtime deps (FastAPI, uvicorn) and created a pinned `requirements.txt`. Smoke-tested that uvicorn boots and `/health` responds. Wrote 13 API tests via FastAPI TestClient, including Demo 3 (revoke → next query excludes the resource) over HTTP; full suite 131 passing. Updated architecture.md to mark the API implemented. Frontend (Miora React UI) remains for a later session.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task

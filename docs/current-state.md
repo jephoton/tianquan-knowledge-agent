@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M7 complete)
+> **Last updated:** 2026-09-28 (M8 API layer complete; frontend pending)
 
 ## Milestone
 
@@ -12,7 +12,8 @@
 **M5 — Audit trail** → complete  
 **M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
 **M7 — Live revocation handling** → complete  
-**Next:** M8 — Frontend UI
+**M8 — Frontend UI** → in progress (REST API layer done; Miora React UI pending)  
+**Next:** M8 — Miora-generated React UI against the REST API
 
 ## What exists
 
@@ -50,35 +51,42 @@
 - [x] **Live permission admin** (`backend/policy/admin.py`):
   - `PermissionAdmin` (over the same connectors the pipeline uses) — `revoke_user`/`revoke_role`/`grant_user`/`grant_role` wrap `update_acl` (bumps `acl_version`) and return an `ACLChange` with the version transition (e.g. "v1 → v2") for the policy inspector.
   - Exposed on the orchestrator as `.admin`; a revoke is reflected in the next `handle` call with no reindex (Demo 3), and the audit trail records the DENY at the new ACL version (INV3 end-to-end).
-- [x] **118 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10).
+- [x] **REST API layer** (`backend/api/`, FastAPI):
+  - `app.py` — factory + module `app` (run `uvicorn backend.api.app:app`); CORS open for local dev; `/health`, `/users` (persona switcher).
+  - `state.py` — shared singletons; ONE orchestrator so revocations persist across requests (Demo 3).
+  - `query_routes.py` — `POST /query` → answer + citations + decisions (reason/ACL version) + chain head.
+  - `audit_routes.py` — `GET /audit` (filter by user/resource/query/decision/action) + `GET /audit/verify`.
+  - `admin_routes.py` — `POST /admin/revoke`, `POST /admin/grant` → `ACLChange` with version transition.
+  - `schemas.py` — Pydantic wire contract (decoupled from internal dataclasses).
+  - Dependencies pinned in `requirements.txt` (FastAPI, uvicorn, pytest, httpx). Server boot smoke-tested.
+- [x] **131 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13).
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M8 — Frontend UI (planned)
+### M8 (remainder) — Miora-generated React UI
 
-**Goal:** Miora-generated React UI surfacing all demo scenarios — query console,
-policy inspector (ALLOW/DENY cards with reason + permission source + ACL
-version), audit explorer, and a demo persona switcher.
+**Done:** the REST API layer (above) exposes everything the UI needs.
 
-**Note:** the backend already returns everything the UI needs. `QueryResponse`
-carries `answer`, `citations`, `decisions` (each with reason + acl_version +
-policy_version), and `audit_chain_head`; `AuditQueryEngine` backs the audit
-explorer; `ACLChange.version_transition` backs the revocation demo panel.
+**Remaining:** the frontend itself.
 
-**Outline:**
+- **API surface for the frontend to code against:**
+  - `GET /users` — persona switcher list.
+  - `POST /query {user_id, question, k}` — returns `answer`, `citations`,
+    `decisions[]` (reason, result, acl_version), `allow_count`, `deny_count`,
+    `audit_chain_head`, `no_access`.
+  - `GET /audit?user_id=&resource_contains=&decision=…` — audit explorer.
+  - `GET /audit/verify` — tamper-evidence badge.
+  - `POST /admin/revoke|grant {resource_id, subject, subject_kind}` — returns
+    `version_transition` for the revocation demo.
+  - Interactive docs at `/docs` (OpenAPI) while the server runs.
+- **UI components (Miora):** query console, policy inspector (ALLOW/DENY cards
+  showing reason + source + ACL version), audit explorer, persona switcher.
+- Wire the 4 UI-visible demo scenarios (1–4); Demo 5 (TLA+) shown separately.
 
-- Likely needs a thin FastAPI layer (`backend/api/`) to expose the orchestrator,
-  audit query, and admin actions over REST — the module map already reserves
-  `query_routes.py`, `audit_routes.py`, `admin_routes.py`.
-- Miora generates the React components against those endpoints.
-- Persona switcher = pick a seed user (alice/bob/charlie/diana/…) and re-run.
-- Wire the 4 UI-visible demo scenarios (1–4); Demo 5 (TLA+) is shown separately.
-
-**Decision to consider:** whether to build the FastAPI layer as its own small
-milestone before the UI, since M8 depends on it. Fold-in vs split — decide at
-M8 start.
+Frontend work is deferred for now (per team decision) — API is ready when it
+resumes. `frontend/` currently holds only a README.
 
 ## Blockers
 
