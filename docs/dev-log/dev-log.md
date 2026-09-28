@@ -33,6 +33,15 @@
 
 ---
 
+### 2026-09-28 — M3: retrieval pipeline implementation
+
+- **Tool:** CodeBuddy
+- **Task:** Implemented the M3 permission-aware retrieval pipeline end to end.
+- **Summary:** Built `indexer` (connector snapshot with ACL-version stamp), `candidate_search` (deterministic keyword/token-overlap, over-fetch), `permission_filter` (re-fetches live ACLs, runs the policy engine, records freshness, drops denied resources), `context_assembler` (bounded, citation-marked context with INV6 hook), and `pipeline` wiring the four. Verified the safety property manually: contractor Bob gets zero security-breach content while security-team Charlie sees the confidential report. Wrote 20 integration tests (INV1/INV2/INV3, over-fetch safety, revocation-after-indexing honored without reindex, contractor⊂engineer). Full suite: 75 passing. Marked M3 complete and outlined M4 (TLA+) in the handoff layer.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
