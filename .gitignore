@@ -25,6 +25,10 @@ Thumbs.db
 # ── TLA+ ────────────────────────────────────────
 *.toolbox/
 modules/
+# TLC model-checker output artifacts
+formal/states/
+*_TTrace_*.tla
+*_TTrace_*.bin
 
 # ── Misc ────────────────────────────────────────
 *.log
