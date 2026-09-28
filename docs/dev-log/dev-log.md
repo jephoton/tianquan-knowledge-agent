@@ -105,6 +105,15 @@
 
 ---
 
+### 2026-09-28 — M9: no-metadata-leak verification (Demo 2)
+
+- **Tool:** CodeBuddy
+- **Task:** Proved the negative-case / no-metadata-leak property end to end.
+- **Summary:** No new source code — INV7 was already enforced in the answer agent (M6) and denied decisions were already audited (M5). Added 7 end-to-end tests through the orchestrator asserting the full Demo 2 property: a denied resource (the confidential Q3 breach report) appears in the audit trail as a DENY but its title/id/distinctive content never leak into the answer or citations, the deny reason is recorded for auditors but not shown to the user, and — the sharpest one — a denied query returns the SAME canonical message as a genuinely nonexistent topic, so the user cannot tell "denied" from "does not exist." Control test confirms security_team still sees the content. Full suite 138 passing. Marked M9 complete; next is M10 (integration & polish: demo runbook, run instructions, screenshots).
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task

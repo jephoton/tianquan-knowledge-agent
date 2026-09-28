@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-28 (M8 complete)
+> **Last updated:** 2026-09-28 (M9 complete)
 
 ---
 
@@ -184,7 +184,7 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | **M6 — LLM answer agent** ✅ | Orchestrator + answer agent. Grounded answers with citations (INV6), no-metadata-leak on empty context (INV7). Query → retrieval → audit → answer → audit end-to-end with a verifiable chain. LLM behind `LLMClient` interface (ADR-0005); stub for tests, live provider deferred. 15 tests. |
 | **M7 — Live revocation handling** ✅ | `PermissionAdmin` revoke/grant (user + role) bumping `acl_version`, wired into the orchestrator. Revocation reflected in the next query with no reindex; no stale-permitted content served; audit records DENY at the new ACL version. Demo 3 working. 10 tests. |
 | **M8 — Frontend UI** ✅ | FastAPI REST layer (`/query`, `/audit`, `/admin/*`, `/users`) + Miora-generated CRT dashboard wired to it: query console, policy inspector (ALLOW/DENY + reason + ACL version), audit explorer with tamper-evidence badge, persona switcher, live revoke/grant. Static frontend, no build. 13 API tests. |
-| **M9 — No-metadata-leak & negative cases** | Demo 2 working. Denial does not reveal existence. Audit logs denied attempts. |
+| **M9 — No-metadata-leak & negative cases** ✅ | Demo 2 working. Denial returns the canonical message, identical to a genuine no-match (does not reveal existence). Denied attempts audited but never leaked into answer/citations. 7 end-to-end tests (INV7). |
 | **M10 — End-to-end integration & polish** | All 5 demos working end-to-end. Architecture diagram. Trust-boundary diagram. CodeBuddy/WorkBuddy usage proof captured. |
 | **M11 — Stretch: delegated action agent** | Bounded delegation. `effective_agent_permissions ⊆ delegating_user_permissions`. "Export to Finance" action through permission checks. |
 | **M12 — Stretch: Dafny verification** | Verified `isAllowed` function. Subset proof. |

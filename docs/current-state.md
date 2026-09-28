@@ -13,7 +13,8 @@
 **M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
 **M7 — Live revocation handling** → complete  
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
-**Next:** M9 — No-metadata-leak & negative cases (largely already satisfied; needs demo polish)
+**M9 — No-metadata-leak & negative cases** → complete  
+**Next:** M10 — End-to-end integration & polish
 
 ## What exists
 
@@ -63,30 +64,36 @@
   - `index.html` — Miora-generated CRT/phosphor dashboard (persona switcher, query console, policy inspector, audit explorer, revocation controls).
   - `app.js` — wires every panel to the API (`/users`, `/query`, `/audit`, `/audit/verify`, `/admin/revoke|grant`); persona switcher, live ALLOW/DENY inspector, tamper-evidence badge, and auto-re-run after revoke/grant (Demo 3). Graceful offline degradation.
   - Served via any static host (e.g. `python -m http.server` in `frontend/`); backend CORS is open. Verified against live API responses.
-- [x] **131 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13). (Frontend is static; no automated tests.)
+- [x] **No-metadata-leak verification (M9)**: end-to-end tests proving a denied
+  resource is recorded in the audit trail but never leaks (title/id/content)
+  into the answer or citations, and that a denied query and a nonexistent-topic
+  query return the *identical* canonical message (denial doesn't confirm
+  existence). INV7 was already enforced in the answer agent (M6); M9 added the
+  system-level proof — no new source code.
+- [x] **138 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M9 — No-metadata-leak & negative cases (planned)
+### M10 — End-to-end integration & polish (planned)
 
-**Goal:** Demo 2 fully working — denial reveals nothing, denied attempts are
-audited.
-
-**Note:** this is largely already satisfied. INV7 is enforced in the answer
-agent (empty context → canonical no-leak message, verified by
-`test_no_leak_message_reveals_nothing`), and denied decisions are already
-audited (M5). M9 is mostly verifying the end-to-end demo through the UI and
-tightening any edges.
+**Goal:** all 5 demos runnable end to end, with the artifacts the submission
+needs. The system is functionally complete (M1–M9); M10 is packaging and proof.
 
 **Outline:**
 
-- Confirm via the UI: query as `bob` for the security breach → neutral message,
-  empty citations, and the DENY visible in the policy inspector + audit explorer.
-- Check no denied resource title/id leaks into any user-facing surface.
-- Consider an explicit end-to-end test asserting the denied resource appears in
-  the audit trail but never in the answer/citations for the same query.
+- **Demo runbook:** a step-by-step script for Demos 1–5 (personas, exact
+  queries, expected outcomes) so the live demo is repeatable. Candidate:
+  `docs/demo-runbook.md`.
+- **Run instructions:** top-level README "getting started" (backend + frontend
+  start commands, prerequisites) — currently the README says setup is TBD.
+- **Diagrams:** architecture + trust-boundary diagrams already in
+  architecture.md (ASCII); decide whether to render polished versions for the
+  submission cover/description.
+- **Screenshots / recordings:** capture CodeBuddy/WorkBuddy sessions (M13 #4)
+  and the working UI; several dev-log entries are still marked "N".
+- **Optional cover image** via Miora (M13 #5).
 
 ## Blockers
 
