@@ -24,6 +24,15 @@
 
 ---
 
+### 2026-09-28 — M3 planning: retrieval pipeline
+
+- **Tool:** CodeBuddy
+- **Task:** Committed the hackathon handbook as reference. Planned M3 (permission-aware retrieval pipeline).
+- **Summary:** Reviewed connector interfaces to ground the plan. Wrote ADR-0004 choosing keyword/token-overlap candidate search over vector embeddings for V1 (small corpus, determinism, no external deps, filter is the real gate). Broke M3 into indexer → candidate_search → permission_filter → context_assembler + integration tests, with the filter re-fetching live ACLs so over-fetched candidates cannot leak revoked content. Recorded the task breakdown and integration-test plan (INV1/INV2, over-fetch safety, revocation, role differentiation) in current-state.md.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task

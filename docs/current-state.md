@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28
+> **Last updated:** 2026-09-28 (M3 planned)
 
 ## Milestone
 
@@ -28,12 +28,49 @@
 
 ## What's next
 
-1. **M3 — Permission-aware retrieval pipeline**
-   - `indexer.py` — index resources from all connectors with ACL snapshot.
-   - `candidate_search.py` — retrieve candidate resource IDs for a query.
-   - `permission_filter.py` — filter candidates through `PolicyEngine.filter_allowed` before the LLM.
-   - `context_assembler.py` — assemble approved content into an LLM context window.
-   - Integration tests proving LLM context contains only authorized documents (INV2).
+### M3 — Permission-aware retrieval pipeline (planned)
+
+**Goal:** query → candidate search → policy filter → context assembler, where
+the LLM context provably contains only authorized documents (INV1, INV2).
+
+**Design decision:** keyword/token-overlap candidate search for V1
+(see [ADR-0004](decisions/0004-keyword-candidate-search-for-v1.md)). The
+filter re-fetches the **live** ACL from connectors at query time so
+over-fetched candidates cannot leak revoked content.
+
+**Task breakdown (build in this order):**
+
+1. `retrieval/indexer.py` — `Indexer` pulls `list_resources()` from all four
+   connectors, stores each `Resource` keyed by `resource_id` with an
+   `indexed_acl_version` snapshot. Methods: `reindex()`, `all_resources()`,
+   `get(resource_id)`.
+2. `retrieval/candidate_search.py` — `CandidateSearch.search(query, k)` scores
+   indexed resources by query-term overlap on title + content, returns the top
+   `k` candidates (over-fetch). Deterministic, no external deps.
+3. `retrieval/permission_filter.py` — `PermissionFilter.filter(user, candidates,
+   action)` re-fetches the live ACL per candidate from its connector, runs
+   `PolicyEngine.filter_allowed`, flags stale indexed entries via
+   `freshness_checker`, returns `(allowed_resources, decisions)`. Denied
+   resources are dropped entirely — the LLM never sees them.
+4. `retrieval/context_assembler.py` — `ContextAssembler.assemble(allowed,
+   max_chars)` concatenates approved content into a bounded context window with
+   citation markers; returns the context string plus the list of citable
+   resource IDs (for later INV6 citation validation).
+5. `retrieval/pipeline.py` (or extend orchestrator later) — wire the four steps:
+   `search → filter → assemble`.
+6. **Integration tests** (`tests/test_m3_retrieval.py`):
+   - INV1/INV2: for each seed user, the assembled context contains no resource
+     the policy engine would deny.
+   - Over-fetch safety: a candidate that matches by keyword but is denied by
+     policy never appears in the context.
+   - Revocation: after `update_acl` revokes access, the next pipeline run
+     excludes that resource (ties M2 freshness to M3).
+   - Contractor (Bob) gets strictly fewer/no restricted docs vs engineer (Alice)
+     for the same query.
+
+**Exit criteria (from plan.md):** candidate search → policy filter → context
+assembler working; LLM never sees denied content; integration tests prove the
+context contains only authorized documents.
 
 ## Blockers
 
