@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M5 complete; M6 LLM-client decision made)
+> **Last updated:** 2026-09-28 (M6 complete)
 
 ## Milestone
 
@@ -10,7 +10,8 @@
 **M3 — Permission-aware retrieval pipeline** → complete  
 **M4 — TLA+ formal specification** → complete  
 **M5 — Audit trail** → complete  
-**Next:** M6 — LLM answer agent
+**M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
+**Next:** M7 — Live revocation handling
 
 ## What exists
 
@@ -41,37 +42,36 @@
   - `event_schema.py` — canonical `AuditEvent` + deterministic JSON payload (sorted keys, ISO-8601 UTC); `event_from_decision` builds one from a policy `Decision`.
   - `hash_chain.py` — `HashChain`: `event_hash = SHA256(prev_hash + canonical_json)`, append/verify, detects field tampering, broken links, reordering, and deletion; JSON persistence.
   - `audit_query.py` — `AuditQueryEngine` filters by user / resource-substring / query / decision / action / time window and reports chain verification status (Demo 4).
-- [x] **93 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18).
+- [x] **Agents** (`backend/agents/`):
+  - `llm_client.py` — `LLMClient` protocol + deterministic `StubLLMClient` (ADR-0005). Answer agent depends on the interface, never a provider SDK.
+  - `answer_agent.py` — grounded answers from the assembled context; strips citations not backed by context (INV6); returns the canonical no-leak message on empty context (INV7).
+  - `orchestrator.py` — `Orchestrator.handle(user, query)` runs retrieval → audits every decision → answers → audits the answer event; returns `{query_id, answer, citations, decisions, audit_chain_head, no_access}`.
+- [x] **108 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15).
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M6 — LLM answer agent (planned)
+### M7 — Live revocation handling (planned)
 
-**Goal:** orchestrator + answer agent producing grounded, cited answers from
-the assembled context, end to end: query → retrieval → answer → audit.
+**Goal:** a permission-change API so a revocation is reflected in subsequent
+queries with no stale-permitted content served — Demo 3 working end to end.
 
-**Outline (module map reserves `backend/agents/`):**
+**Note:** the enforcement already exists. The permission filter re-fetches live
+ACLs (M3), the freshness checker detects stale snapshots (M2), and
+`test_revocation_after_indexing_is_honored` already proves a post-index
+revocation is honored. M7 is mostly about exposing this as an admin action and
+making the ACL-version transition visible for the demo.
 
-- `orchestrator.py` — `Orchestrator.handle(user, query)` runs the retrieval
-  pipeline, appends every decision to the hash chain, calls the answer agent,
-  then audits the answer event. Returns `{answer, citations, decisions,
-  audit_chain_head}` (matches architecture.md §5 return shape).
-- `answer_agent.py` — generates an answer grounded ONLY in the assembled
-  context, with citation markers back to allowed resources. Validate every
-  citation via `AssembledContext.is_authorized_citation` (INV6). No-metadata-
-  leak on empty context: return the canonical "I could not find accessible
-  information…" message (feeds Demo 2 / M9).
-- **LLM integration:** behind an `LLMClient` interface — see
-  [ADR-0005](decisions/0005-llm-client-abstraction.md). `StubLLMClient`
-  (deterministic, offline) is the default for dev/tests; `TencentLLMClient`
-  (WorkBuddy/ADP) is the demo adapter, swapped in via config.
-- Tests: answer cites only allowed resources; empty/denied context yields the
-  no-leak message; end-to-end run produces a verifiable audit chain — all with
-  the stub client, no credentials required.
+**Outline:**
 
-**Decision made:** LLM client abstraction settled in ADR-0005.
+- `backend/api/admin_routes.py` (or an admin service) — `revoke(resource_id,
+  user/role)` and `grant(...)` wrapping the connectors' `update_acl` (which
+  already bumps `acl_version`).
+- Surface the before/after ACL version in the query response / policy inspector
+  so Demo 3 can show "ACL v17 → v18, DENY due to revoked membership".
+- Tests: run a query (allowed) → revoke → same query now excludes the resource
+  and the audit trail shows the DENY at the new ACL version.
 
 ## Blockers
 
@@ -80,7 +80,8 @@ the assembled context, end to end: query → retrieval → answer → audit.
   built and tested against `StubLLMClient` offline; the WorkBuddy adapter is a
   config-level swap once Pro access lands. Fallbacks if it never does:
   CodeBuddy (already the documented dev tool / usage proof) and/or a local
-  open-source model for the live demo.
+  open-source model for the live demo. **This blocks the live-LLM demo path
+  only — not M7 or any further implementation.**
 
 ## Key decisions made
 

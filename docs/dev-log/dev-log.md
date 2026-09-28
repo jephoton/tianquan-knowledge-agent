@@ -69,6 +69,15 @@
 
 ---
 
+### 2026-09-28 — M6: answer agent + orchestrator (LLM-client decision)
+
+- **Tool:** CodeBuddy
+- **Task:** Settled the LLM-provider question (ADR-0005) and implemented M6.
+- **Summary:** Discussed WorkBuddy vs open-source LLM. Key realization: safety (INV1/INV2) lives in retrieval, so the LLM is swappable behind an interface — that abstraction is the debt-avoiding decision, and the concrete provider can be deferred. Wrote ADR-0005 (interface Accepted; provider Open). Discovered WorkBuddy API needs a Pro upgrade that isn't available, so recorded CodeBuddy (already the usage-proof tool) and a local open-source model as fallbacks — submission is not at risk. Built `llm_client` (LLMClient protocol + deterministic StubLLMClient), `answer_agent` (grounds on context, strips unauthorized citations = INV6, canonical no-leak message on empty context = INV7), and `orchestrator` (query → retrieval → audit decisions → answer → audit answer event, returns the architecture §5 shape). Verified end to end: Alice gets a cited answer, Bob gets the no-leak message, combined audit chain verifies. 15 tests; full suite 108 passing. Marked M6 complete, outlined M7 (live revocation — mostly exposing existing enforcement).
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task

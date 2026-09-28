@@ -34,16 +34,20 @@ M6 is built and tested against a **deterministic stub** implementation so all
 answer-agent logic (grounding, citation validation, no-metadata-leak, and the
 end-to-end query→retrieval→answer→audit path) runs offline and reproducibly.
 
-**Deferred (Open):** which concrete `LLMClient` backs the demo. Candidates:
+**Deferred (Open):** which concrete `LLMClient` backs the live demo. Candidates:
 
 | Option | Role | Notes |
 |--------|------|-------|
-| Tencent Cloud LLM (WorkBuddy/ADP) | **demo / submission path** | Required by the track. Needs credentials — TBC. |
-| Local open-source (e.g. Ollama) | optional dev adapter | Realistic offline dev; not submission-valid on its own. |
+| Tencent Cloud LLM (WorkBuddy/ADP) | preferred demo path | **Blocked: WorkBuddy API requires a Pro upgrade not currently available.** Config-level swap once Pro access lands. |
+| CodeBuddy | fallback + usage proof | Already the documented dev tool; satisfies the CodeBuddy/WorkBuddy proof deliverable (M13 #4). |
+| Local open-source (e.g. Ollama) | fallback dev/demo adapter | Realistic offline dev/demo if Tencent access never lands. |
 | Deterministic stub | tests / CI | Canned grounded answers from context; always available. |
 
-This ADR will be updated to fully Accepted once the provider access path is
-confirmed.
+**Current status of the provider question:** the WorkBuddy API path is blocked
+on a Pro upgrade. Because the submission's tool-usage requirement is satisfied
+by CodeBuddy (already in use and logged in the dev-log), the project is not at
+risk. This ADR moves to Accepted once a concrete live provider is wired
+(WorkBuddy if Pro lands, else CodeBuddy or a local model).
 
 ## Rationale
 
@@ -59,7 +63,10 @@ confirmed.
 
 - One small module (`backend/agents/llm_client.py`) defines the protocol and
   the stub; provider adapters are added later without touching the answer agent.
-- M6 can be completed and fully tested now; the demo path is a config swap.
-- Open follow-up (blocks the *live demo*, not implementation): confirm
-  WorkBuddy vs ADP + credentials, then add the Tencent adapter and update this
-  ADR to Accepted.
+- M6 is complete and fully tested now (stub client); the live path is a config
+  swap.
+- Open follow-up (blocks the *live demo*, not implementation): WorkBuddy is
+  blocked on a Pro upgrade. When resolved, add the chosen adapter (WorkBuddy,
+  CodeBuddy, or a local model) and move this ADR to Accepted. The submission's
+  tool-usage proof is already covered by CodeBuddy, so this is not a
+  submission risk.
