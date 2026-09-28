@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M8 API layer complete; frontend pending)
+> **Last updated:** 2026-09-28 (M8 complete)
 
 ## Milestone
 
@@ -12,8 +12,8 @@
 **M5 — Audit trail** → complete  
 **M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
 **M7 — Live revocation handling** → complete  
-**M8 — Frontend UI** → in progress (REST API layer done; Miora React UI pending)  
-**Next:** M8 — Miora-generated React UI against the REST API
+**M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
+**Next:** M9 — No-metadata-leak & negative cases (largely already satisfied; needs demo polish)
 
 ## What exists
 
@@ -59,34 +59,34 @@
   - `admin_routes.py` — `POST /admin/revoke`, `POST /admin/grant` → `ACLChange` with version transition.
   - `schemas.py` — Pydantic wire contract (decoupled from internal dataclasses).
   - Dependencies pinned in `requirements.txt` (FastAPI, uvicorn, pytest, httpx). Server boot smoke-tested.
-- [x] **131 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13).
+- [x] **Frontend** (`frontend/`, static — no build step):
+  - `index.html` — Miora-generated CRT/phosphor dashboard (persona switcher, query console, policy inspector, audit explorer, revocation controls).
+  - `app.js` — wires every panel to the API (`/users`, `/query`, `/audit`, `/audit/verify`, `/admin/revoke|grant`); persona switcher, live ALLOW/DENY inspector, tamper-evidence badge, and auto-re-run after revoke/grant (Demo 3). Graceful offline degradation.
+  - Served via any static host (e.g. `python -m http.server` in `frontend/`); backend CORS is open. Verified against live API responses.
+- [x] **131 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 
 ## What's next
 
-### M8 (remainder) — Miora-generated React UI
+### M9 — No-metadata-leak & negative cases (planned)
 
-**Done:** the REST API layer (above) exposes everything the UI needs.
+**Goal:** Demo 2 fully working — denial reveals nothing, denied attempts are
+audited.
 
-**Remaining:** the frontend itself.
+**Note:** this is largely already satisfied. INV7 is enforced in the answer
+agent (empty context → canonical no-leak message, verified by
+`test_no_leak_message_reveals_nothing`), and denied decisions are already
+audited (M5). M9 is mostly verifying the end-to-end demo through the UI and
+tightening any edges.
 
-- **API surface for the frontend to code against:**
-  - `GET /users` — persona switcher list.
-  - `POST /query {user_id, question, k}` — returns `answer`, `citations`,
-    `decisions[]` (reason, result, acl_version), `allow_count`, `deny_count`,
-    `audit_chain_head`, `no_access`.
-  - `GET /audit?user_id=&resource_contains=&decision=…` — audit explorer.
-  - `GET /audit/verify` — tamper-evidence badge.
-  - `POST /admin/revoke|grant {resource_id, subject, subject_kind}` — returns
-    `version_transition` for the revocation demo.
-  - Interactive docs at `/docs` (OpenAPI) while the server runs.
-- **UI components (Miora):** query console, policy inspector (ALLOW/DENY cards
-  showing reason + source + ACL version), audit explorer, persona switcher.
-- Wire the 4 UI-visible demo scenarios (1–4); Demo 5 (TLA+) shown separately.
+**Outline:**
 
-Frontend work is deferred for now (per team decision) — API is ready when it
-resumes. `frontend/` currently holds only a README.
+- Confirm via the UI: query as `bob` for the security breach → neutral message,
+  empty citations, and the DENY visible in the policy inspector + audit explorer.
+- Check no denied resource title/id leaks into any user-facing surface.
+- Consider an explicit end-to-end test asserting the denied resource appears in
+  the audit trail but never in the answer/citations for the same query.
 
 ## Blockers
 

@@ -96,6 +96,15 @@
 
 ---
 
+### 2026-09-28 — M8 (part 2): port + wire Miora UI
+
+- **Tool:** CodeBuddy + Miora
+- **Task:** Ported the Miora-generated dashboard into the repo and wired it to the API.
+- **Summary:** Miora produced a single static HTML file (CRT/phosphor-terminal styling) with all the right panels but hardcoded mock data and fake personas. Moved it to `frontend/index.html`, added stable IDs/hooks to each panel, replaced mock personas with the real seed users, and wrote `frontend/app.js` to wire everything to the live API: persona switcher (`/users`), query console (`/query`), policy inspector rendering real decisions with reasons + ACL versions, audit explorer with filters + tamper-evidence badge (`/audit`, `/audit/verify`), and revocation controls (`/admin/revoke|grant`) that auto-re-run the last query so Demo 3 is visible live. Kept Miora's visual design intact. Verified all API response shapes against a running server (users, query, audit) then shut it down. Static frontend, no build step; graceful offline degradation. Updated frontend README. M8 complete (API + UI). Next: M9 (no-metadata-leak — largely already satisfied).
+- **Screenshot captured:** N — capture the wired UI for the submission (Miora + working demo).
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
