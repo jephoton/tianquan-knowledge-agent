@@ -1,0 +1,10 @@
+# VeriBrain backend dependencies (pinned).
+# Core has no third-party runtime deps; the API layer (M8) adds FastAPI.
+
+# ── API layer ───────────────────────────────────
+fastapi==0.135.1
+uvicorn==0.41.0
+
+# ── Testing ─────────────────────────────────────
+pytest==9.0.2
+httpx==0.28.1        # used by FastAPI TestClient
