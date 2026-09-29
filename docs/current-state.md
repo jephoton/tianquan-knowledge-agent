@@ -76,7 +76,7 @@
   query return the *identical* canonical message (denial doesn't confirm
   existence). INV7 was already enforced in the answer agent (M6); M9 added the
   system-level proof — no new source code.
-- [x] **186 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17) + ADP adapter (5). (Frontend is static; no automated tests.)
+- [x] **195 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17) + ADP adapter (5) + search efficiency (9). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 - [x] **M10:** demo runbook (`docs/demo-runbook.md`), getting-started instructions in README, all 5 demos verified end-to-end via API, architecture/trust-boundary diagrams polished, project description written (`docs/project-description.md`), README/architecture.md frontend tech corrected.
