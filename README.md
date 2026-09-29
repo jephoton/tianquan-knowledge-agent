@@ -60,4 +60,39 @@ docs/              # Handoff layer: plan, architecture, current-state, decisions
 
 ## Getting started
 
-> Setup instructions will be added once scaffolding is complete. See [current-state.md](docs/current-state.md) for progress.
+**Prerequisites:** Python 3.11+ (uses `X | Y` type syntax). Java 17+ only if you
+want to run the TLA+ model checker.
+
+1. Install dependencies:
+
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+2. Run the tests (138 tests):
+
+   ```powershell
+   python -m pytest -q
+   ```
+
+3. Start the backend API:
+
+   ```powershell
+   uvicorn backend.api.app:app --port 8000
+   ```
+
+   Interactive API docs at `http://localhost:8000/docs`.
+
+4. Start the frontend (static, no build step) from `frontend/`:
+
+   ```powershell
+   python -m http.server 5500
+   ```
+
+   Open `http://localhost:5500/`.
+
+To walk through the demo scenarios, follow the
+[demo runbook](docs/demo-runbook.md).
+
+See [current-state.md](docs/current-state.md) for build progress and
+[docs/](docs/) for the full handoff layer.
