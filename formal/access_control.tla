@@ -18,8 +18,8 @@
 (* counterexample to INV2 (Demo 5).                                        *)
 (*                                                                         *)
 (* Invariants encoded: INV1, INV2, INV3, INV4, INV6, INV7.                 *)
-(* INV5 (NoPrivilegeEscalation / delegation) is a stretch goal (M11) and   *)
-(* is out of scope for this model.                                         *)
+(* INV5 (NoPrivilegeEscalation / delegation) is out of scope — the action   *)
+(* agent was removed from the roadmap.                                      *)
 (***************************************************************************)
 EXTENDS Naturals, FiniteSets
 

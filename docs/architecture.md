@@ -1,6 +1,6 @@
 # Architecture — VeriBrain
 
-> **Last updated:** 2026-09-28
+> **Last updated:** 2026-09-29
 
 ## 1. System overview
 
@@ -84,9 +84,8 @@ Each connector preserves its source-specific permission model:
 
 ### `backend/auth/`
 
-- `identity.py` — user identity, authentication, session.
-- `roles.py` — role definitions, role-to-permission mapping.
-- `sessions.py` — session management.
+- `identity.py` — user identity store with 7 seed users.
+- `roles.py` — role definitions and role-to-permission mapping.
 
 ### `backend/policy/`
 
@@ -94,8 +93,8 @@ The authorization core.
 
 - `policy_engine.py` — `decide(user, resource, action) → Decision(allow, reason, acl_version)`.
 - `permission_mapping.py` — maps source-specific permission models to a common model.
-- `delegation.py` — delegated authority (stretch).
 - `freshness_checker.py` — validates ACL version at query time vs. ingestion time.
+- `admin.py` — live permission admin (revoke/grant) with ACL version bumping.
 
 ### `backend/retrieval/`
 
@@ -108,7 +107,8 @@ The authorization core.
 
 - `orchestrator.py` — routes user query through the pipeline.
 - `answer_agent.py` — generates grounded answer with citations from filtered context.
-- `action_agent.py` — (stretch) performs permitted delegated actions.
+- `grounding_checker.py` — post-LLM hallucination detection; strips ungrounded sentences (INV8).
+- `query_scanner.py` — prompt-injection detection; flags suspicious queries in the audit trail.
 
 ### `backend/audit/`
 
