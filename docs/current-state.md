@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-28 (M8 complete)
+> **Last updated:** 2026-09-29 (M10 complete)
 
 ## Milestone
 
@@ -14,8 +14,8 @@
 **M7 — Live revocation handling** → complete  
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
 **M9 — No-metadata-leak & negative cases** → complete  
-**M10 — End-to-end integration & polish** → in progress (runbook + run instructions done; screenshots/cover pending)  
-**Next:** finish M10 capture, then M13 submission prep (M11/M12 are stretch)
+**M10 — End-to-end integration & polish** → complete (demos verified, diagrams polished, project description written)  
+**Next:** M13 submission prep (M11/M12 are stretch)
 
 ## What exists
 
@@ -74,28 +74,35 @@
 - [x] **138 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
+- [x] **M10:** demo runbook (`docs/demo-runbook.md`), getting-started instructions in README, all 5 demos verified end-to-end via API, architecture/trust-boundary diagrams polished, project description written (`docs/project-description.md`), README/architecture.md frontend tech corrected.
 
 ## What's next
 
-### M10 — remaining (needs you)
+### M10 — complete
 
-**Done:** demo runbook (`docs/demo-runbook.md`, all queries verified against
-seed data), top-level README getting-started + run instructions.
+All 5 demo scenarios verified end-to-end via the API:
+- Demo 1 (alice): 8 allow / 2 deny, 8 citations across 4 sources.
+- Demo 2 (bob): canonical no-leak message, 0 citations, `no_access=true`.
+- Demo 3: ACL v1→v2 on revoke, citation drops on re-query.
+- Demo 4: 23 audit events for alice, chain verified.
+- Demo 5: TLA+ (run via TLC separately).
 
-**Remaining (manual capture — can't be automated):**
+Architecture & trust-boundary diagrams polished in architecture.md. README and
+architecture.md corrected to reflect actual Miora static HTML/JS frontend.
+Project description written (`docs/project-description.md`).
+
+### Remaining (manual capture — needs you)
 
 - **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M13 #4, min 3)
   and the working UI running the demos. Several dev-log entries are still marked
   "capture pending".
 - **Optional cover image** via Miora (M13 #5, 16:9).
-- **Optional:** render polished architecture / trust-boundary diagrams from the
-  ASCII versions in architecture.md.
+- **Optional demo video** (M13 #6, 5–8 min).
 
 ### Then
 
 - **M11 / M12** — stretch (delegated action agent; Dafny). Skip unless time.
-- **M13** — submission prep: project description, worked examples (the runbook
-  covers these), confirm all required deliverables.
+- **M13** — submission prep: confirm all required deliverables, final review.
 
 ## Blockers
 

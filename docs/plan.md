@@ -185,7 +185,7 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | **M7 — Live revocation handling** ✅ | `PermissionAdmin` revoke/grant (user + role) bumping `acl_version`, wired into the orchestrator. Revocation reflected in the next query with no reindex; no stale-permitted content served; audit records DENY at the new ACL version. Demo 3 working. 10 tests. |
 | **M8 — Frontend UI** ✅ | FastAPI REST layer (`/query`, `/audit`, `/admin/*`, `/users`) + Miora-generated CRT dashboard wired to it: query console, policy inspector (ALLOW/DENY + reason + ACL version), audit explorer with tamper-evidence badge, persona switcher, live revoke/grant. Static frontend, no build. 13 API tests. |
 | **M9 — No-metadata-leak & negative cases** ✅ | Demo 2 working. Denial returns the canonical message, identical to a genuine no-match (does not reveal existence). Denied attempts audited but never leaked into answer/citations. 7 end-to-end tests (INV7). |
-| **M10 — End-to-end integration & polish** | All 5 demos working end-to-end. Architecture diagram. Trust-boundary diagram. CodeBuddy/WorkBuddy usage proof captured. |
+| **M10 — End-to-end integration & polish** ✅ | All 5 demos verified end-to-end via API. Architecture & trust-boundary diagrams polished. Project description written. README/architecture corrected to reflect Miora static frontend. |
 | **M11 — Stretch: delegated action agent** | Bounded delegation. `effective_agent_permissions ⊆ delegating_user_permissions`. "Export to Finance" action through permission checks. |
 | **M12 — Stretch: Dafny verification** | Verified `isAllowed` function. Subset proof. |
 | **M13 — Submission preparation** | All submission deliverables completed (see below). |

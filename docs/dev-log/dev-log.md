@@ -123,7 +123,14 @@
 
 ---
 
-<!-- Template for future entries:
+### 2026-09-29 — M10: end-to-end integration verification & polish
+
+- **Tool:** CodeBuddy
+- **Task:** Regenerated context from the handoff layer (M0–M9 all complete). Verified all 5 demo scenarios end-to-end via the API. Polished architecture/trust-boundary diagrams for submission. Wrote project description document (M13 #3). Corrected README and architecture.md frontend tech stack to reflect actual Miora-generated static UI (not React+TS).
+- **Summary:** Re-read all docs/ files to rebuild context after significant progress. Started the backend API and exercised all 4 API-based demos programmatically: Demo 1 (alice: 8 allow / 2 deny, 8 citations across 4 sources), Demo 2 (bob: canonical no-leak message, 0 citations), Demo 3 (revoke engineer role from db-migration-plan, ACL v1→v2, citation drops on re-query), Demo 4 (23 audit events for alice, chain verified). All assertions passed. Updated README and architecture.md to accurately reflect the Miora static HTML/JS frontend (was still listed as React+TypeScript). Created `docs/project-description.md` covering overview, real-world scenario, solution design, formal verification, business value, and demo scenarios — fulfills M13 #3. Remaining M10 items are manual capture (screenshots/recordings of CodeBuddy chat logs + working UI) that need the user.
+- **Screenshot captured:** N — this session (capture for M13 #4)
+
+---
 
 ### YYYY-MM-DD — Mn: milestone/task
 

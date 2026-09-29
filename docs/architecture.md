@@ -6,7 +6,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                     Frontend (React)                  │
+│                     Frontend (Miora)                   │
 │  Query Console  ·  Policy Inspector  ·  Audit Explorer │
 └────────────────────────┬────────────────────────────┘
                          │ REST / JSON
@@ -241,7 +241,7 @@ The specification is an abstract model. The implementation should be tested agai
 | Decision       | Choice          | Rationale                                          |
 |----------------|-----------------|----------------------------------------------------|
 | Backend        | Python / FastAPI | Fast to prototype, async support, good for LLM work |
-| Frontend       | React + TypeScript (Miora-generated UI) | Component-based, type-safe, fast iteration. Miora used for UI generation. |
+| Frontend       | Static HTML/JS (Miora-generated UI) | No build step; Miora produced the dashboard, wired to the API via vanilla JS. |
 | Formal model   | TLA+ / TLC      | Best for temporal safety properties, revocation     |
 | Audit log      | Hash-chained JSON | Simple, transparent, demonstrable tamper-evidence |
 | LLM            | Tencent Cloud LLM | Track requirement to use Tencent Cloud AI products |

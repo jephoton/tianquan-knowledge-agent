@@ -37,7 +37,7 @@ Every authorization decision is checked against a formally specified RBAC + dele
 | Layer        | Technology            |
 |--------------|----------------------|
 | Backend      | Python / FastAPI      |
-| Frontend     | React + TypeScript    |
+| Frontend     | Static HTML/JS (Miora-generated) |
 | Formal model | TLA+                  |
 | Audit log    | Hash-chained JSON     |
 | LLM          | Tencent Cloud LLM via WorkBuddy / ADP |
@@ -45,7 +45,7 @@ Every authorization decision is checked against a formally specified RBAC + dele
 ## Repository structure
 
 ```
-frontend/          # React + TypeScript UI
+frontend/          # Miora-generated static UI (no build step)
 backend/
     api/           # FastAPI routes
     connectors/    # Mock Confluence/Jira/Slack/GDrive
