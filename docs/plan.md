@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-28 (M9 complete)
+> **Last updated:** 2026-09-28 (M9 complete; M10 in progress)
 
 ---
 

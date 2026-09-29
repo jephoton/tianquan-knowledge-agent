@@ -14,7 +14,8 @@
 **M7 — Live revocation handling** → complete  
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
 **M9 — No-metadata-leak & negative cases** → complete  
-**Next:** M10 — End-to-end integration & polish
+**M10 — End-to-end integration & polish** → in progress (runbook + run instructions done; screenshots/cover pending)  
+**Next:** finish M10 capture, then M13 submission prep (M11/M12 are stretch)
 
 ## What exists
 
@@ -76,24 +77,25 @@
 
 ## What's next
 
-### M10 — End-to-end integration & polish (planned)
+### M10 — remaining (needs you)
 
-**Goal:** all 5 demos runnable end to end, with the artifacts the submission
-needs. The system is functionally complete (M1–M9); M10 is packaging and proof.
+**Done:** demo runbook (`docs/demo-runbook.md`, all queries verified against
+seed data), top-level README getting-started + run instructions.
 
-**Outline:**
+**Remaining (manual capture — can't be automated):**
 
-- **Demo runbook:** a step-by-step script for Demos 1–5 (personas, exact
-  queries, expected outcomes) so the live demo is repeatable. Candidate:
-  `docs/demo-runbook.md`.
-- **Run instructions:** top-level README "getting started" (backend + frontend
-  start commands, prerequisites) — currently the README says setup is TBD.
-- **Diagrams:** architecture + trust-boundary diagrams already in
-  architecture.md (ASCII); decide whether to render polished versions for the
-  submission cover/description.
-- **Screenshots / recordings:** capture CodeBuddy/WorkBuddy sessions (M13 #4)
-  and the working UI; several dev-log entries are still marked "N".
-- **Optional cover image** via Miora (M13 #5).
+- **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M13 #4, min 3)
+  and the working UI running the demos. Several dev-log entries are still marked
+  "capture pending".
+- **Optional cover image** via Miora (M13 #5, 16:9).
+- **Optional:** render polished architecture / trust-boundary diagrams from the
+  ASCII versions in architecture.md.
+
+### Then
+
+- **M11 / M12** — stretch (delegated action agent; Dafny). Skip unless time.
+- **M13** — submission prep: project description, worked examples (the runbook
+  covers these), confirm all required deliverables.
 
 ## Blockers
 

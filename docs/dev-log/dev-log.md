@@ -114,6 +114,15 @@
 
 ---
 
+### 2026-09-28 — M10 (part 1): demo runbook + run instructions
+
+- **Tool:** CodeBuddy
+- **Task:** Packaging for the demo — runbook and getting-started docs.
+- **Summary:** Wrote `docs/demo-runbook.md`, a step-by-step script for all 5 demo scenarios (personas, exact queries, expected outcomes, talking points). Verified every query against the running API first so the numbers are accurate: Demo 1 (alice) = 8 allow / 2 deny with the two security docs filtered; Demo 2 (bob) = canonical no-leak message; Demo 3 = ACL v1→v2 and the citation drops on auto-re-run; Demo 5 TLC commands. Added a "restart backend to reset state" note (in-memory audit chain + ACL changes persist). Replaced the top-level README's TBD setup section with real getting-started + run instructions and linked the runbook. Remaining M10 items are manual capture (screenshots/recordings, optional Miora cover) that need the user.
+- **Screenshot captured:** N — this is the session to capture (UI + CodeBuddy) for M13 #4.
+
+---
+
 <!-- Template for future entries:
 
 ### YYYY-MM-DD — Mn: milestone/task
