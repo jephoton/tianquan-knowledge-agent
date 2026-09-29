@@ -23,6 +23,7 @@ class CitationModel(BaseModel):
     resource_id: str
     source: str
     title: str
+    updated_at: str | None = None
 
 
 class DecisionModel(BaseModel):

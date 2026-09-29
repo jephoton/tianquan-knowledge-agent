@@ -6,6 +6,7 @@ Routes a user query through the full VeriBrain pipeline:
       -> retrieval (candidate search -> permission filter -> context assembler)
       -> audit every policy decision (allow AND deny)  [INV4]
       -> answer agent (grounded, citation-validated)   [INV6]
+      -> grounding checker (ungrounded sentences stripped) [INV8]
       -> audit the answer event
     -> return {answer, citations, decisions, audit_chain_head}
 
@@ -20,7 +21,9 @@ import uuid
 from dataclasses import dataclass, field
 
 from backend.agents.answer_agent import Answer, AnswerAgent
+from backend.agents.grounding_checker import GroundingChecker, GroundingReport
 from backend.agents.llm_client import LLMClient, StubLLMClient
+from backend.agents.query_scanner import QueryScanner, InjectionReport
 from backend.audit.hash_chain import HashChain
 from backend.connectors.base import BaseConnector
 from backend.models import Action, Decision, User
@@ -58,6 +61,7 @@ class Orchestrator:
         llm: LLMClient | None = None,
         audit_chain: HashChain | None = None,
         max_context_chars: int = 8000,
+        grounding_checker: GroundingChecker | None = None,
     ):
         self._connectors = list(connectors)
         self._pipeline = RetrievalPipeline(
@@ -66,6 +70,8 @@ class Orchestrator:
         self._answer_agent = AnswerAgent(llm or StubLLMClient())
         self._audit = audit_chain or HashChain()
         self._admin = PermissionAdmin(self._connectors)
+        self._grounding_checker = grounding_checker or GroundingChecker()
+        self._query_scanner = QueryScanner()
 
     @property
     def audit(self) -> HashChain:
@@ -99,6 +105,10 @@ class Orchestrator:
         """
         query_id = str(uuid.uuid4())
 
+        # 0. Prompt-injection scan — flag suspicious queries for audit.
+        #    Does NOT block the query; the permission system is the real guard.
+        injection_report = self._query_scanner.scan(query)
+
         # 1. Retrieval (search -> filter -> assemble). Only authorized content
         #    reaches the assembled context.
         retrieval = self._pipeline.run(user, query, k=k, action=action)
@@ -109,13 +119,38 @@ class Orchestrator:
         # 3. Answer from the authorized context (citation-validated, no-leak).
         answer: Answer = self._answer_agent.answer(query, retrieval.context)
 
+        # 3b. Grounding check — strip hallucinated sentences (INV8).
+        #     Skipped on no-access (empty context) — the canonical message
+        #     is not an LLM generation.
+        #     If everything is stripped (which can happen with the stub LLM
+        #     whose vocabulary doesn't match the context), fall back to a
+        #     minimal grounded statement rather than an empty string.
+        grounding_report: GroundingReport | None = None
+        if not answer.no_access:
+            grounding_report = self._grounding_checker.check(
+                answer.text, retrieval.context,
+            )
+            if grounding_report.grounded_text:
+                answer.text = grounding_report.grounded_text
+            else:
+                # All sentences were stripped — the LLM produced nothing
+                # grounded. Fall back to a citation-only summary so the
+                # user still sees which sources were authorized.
+                markers = " ".join(c.marker for c in answer.citations)
+                answer.text = f"Relevant sources found: {markers}." if markers else ""
+
         # 4. Audit the answer emission as its own event (resource_id=None).
+        #    If injection was suspected, the reason field carries the flag
+        #    so security teams can review suspicious queries in the audit trail.
+        reason = "answer_no_access" if answer.no_access else "answer_generated"
+        if injection_report.suspicious:
+            reason += f"[injection_suspected:{injection_report.risk_level}]"
         answer_decision = Decision(
             user_id=user.user_id,
             resource_id=None,  # answer event is not tied to one resource
             action=action,
             result=_answer_result(answer),
-            reason="answer_no_access" if answer.no_access else "answer_generated",
+            reason=reason,
             acl_version=0,
             policy_version=0,
         )

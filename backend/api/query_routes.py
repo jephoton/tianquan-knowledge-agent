@@ -36,6 +36,7 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
             CitationModel(
                 marker=c.marker, resource_id=c.resource_id,
                 source=c.source, title=c.title,
+                updated_at=c.updated_at.isoformat() if c.updated_at else None,
             )
             for c in resp.citations
         ],

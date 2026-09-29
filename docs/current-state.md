@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-29 (M10 complete)
+> **Last updated:** 2026-09-29 (M11/M12/M13 complete)
 
 ## Milestone
 
@@ -15,7 +15,10 @@
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
 **M9 — No-metadata-leak & negative cases** → complete  
 **M10 — End-to-end integration & polish** → complete (demos verified, diagrams polished, project description written)  
-**Next:** M13 submission prep (M11/M12 are stretch)
+**M11 — Hallucination detection layer** → complete (GroundingChecker, INV8, 17 tests)  
+**M12 — Data freshness indicators** → complete (updated_at in citations, UI freshness badges, 9 tests)  
+**M13 — Prompt-injection detection** → complete (QueryScanner, audit flag, 17 tests)  
+**Next:** M14 — full milestone review pass, then M15 submission prep
 
 ## What exists
 
@@ -40,7 +43,7 @@
   - `access_control.tla` — query-lifecycle state machine (search → decide → retrieve → answer, with revocation) parameterised by a `BROKEN` flag.
   - `MC_safe` (BROKEN=FALSE) — TLC checks INV1/INV2/INV3/INV4/INV6/INV7, all hold (28 states, no error).
   - `MC_broken` (BROKEN=TRUE, filter-after-retrieval) — TLC finds an INV1 counterexample at depth 4 (over-fetched denied resource reaches the context). This is Demo 5.
-  - INV5 (delegation/no-privilege-escalation) deferred to M11 stretch.
+  - INV5 (delegation/no-privilege-escalation) deferred — action agent removed from roadmap.
   - Verified runnable via bundled `tla2tools.jar` + Java 25; TLC output artifacts gitignored.
 - [x] **Audit trail** (`backend/audit/`):
   - `event_schema.py` — canonical `AuditEvent` + deterministic JSON payload (sorted keys, ISO-8601 UTC); `event_from_decision` builds one from a policy `Decision`.
@@ -49,7 +52,9 @@
 - [x] **Agents** (`backend/agents/`):
   - `llm_client.py` — `LLMClient` protocol + deterministic `StubLLMClient` (ADR-0005). Answer agent depends on the interface, never a provider SDK.
   - `answer_agent.py` — grounded answers from the assembled context; strips citations not backed by context (INV6); returns the canonical no-leak message on empty context (INV7).
-  - `orchestrator.py` — `Orchestrator.handle(user, query)` runs retrieval → audits every decision → answers → audits the answer event; returns `{query_id, answer, citations, decisions, audit_chain_head, no_access}`.
+  - `grounding_checker.py` — hallucination detection layer (INV8): post-LLM lexical overlap + entity extraction; strips ungrounded sentences from the answer before it reaches the user.
+  - `query_scanner.py` — prompt-injection detection: scans queries for instruction-override, role-hijack, prompt-leak, delimiter-injection, and data-exfiltration patterns; flags suspicious queries in the audit trail with `injection_suspected:high|medium`.
+  - `orchestrator.py` — `Orchestrator.handle(user, query)` runs injection scan → retrieval → audits every decision → answers → grounding check → audits the answer event; returns `{query_id, answer, citations, decisions, audit_chain_head, no_access}`.
 - [x] **Live permission admin** (`backend/policy/admin.py`):
   - `PermissionAdmin` (over the same connectors the pipeline uses) — `revoke_user`/`revoke_role`/`grant_user`/`grant_role` wrap `update_acl` (bumps `acl_version`) and return an `ACLChange` with the version transition (e.g. "v1 → v2") for the policy inspector.
   - Exposed on the orchestrator as `.admin`; a revoke is reflected in the next `handle` call with no reindex (Demo 3), and the audit trail records the DENY at the new ACL version (INV3 end-to-end).
@@ -71,7 +76,7 @@
   query return the *identical* canonical message (denial doesn't confirm
   existence). INV7 was already enforced in the answer agent (M6); M9 added the
   system-level proof — no new source code.
-- [x] **138 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7). (Frontend is static; no automated tests.)
+- [x] **181 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 - [x] **M10:** demo runbook (`docs/demo-runbook.md`), getting-started instructions in README, all 5 demos verified end-to-end via API, architecture/trust-boundary diagrams polished, project description written (`docs/project-description.md`), README/architecture.md frontend tech corrected.
@@ -93,16 +98,17 @@ Project description written (`docs/project-description.md`).
 
 ### Remaining (manual capture — needs you)
 
-- **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M13 #4, min 3)
+- **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M15 #4, min 3)
   and the working UI running the demos. Several dev-log entries are still marked
   "capture pending".
-- **Optional cover image** via Miora (M13 #5, 16:9).
-- **Optional demo video** (M13 #6, 5–8 min).
+- **Optional cover image** via Miora (M15 #5, 16:9).
+- **Optional demo video** (M15 #6, 5–8 min).
 
 ### Then
 
-- **M11 / M12** — stretch (delegated action agent; Dafny). Skip unless time.
-- **M13** — submission prep: confirm all required deliverables, final review.
+- **M14** — full milestone review pass: verify every milestone M1–M13 against
+  architecture.md, confirm tests pass, confirm invariants hold, fix any drift.
+- **M15** — submission prep: confirm all required deliverables, final review.
 
 ## Blockers
 

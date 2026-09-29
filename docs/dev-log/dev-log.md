@@ -132,6 +132,20 @@
 
 ---
 
+### 2026-09-29 — M11/M12/M13: hallucination detection, freshness indicators, prompt-injection detection
+
+- **Tool:** CodeBuddy
+- **Task:** Implemented three new value-add milestones (replaced the old M11 action agent and M12 Dafny stretch goals).
+- **Summary:**
+  - **M11 (Hallucination detection layer):** Created `grounding_checker.py` — runs post-LLM, pre-return. Two deterministic checks: (1) lexical token overlap between answer sentences and context, (2) entity extraction verifying all named entities/numbers appear in the context. Ungrounded sentences are stripped (INV8: GroundedAnswerOnly). Wired into the orchestrator with a citation-only fallback when everything is stripped. 17 tests covering positive cases, negative cases, structurally-similar hallucination, numbers, short sentences, empty context, and orchestrator integration.
+  - **M12 (Data freshness indicators):** Added `updated_at` field to `Citation` dataclass, populated from `Resource.updated_at` in the context assembler. Threaded through to `CitationModel` in the API schema and the query route. Frontend `app.js` shows color-coded freshness badge per citation (green <24h, amber <7d, red >7d). 9 tests.
+  - **M13 (Prompt-injection detection):** Created `query_scanner.py` — scans queries for 5 injection pattern categories (instruction override, role hijack, prompt leak, delimiter injection, data exfiltration). Suspicious queries flagged in the audit trail reason field with `injection_suspected:high|medium`. Does NOT block queries — defense-in-depth, not a gate. Wired into the orchestrator. 17 tests.
+  - **Roadmap revised:** Old M11 (action agent) and M12 (Dafny) removed — action agent misaligns with problem statement and adds attack surface; Dafny redundant with TLA+ for hackathon. New milestones M11–M13 added, M14 (full review pass) and M15 (submission prep) shifted. INV8 added to invariant table.
+  - Full suite: 181 tests passing, zero regressions.
+- **Screenshot captured:** N — capture at end of session.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

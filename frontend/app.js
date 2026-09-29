@@ -96,6 +96,18 @@ async function runQuery(question) {
   }
 }
 
+function freshnessBadge(updatedAt) {
+  if (!updatedAt) return "";
+  const now = Date.now();
+  const then = new Date(updatedAt).getTime();
+  const ageHours = (now - then) / 36e5;
+  let color, label;
+  if (ageHours < 24) { color = "#3a8a5a"; label = "fresh"; }
+  else if (ageHours < 168) { color = "#ffb000"; label = Math.round(ageHours / 24) + "d"; }
+  else { color = "#c47a7a"; label = Math.round(ageHours / 168) + "w"; }
+  return ` <span style="color:${color};font-size:10px;">[${label}]</span>`;
+}
+
 function renderAnswer(r) {
   const ans = $("answer-text");
   ans.style.color = r.no_access ? "#6b6150" : "#e8dcc8";
@@ -105,7 +117,7 @@ function renderAnswer(r) {
   cites.innerHTML = "";
   r.citations.forEach((c) => {
     const span = document.createElement("span");
-    span.innerHTML = `${esc(c.marker)} <span style="color:#ffb000;">${esc(c.source)}</span>:${esc(c.resource_id)}`;
+    span.innerHTML = `${esc(c.marker)} <span style="color:#ffb000;">${esc(c.source)}</span>:${esc(c.resource_id)}${freshnessBadge(c.updated_at)}`;
     cites.appendChild(span);
   });
 }

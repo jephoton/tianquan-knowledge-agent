@@ -2,7 +2,7 @@
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
-> **Last updated:** 2026-09-28 (M9 complete; M10 in progress)
+> **Last updated:** 2026-09-29 (M10 complete; roadmap revised — M11/M12 stretch goals replaced with new value-add milestones)
 
 ---
 
@@ -49,11 +49,9 @@ Formally specified, permission-aware enterprise RAG:
 
 ### Stretch (time permitting)
 
-- Delegated action agent with bounded permissions (`effective_agent_permissions ⊆ delegating_user_permissions`).
-- Dafny executable verification of `isAllowed`.
 - Real platform connectors instead of mocks.
-- Interactive demo: "Export this answer to Finance" through delegated permission checks.
-- LLM hallucination detection layer (compare generated answer against retrieved context).
+- Interactive demo: "Export this answer to Finance" through permission checks.
+- Sensitivity-based answer redaction (redact PII/financial figures from `confidential` resources in answer text).
 
 ### Explicitly deferred
 
@@ -91,13 +89,16 @@ Revocations
 | INV2 | `LLMSeesOnlyRetrievedContent` | The model never receives unauthorized content. |
 | INV3 | `RevokedAccessNotReusable` | After permission revocation, future queries cannot use the old permission. |
 | INV4 | `EveryDecisionAudited` | Every allow/deny decision creates an audit event. |
-| INV5 | `NoPrivilegeEscalation` | If agents exist, their effective permissions ⊆ delegating user's permissions. |
+| INV5 | `NoPrivilegeEscalation` | If agents exist, their effective permissions ⊆ delegating user's permissions. _(Deferred — action agent removed from roadmap.)_ |
 | INV6 | `NoUnauthorizedCitation` | Every citation in the answer must correspond to an authorized retrieved resource. |
 | INV7 | `NoMetadataLeakOnDeny` | Denied content is not exposed through answer text or source titles. |
+| INV8 | `GroundedAnswerOnly` | Every sentence in the returned answer must have sufficient lexical overlap with the authorized context. Ungrounded sentences are stripped. (M11) |
 
 ### Optional: Dafny
 
-A small verified `isAllowed(user, resource, action)` function proving that returned permissions are a subset of the user's actual permissions. Only if time permits and the team is already comfortable with Dafny.
+~~A small verified `isAllowed(user, resource, action)` function proving that returned permissions are a subset of the user's actual permissions.~~
+
+**Removed from roadmap** — TLA+ (M4) already covers the formal verification story at the architecture level. Dafny would add implementation-level verification but no new user-visible capability and high effort for marginal hackathon score improvement. Revisit post-hackathon for production hardening.
 
 ## 5. Demo scenarios
 
@@ -179,19 +180,21 @@ Each milestone is a checkpoint: code committed, tests passing, `current-state.md
 | **M1 — Data model & mock sources** ✅ | Mock connectors for Confluence, Jira, Slack, GDrive with realistic permission semantics. Document/ticket/message/file data model defined. Seed data with varied ACLs. |
 | **M2 — Policy engine** ✅ | Authorization decision function: given (user, resource, action) → allow/deny + reason. Source-specific permission mapping. ACL versioning + freshness checking. Unit tests for positive and negative cases (22 tests). |
 | **M3 — Permission-aware retrieval pipeline** ✅ | Candidate search → policy filter → context assembler. LLM never sees denied content. 20 integration tests proving LLM context contains only authorized documents (INV1/INV2/INV3, revocation, role differentiation). |
-| **M4 — TLA+ formal specification** ✅ | `formal/access_control.tla` encoding INV1–INV4, INV6, INV7 (INV5 deferred to M11). TLC (`MC_safe`) checks all pass; `MC_broken` (filter-after-retrieval) yields an INV1 counterexample at depth 4. Demo 5 ready. |
+| **M4 — TLA+ formal specification** ✅ | `formal/access_control.tla` encoding INV1–INV4, INV6, INV7 (INV5 deferred — action agent removed from roadmap). TLC (`MC_safe`) checks all pass; `MC_broken` (filter-after-retrieval) yields an INV1 counterexample at depth 4. Demo 5 ready. |
 | **M5 — Audit trail** ✅ | Hash-chained event log (`SHA256(prev + canonical_json)`). Canonical audit event schema. Tamper/reorder/deletion detection. Audit query API (by user/resource/decision/time). 18 tests for chain integrity and tamper detection. |
 | **M6 — LLM answer agent** ✅ | Orchestrator + answer agent. Grounded answers with citations (INV6), no-metadata-leak on empty context (INV7). Query → retrieval → audit → answer → audit end-to-end with a verifiable chain. LLM behind `LLMClient` interface (ADR-0005); stub for tests, live provider deferred. 15 tests. |
 | **M7 — Live revocation handling** ✅ | `PermissionAdmin` revoke/grant (user + role) bumping `acl_version`, wired into the orchestrator. Revocation reflected in the next query with no reindex; no stale-permitted content served; audit records DENY at the new ACL version. Demo 3 working. 10 tests. |
 | **M8 — Frontend UI** ✅ | FastAPI REST layer (`/query`, `/audit`, `/admin/*`, `/users`) + Miora-generated CRT dashboard wired to it: query console, policy inspector (ALLOW/DENY + reason + ACL version), audit explorer with tamper-evidence badge, persona switcher, live revoke/grant. Static frontend, no build. 13 API tests. |
 | **M9 — No-metadata-leak & negative cases** ✅ | Demo 2 working. Denial returns the canonical message, identical to a genuine no-match (does not reveal existence). Denied attempts audited but never leaked into answer/citations. 7 end-to-end tests (INV7). |
 | **M10 — End-to-end integration & polish** ✅ | All 5 demos verified end-to-end via API. Architecture & trust-boundary diagrams polished. Project description written. README/architecture corrected to reflect Miora static frontend. |
-| **M11 — Stretch: delegated action agent** | Bounded delegation. `effective_agent_permissions ⊆ delegating_user_permissions`. "Export to Finance" action through permission checks. |
-| **M12 — Stretch: Dafny verification** | Verified `isAllowed` function. Subset proof. |
-| **M13 — Submission preparation** | All submission deliverables completed (see below). |
+| **M11 — Hallucination detection layer** | `GroundingChecker` that runs post-LLM, pre-return: lexical overlap + entity extraction to detect ungrounded claims. Ungrounded sentences stripped from answer (INV8: `GroundedAnswerOnly`). Deterministic, no extra model needed. Unit tests with stub LLM producing grounded + hallucinated sentences. |
+| **M12 — Data freshness indicators** | Content timestamps surfaced in citations (`updated_at` from resource metadata). UI shows freshness badge per citation (green/amber/red based on staleness threshold). Addresses handbook Scenario 2 explicitly. Backend enrichment + minor frontend change. |
+| **M13 — Prompt-injection detection** | Query scanner detecting injection patterns ("ignore previous instructions", "system:", "you are now", etc.). Suspicious queries flagged in audit trail with `injection_suspected` field. Strengthens Responsible AI & Ethics judging dimension. |
+| **M14 — Full milestone review pass** | Independent review of every milestone M1–M13: verify implementation matches `architecture.md`, confirm tests pass, confirm invariants hold, verify understanding of each component. Fix any drift between docs and code. Ensure all demos work end-to-end. |
+| **M15 — Submission preparation** | All submission deliverables completed (see below). |
 | **SUBMIT** | Submit before 16 Oct deadline. |
 
-### M13 — Submission deliverables
+### M15 — Submission deliverables
 
 All items below must be completed before considering the project submission-ready:
 
@@ -249,8 +252,8 @@ For the hackathon, the project succeeds if a judge can see, within the demo:
 
 | Risk | Mitigation |
 |------|-----------|
-| Scope creep into action agent too early | Delegated actions are M11 stretch, not V1 core. |
+| Scope creep into action agent too early | Action agent removed from roadmap — misalignment with problem statement and adds attack surface. |
 | Mock connectors feel unrealistic | Seed with rich, varied ACLs across all four platforms. |
 | TLA+ model too abstract to impress judges | Show counterexample in broken variant — make it tangible. |
-| LLM confabulates restricted content | Pre-filter + citation grounding + optional hallucination check. |
+| LLM confabulates restricted content | Pre-filter + citation grounding (INV6) + hallucination detection layer (INV8, M11). |
 | Running out of time | Milestones are ordered by demo priority. M1-M8 deliver the core demo. |

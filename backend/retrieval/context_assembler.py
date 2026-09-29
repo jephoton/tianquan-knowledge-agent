@@ -13,6 +13,7 @@ answer corresponds to an authorized resource (INV6: NoUnauthorizedCitation).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from backend.retrieval.permission_filter import FilteredCandidate
 
@@ -27,6 +28,7 @@ class Citation:
     resource_id: str
     source: str
     title: str
+    updated_at: datetime | None = None  # content freshness timestamp from resource
 
 
 @dataclass
@@ -90,6 +92,7 @@ class ContextAssembler:
                     resource_id=resource.resource_id,
                     source=resource.source.value,
                     title=resource.title,
+                    updated_at=resource.updated_at,
                 )
             )
             included_ids.append(resource.resource_id)
