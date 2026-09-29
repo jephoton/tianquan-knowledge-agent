@@ -189,11 +189,21 @@ function renderAudit(r) {
 }
 
 function renderStats(r) {
-  $("stat-total").textContent = r.count;
-  $("stat-allowed").textContent = r.allow_count;
-  $("stat-denied").textContent = r.deny_count;
-  $("stat-chain").textContent = r.chain_valid ? "100%" : "FAIL";
-  $("stat-chain").style.color = r.chain_valid ? "#3a8a5a" : "#c47a7a";
+  const total = r.count, allowed = r.allow_count, denied = r.deny_count;
+  const chainOk = r.chain_valid ? "100%" : "FAIL";
+  const chainColor = r.chain_valid ? "#3a8a5a" : "#c47a7a";
+  // Query tab stats
+  $("stat-total").textContent = total;
+  $("stat-allowed").textContent = allowed;
+  $("stat-denied").textContent = denied;
+  $("stat-chain").textContent = chainOk;
+  $("stat-chain").style.color = chainColor;
+  // Admin tab stats (mirrored)
+  $("stat-total-admin").textContent = total;
+  $("stat-allowed-admin").textContent = allowed;
+  $("stat-denied-admin").textContent = denied;
+  $("stat-chain-admin").textContent = chainOk;
+  $("stat-chain-admin").style.color = chainColor;
 }
 
 function setChainBadge(valid, status) {
@@ -263,6 +273,18 @@ async function boot() {
   $("audit-verify").onclick = verifyChain;
   $("revoke-btn").onclick = () => adminChange("revoke");
   $("grant-btn").onclick = () => adminChange("grant");
+
+  // Tab switching
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.onclick = () => switchTab(btn.dataset.tab, btn);
+  });
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+  btn.classList.add("active");
+  $("tab-" + tabId).classList.add("active");
 }
 
 boot();

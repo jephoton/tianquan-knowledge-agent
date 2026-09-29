@@ -231,6 +231,36 @@
     width: 120px;
   }
   .filter-field input:focus { border-bottom-color: rgba(255,176,0,0.4); }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid rgba(232,220,200,0.08);
+  }
+  .tab-btn {
+    padding: 8px 24px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #6b6150;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover {
+    color: #e8dcc8;
+  }
+  .tab-btn.active {
+    color: #ffb000;
+    border-bottom-color: #ffb000;
+    text-shadow: 0 0 8px #ffb000;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 </style>
 
 <!-- ====== TOP BAR ====== -->
@@ -248,8 +278,21 @@
   </div>
 </header>
 
+<!-- ====== TAB BAR ====== -->
+<nav class="w-full" style="border-bottom:1px solid rgba(232,220,200,0.08);">
+  <div class="max-w-[1440px] mx-auto px-12">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="query">Query</button>
+      <button class="tab-btn" data-tab="admin">Admin &amp; Audit</button>
+    </div>
+  </div>
+</nav>
+
 <!-- ====== MAIN CONTENT ====== -->
 <main class="max-w-[1440px] mx-auto px-12 py-8 flex flex-col gap-8">
+
+  <!-- ====== QUERY TAB ====== -->
+  <div id="tab-query" class="tab-panel active flex flex-col gap-8">
 
   <!-- PERSONA SWITCHER -->
   <section>
@@ -300,75 +343,49 @@
     </div>
   </div>
 
-  <!-- TWO-COLUMN: POLICY INSPECTOR + AUDIT EXPLORER -->
-  <div class="grid grid-cols-2 gap-6">
-
-    <!-- POLICY INSPECTOR -->
-    <section class="crt-card p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div class="section-label">policy inspector</div>
-        <div id="inspector-summary" style="font-size:12px;">
-          <span style="color:#6b6150;">no query yet</span>
-        </div>
+  <!-- POLICY INSPECTOR -->
+  <section class="crt-card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="section-label">policy inspector</div>
+      <div id="inspector-summary" style="font-size:12px;">
+        <span style="color:#6b6150;">no query yet</span>
       </div>
+    </div>
 
-      <div id="inspector-rows" class="flex flex-col">
-        <div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; run a query to see policy decisions</span></div>
+    <div id="inspector-rows" class="flex flex-col">
+      <div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; run a query to see policy decisions</span></div>
+    </div>
+
+    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+      <div style="font-size:11px;color:#6b6150;">
+        policy engine: VeriBrain &middot; fail-closed &middot; live ACL evaluation
       </div>
+    </div>
+  </section>
 
-      <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-        <div style="font-size:11px;color:#6b6150;">
-          policy engine: VeriBrain &middot; fail-closed &middot; live ACL evaluation
-        </div>
-      </div>
-    </section>
+  </div><!-- /#tab-query -->
 
-    <!-- AUDIT EXPLORER -->
-    <section class="crt-card p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div class="section-label">audit explorer</div>
-        <span id="chain-badge" style="color:#6b6150;font-size:11px;">[CHAIN --]</span>
-      </div>
+  <!-- ====== ADMIN & AUDIT TAB ====== -->
+  <div id="tab-admin" class="tab-panel flex flex-col gap-8">
 
-      <!-- Filters -->
-      <div class="flex gap-6 mb-4 items-end">
-        <div class="filter-field">
-          <label>[user_id]:</label>
-          <input id="f-user" type="text" placeholder="all" />
-        </div>
-        <div class="filter-field">
-          <label>[decision]:</label>
-          <input id="f-decision" type="text" placeholder="allow|deny" />
-        </div>
-        <div class="filter-field">
-          <label>[resource]:</label>
-          <input id="f-resource" type="text" placeholder="substring" />
-        </div>
-        <button id="audit-refresh" class="outline-btn" style="padding:3px 10px;font-size:11px;">refresh</button>
-        <button id="audit-verify" class="outline-btn" style="padding:3px 10px;font-size:11px;">verify chain</button>
-      </div>
-
-      <!-- Events table -->
-      <table class="audit-table">
-        <thead>
-          <tr>
-            <th>timestamp</th>
-            <th>user</th>
-            <th>action</th>
-            <th>resource</th>
-            <th>result</th>
-            <th>hash</th>
-          </tr>
-        </thead>
-        <tbody id="audit-body">
-          <tr><td colspan="6" style="color:#6b6150;">no events yet</td></tr>
-        </tbody>
-      </table>
-
-      <div class="mt-3 flex items-center justify-between">
-        <span id="audit-count" style="font-size:11px;color:#6b6150;">showing 0 events</span>
-      </div>
-    </section>
+  <!-- STATS ROW -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">audit events</div>
+      <div id="stat-total-admin" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">allowed</div>
+      <div id="stat-allowed-admin" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">denied</div>
+      <div id="stat-denied-admin" style="font-size:32px;font-weight:700;color:#c47a7a;">0</div>
+    </div>
+    <div class="crt-card p-5 text-center">
+      <div class="section-label mb-2">chain integrity</div>
+      <div id="stat-chain-admin" style="font-size:32px;font-weight:700;color:#3a8a5a;" class="phosphor-glow">--</div>
+    </div>
   </div>
 
   <!-- REVOCATION CONTROLS -->
@@ -402,6 +419,55 @@
       </div>
     </div>
   </section>
+
+  <!-- AUDIT EXPLORER -->
+  <section class="crt-card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="section-label">audit explorer</div>
+      <span id="chain-badge" style="color:#6b6150;font-size:11px;">[CHAIN --]</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-6 mb-4 items-end">
+      <div class="filter-field">
+        <label>[user_id]:</label>
+        <input id="f-user" type="text" placeholder="all" />
+      </div>
+      <div class="filter-field">
+        <label>[decision]:</label>
+        <input id="f-decision" type="text" placeholder="allow|deny" />
+      </div>
+      <div class="filter-field">
+        <label>[resource]:</label>
+        <input id="f-resource" type="text" placeholder="substring" />
+      </div>
+      <button id="audit-refresh" class="outline-btn" style="padding:3px 10px;font-size:11px;">refresh</button>
+      <button id="audit-verify" class="outline-btn" style="padding:3px 10px;font-size:11px;">verify chain</button>
+    </div>
+
+    <!-- Events table -->
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>timestamp</th>
+          <th>user</th>
+          <th>action</th>
+          <th>resource</th>
+          <th>result</th>
+          <th>hash</th>
+        </tr>
+      </thead>
+      <tbody id="audit-body">
+        <tr><td colspan="6" style="color:#6b6150;">no events yet</td></tr>
+      </tbody>
+    </table>
+
+    <div class="mt-3 flex items-center justify-between">
+      <span id="audit-count" style="font-size:11px;color:#6b6150;">showing 0 events</span>
+    </div>
+  </section>
+
+  </div><!-- /#tab-admin -->
 
   <!-- FOOTER -->
   <footer class="py-4" style="border-top:1px solid rgba(232,220,200,0.06);">
