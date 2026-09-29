@@ -47,6 +47,40 @@ _BODY_WEIGHT = 1.0
 
 _MAX_CACHE_SIZE = 128
 
+# Maps source-specific keywords to Source enum values. When the query
+# contains one of these keywords, only resources from the matching source
+# are scored. This avoids scanning irrelevant connectors entirely.
+_SOURCE_KEYWORDS: dict[str, str] = {
+    "confluence": "confluence",
+    "page": "confluence",
+    "wiki": "confluence",
+    "jira": "jira",
+    "ticket": "jira",
+    "issue": "jira",
+    "bug": "jira",
+    "slack": "slack",
+    "channel": "slack",
+    "message": "slack",
+    "gdrive": "gdrive",
+    "docs": "gdrive",
+    "document": "gdrive",
+    "file": "gdrive",
+    "spreadsheet": "gdrive",
+}
+
+
+def _detect_source_filter(query_tokens: list[str]) -> str | None:
+    """If the query mentions a source-specific keyword, return the source name.
+
+    Returns None when no source keyword is found, meaning all sources should
+    be searched.
+    """
+    for token in query_tokens:
+        source = _SOURCE_KEYWORDS.get(token)
+        if source:
+            return source
+    return None
+
 
 def tokenize(text: str) -> list[str]:
     """Lowercase, split on non-alphanumeric, and drop stopwords."""
@@ -70,6 +104,40 @@ class _IndexEntry:
     entry: IndexEntry
     title_tf: dict[str, int]  # term frequency in title
     body_tf: dict[str, int]   # term frequency in body
+    title_ngrams: set[str]    # char trigrams from all title tokens
+    body_ngrams: set[str]     # char trigrams from all body tokens
+
+
+def _char_ngrams(token: str) -> set[str]:
+    """Extract character n-grams (bigrams + trigrams) from a token.
+
+    Bigrams catch short-token overlap (e.g. "db" vs "database" share "$d",
+    "ba"). Trigrams catch longer stem overlap (e.g. "migrate" vs "migration"
+    share "igr", "gra", "rat", "ate").
+    """
+    padded = f"${token}$"
+    ngrams: set[str] = set()
+    # Bigrams for short-token matching.
+    if len(padded) >= 2:
+        for i in range(len(padded) - 1):
+            ngrams.add(padded[i:i + 2])
+    # Trigrams for longer-stem matching.
+    if len(padded) >= 3:
+        for i in range(len(padded) - 2):
+            ngrams.add(padded[i:i + 3])
+    return ngrams if ngrams else {padded}
+
+
+def _ngram_similarity(query_ngrams: set[str], doc_ngrams: set[str]) -> float:
+    """Jaccard similarity between two n-gram sets.
+
+    Returns 0.0 if either set is empty, 1.0 if they are identical.
+    """
+    if not query_ngrams or not doc_ngrams:
+        return 0.0
+    intersection = query_ngrams & doc_ngrams
+    union = query_ngrams | doc_ngrams
+    return len(intersection) / len(union)
 
 
 class CandidateSearch:
@@ -110,11 +178,21 @@ class CandidateSearch:
             for t in body_tokens:
                 body_tf[t] = body_tf.get(t, 0) + 1
 
+            # Pre-compute character n-gram sets for semantic fuzzy matching.
+            title_ngrams: set[str] = set()
+            for t in title_tokens:
+                title_ngrams |= _char_ngrams(t)
+            body_ngrams: set[str] = set()
+            for t in body_tokens:
+                body_ngrams |= _char_ngrams(t)
+
             self._entries[rid] = _IndexEntry(
                 resource=entry.resource,
                 entry=entry,
                 title_tf=title_tf,
                 body_tf=body_tf,
+                title_ngrams=title_ngrams,
+                body_ngrams=body_ngrams,
             )
 
             # Add to inverted index (unique tokens only — set deduplicates).
@@ -142,14 +220,49 @@ class CandidateSearch:
         return math.log(1 + self._doc_count / (1 + df))
 
     def _score(self, query_tokens: list[str]) -> list[ScoredCandidate]:
-        """Score all resources that share at least one token with the query."""
+        """Score resources by hybrid TF-IDF + n-gram similarity.
+
+        Exact token matches score highest (via TF-IDF). For query tokens
+        with no exact match, a smaller semantic boost is added from
+        character n-gram similarity, so "db" matches "database" and
+        "migration" matches "migrate".
+
+        If the query mentions a source-specific keyword (e.g. "jira",
+        "slack"), only resources from that source are scored.
+        """
         if not query_tokens:
             return []
 
-        # Find candidate resource IDs via the inverted index.
+        # Detect source filter from query keywords.
+        source_filter = _detect_source_filter(query_tokens)
+
+        # Find candidate resource IDs via the inverted index (exact matches).
         candidate_ids: set[str] = set()
         for token in query_tokens:
             candidate_ids.update(self._inverted.get(token, set()))
+
+        # For semantic matching, also add resources with high n-gram
+        # overlap. This is O(query_tokens * all_resources), but only runs
+        # for tokens that didn't exact-match.
+        query_ngrams_by_token: dict[str, set[str]] = {}
+        for token in query_tokens:
+            if token not in self._inverted:
+                query_ngrams_by_token[token] = _char_ngrams(token)
+
+        if query_ngrams_by_token:
+            for rid, ie in self._entries.items():
+                for token, qngrams in query_ngrams_by_token.items():
+                    sim_title = _ngram_similarity(qngrams, ie.title_ngrams)
+                    sim_body = _ngram_similarity(qngrams, ie.body_ngrams)
+                    if sim_title > 0.3 or sim_body > 0.3:
+                        candidate_ids.add(rid)
+
+        # Apply source filter if detected.
+        if source_filter:
+            candidate_ids = {
+                rid for rid in candidate_ids
+                if self._entries[rid].resource.source.value == source_filter
+            }
 
         # Unique query tokens for normalization.
         unique_query_tokens = set(query_tokens)
@@ -157,24 +270,34 @@ class CandidateSearch:
         scored: list[ScoredCandidate] = []
         for rid in candidate_ids:
             ie = self._entries[rid]
-            score = 0.0
+            exact_score = 0.0
+            semantic_score = 0.0
 
             for token in unique_query_tokens:
                 idf = self._idf(token)
-                if idf == 0.0:
-                    continue
 
-                title_hits = ie.title_tf.get(token, 0)
-                body_hits = ie.body_tf.get(token, 0)
+                # Exact match via TF-IDF.
+                if idf > 0.0:
+                    title_hits = ie.title_tf.get(token, 0)
+                    body_hits = ie.body_tf.get(token, 0)
 
-                if title_hits > 0:
-                    score += _TITLE_WEIGHT * idf * title_hits
-                if body_hits > 0:
-                    # Only count body if not already in title (avoid double counting).
-                    body_only = body_hits if title_hits == 0 else body_hits - title_hits
-                    if body_only > 0:
-                        score += _BODY_WEIGHT * idf * body_only
+                    if title_hits > 0:
+                        exact_score += _TITLE_WEIGHT * idf * title_hits
+                    if body_hits > 0:
+                        body_only = body_hits if title_hits == 0 else body_hits - title_hits
+                        if body_only > 0:
+                            exact_score += _BODY_WEIGHT * idf * body_only
+                else:
+                    # No exact match — add semantic boost from n-gram similarity.
+                    qngrams = _char_ngrams(token)
+                    sim_title = _ngram_similarity(qngrams, ie.title_ngrams)
+                    sim_body = _ngram_similarity(qngrams, ie.body_ngrams)
+                    if sim_title > 0.3:
+                        semantic_score += _TITLE_WEIGHT * sim_title * 0.3
+                    if sim_body > 0.3:
+                        semantic_score += _BODY_WEIGHT * sim_body * 0.3
 
+            score = exact_score + semantic_score
             if score > 0:
                 # Normalize by query size for cross-query comparability.
                 score /= len(unique_query_tokens)

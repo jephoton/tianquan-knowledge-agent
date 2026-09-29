@@ -1,7 +1,7 @@
 # ADR-0004: Keyword candidate search instead of vector embeddings for V1
 
 **Date:** 2026-09-28  
-**Status:** Accepted
+**Status:** Superseded (M14 — hybrid TF-IDF + n-gram semantic search implemented)
 
 ## Context
 
@@ -47,3 +47,18 @@ that allows a vector-based implementation to be swapped in later.
 - The permission filter must re-fetch the **live** ACL from the connector at
   query time (not the indexed snapshot), so that candidate over-fetching can
   never leak revoked content. Freshness checking (M2) backs this.
+
+## Update (M14, 2026-09-29)
+
+The stretch upgrade has been implemented. Candidate search now uses:
+- **Inverted index** (token → resource_ids) for O(query_tokens) lookup
+- **TF-IDF scoring** for term-rarity-aware ranking
+- **Character n-gram similarity** (bigrams + trigrams) for semantic fuzzy
+  matching — "db" matches "database", "migrate" matches "migration"
+- **Connector-level source filtering** — query mentioning "jira" skips
+  non-Jira connectors
+- **Parallel connector polling** — ThreadPoolExecutor for `list_resources()`
+- **Result caching** — LRU cache keyed by (query, k), invalidated on reindex
+
+No external embedding model or vector store is needed — the n-gram approach
+provides semantic matching while remaining deterministic and offline.
