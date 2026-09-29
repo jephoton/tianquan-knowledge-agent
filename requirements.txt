@@ -4,7 +4,7 @@
 # -- API layer --------------------------------------
 fastapi==0.135.1
 uvicorn==0.41.0
-requests==2.32.5        # used by HunyuanLLMClient for Tencent Hunyuan API calls
+requests==2.32.5        # used by ADPClient for Tencent Cloud ADP Chat API
 
 # -- Testing ----------------------------------------
 pytest==9.0.2

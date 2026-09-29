@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-29 (M14 in progress — Hunyuan LLM adapter wired)
+> **Last updated:** 2026-09-29 (M14 in progress — ADP Chat API adapter wired)
 
 ## Milestone
 
@@ -10,7 +10,7 @@
 **M3 — Permission-aware retrieval pipeline** → complete  
 **M4 — TLA+ formal specification** → complete  
 **M5 — Audit trail** → complete  
-**M6 — LLM answer agent** → complete (Hunyuan adapter implemented; stub fallback for offline)  
+**M6 — LLM answer agent** → complete (ADP Chat API adapter implemented; stub fallback for offline)  
 **M7 — Live revocation handling** → complete  
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
 **M9 — No-metadata-leak & negative cases** → complete  
@@ -76,7 +76,7 @@
   query return the *identical* canonical message (denial doesn't confirm
   existence). INV7 was already enforced in the answer agent (M6); M9 added the
   system-level proof — no new source code.
-- [x] **185 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17) + Hunyuan adapter (4). (Frontend is static; no automated tests.)
+- [x] **186 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17) + ADP adapter (5). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 - [x] **M10:** demo runbook (`docs/demo-runbook.md`), getting-started instructions in README, all 5 demos verified end-to-end via API, architecture/trust-boundary diagrams polished, project description written (`docs/project-description.md`), README/architecture.md frontend tech corrected.
@@ -112,12 +112,12 @@ Project description written (`docs/project-description.md`).
 
 ## Blockers
 
-- **Hunyuan API key needed for live LLM demo.** The adapter is implemented
-  (`backend/agents/hunyuan_client.py`) and wired into the orchestrator with
-  automatic stub fallback. To go live: `set HUNYUAN_API_KEY=your-key` and
-  restart the server. The key is created in the
-  [Tencent Cloud Console](https://console.cloud.tencent.com/hunyuan/start).
-  The hackathon requirement to use Tencent Cloud AI is satisfied by Hunyuan.
+- **ADP AppKey needed for live LLM demo.** The adapter is implemented
+  (`backend/agents/adp_client.py`) and wired into the orchestrator with
+  automatic stub fallback. To go live: create/publish an agent on the ADP
+  console (see `docs/ADP_Hackathon_Guide_EN.pdf`), copy the AppKey, set
+  `ADP_APP_KEY=your-key`, and restart the server. The hackathon requirement
+  to use Tencent Cloud AI is satisfied by ADP.
 
 ## Key decisions made
 

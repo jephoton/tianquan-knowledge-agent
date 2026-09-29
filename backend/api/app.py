@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {
             "status": "ok",
-            "llm": "hunyuan" if os.environ.get("HUNYUAN_API_KEY") else "stub",
+            "llm": "adp" if os.environ.get("ADP_APP_KEY") else "stub",
         }
 
     @app.get("/users", tags=["meta"])

@@ -24,15 +24,15 @@ from backend.connectors.slack import SlackConnector
 
 
 def _build_llm():
-    """Return a Hunyuan LLM client if an API key is set, else the stub.
+    """Return an ADP LLM client if an AppKey is set, else the stub.
 
-    HUNYUAN_API_KEY can be set via environment variable. When absent, the
+    ADP_APP_KEY can be set via environment variable. When absent, the
     deterministic stub is used so the system runs fully offline (ADR-0005).
     """
-    if os.environ.get("HUNYUAN_API_KEY"):
+    if os.environ.get("ADP_APP_KEY"):
         try:
-            from backend.agents.hunyuan_client import HunyuanLLMClient
-            return HunyuanLLMClient()
+            from backend.agents.adp_client import ADPClient
+            return ADPClient()
         except Exception:
             pass  # fall through to stub
     from backend.agents.llm_client import StubLLMClient
