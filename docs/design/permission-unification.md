@@ -88,11 +88,28 @@ rules:
 
 ## Extending to a new source
 
-To add a 5th source (e.g. Notion):
+To add a 5th source (e.g. Notion), you must touch **4 files** — but none of
+them are in the retrieval pipeline, audit, answer, or API layers:
 
-1. Write a new connector that emits `Resource` objects with
-   `source_permissions = {"workspace": "...", "share_level": "..."}`.
-2. Add a `_check_notion` function in `permission_mapping.py`.
-3. Add `NOTION` to the `Source` enum in `models.py`.
+| Step | File | Work |
+|------|------|------|
+| 1. Add `NOTION` to the `Source` enum | `backend/models.py` | 1 line |
+| 2. Write a connector class extending `BaseConnector` | `backend/connectors/notion.py` | ~100 lines: translate native objects to `Resource`/`ACL` with `source_permissions` |
+| 3. Add `_check_notion()` to the permission mapping | `backend/policy/permission_mapping.py` | ~30 lines: native permission rules |
+| 4. Register the connector | `backend/api/state.py` | 1 line: `NotionConnector()` in the list |
 
-The retrieval pipeline, audit trail, answer agent, and frontend do not change.
+**What does NOT change:**
+
+- `indexer.py` — iterates `connector.list_resources()` generically
+- `candidate_search.py` — scores `Resource.title` + `Resource.content` generically
+- `permission_filter.py` — calls `PolicyEngine.decide()` generically
+- `context_assembler.py` — assembles `Resource.content` generically
+- `answer_agent.py` — generates from assembled context generically
+- `orchestrator.py` — sequences the pipeline generically
+- `audit/` — logs `Decision` objects generically
+- `api/routes` — pass through to orchestrator generically
+- Frontend — reads API responses generically
+
+You cannot avoid writing the connector itself — every source has different
+data shapes and permission models that must be translated. But the design
+ensures the translation is the **only** new code.

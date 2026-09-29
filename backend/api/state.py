@@ -11,6 +11,7 @@ routes must be visible to subsequent /query calls within the same process
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from backend.agents.orchestrator import Orchestrator
@@ -20,6 +21,22 @@ from backend.connectors.confluence import ConfluenceConnector
 from backend.connectors.gdrive import GDriveConnector
 from backend.connectors.jira import JiraConnector
 from backend.connectors.slack import SlackConnector
+
+
+def _build_llm():
+    """Return a Hunyuan LLM client if an API key is set, else the stub.
+
+    HUNYUAN_API_KEY can be set via environment variable. When absent, the
+    deterministic stub is used so the system runs fully offline (ADR-0005).
+    """
+    if os.environ.get("HUNYUAN_API_KEY"):
+        try:
+            from backend.agents.hunyuan_client import HunyuanLLMClient
+            return HunyuanLLMClient()
+        except Exception:
+            pass  # fall through to stub
+    from backend.agents.llm_client import StubLLMClient
+    return StubLLMClient()
 
 
 @dataclass
@@ -39,7 +56,7 @@ class AppState:
             SlackConnector(),
             GDriveConnector(),
         ]
-        orchestrator = Orchestrator(connectors)
+        orchestrator = Orchestrator(connectors, llm=_build_llm())
         return cls(
             identity=IdentityStore(),
             orchestrator=orchestrator,

@@ -10,6 +10,8 @@ Or build a fresh app in tests with `create_app()`.
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,7 +39,10 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["meta"])
     def health() -> dict:
-        return {"status": "ok"}
+        return {
+            "status": "ok",
+            "llm": "hunyuan" if os.environ.get("HUNYUAN_API_KEY") else "stub",
+        }
 
     @app.get("/users", tags=["meta"])
     def users() -> list[dict]:

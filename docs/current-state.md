@@ -1,6 +1,6 @@
 # Current State — VeriBrain
 
-> **Last updated:** 2026-09-29 (M11/M12/M13 complete)
+> **Last updated:** 2026-09-29 (M14 in progress — Hunyuan LLM adapter wired)
 
 ## Milestone
 
@@ -10,7 +10,7 @@
 **M3 — Permission-aware retrieval pipeline** → complete  
 **M4 — TLA+ formal specification** → complete  
 **M5 — Audit trail** → complete  
-**M6 — LLM answer agent** → complete (stubbed LLM; live provider deferred, see ADR-0005)  
+**M6 — LLM answer agent** → complete (Hunyuan adapter implemented; stub fallback for offline)  
 **M7 — Live revocation handling** → complete  
 **M8 — Frontend UI** → complete (REST API + Miora-generated UI wired to it)  
 **M9 — No-metadata-leak & negative cases** → complete  
@@ -18,7 +18,7 @@
 **M11 — Hallucination detection layer** → complete (GroundingChecker, INV8, 17 tests)  
 **M12 — Data freshness indicators** → complete (updated_at in citations, UI freshness badges, 9 tests)  
 **M13 — Prompt-injection detection** → complete (QueryScanner, audit flag, 17 tests)  
-**Next:** M14 — full milestone review pass, then M15 submission prep
+**Next:** M14 — full milestone review pass (in progress), then M15 submission prep
 
 ## What exists
 
@@ -76,7 +76,7 @@
   query return the *identical* canonical message (denial doesn't confirm
   existence). INV7 was already enforced in the answer agent (M6); M9 added the
   system-level proof — no new source code.
-- [x] **181 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17). (Frontend is static; no automated tests.)
+- [x] **185 tests passing**: M1 (33) + M2 (22) + M3 (20) + M5 audit (18) + M6 agents (15) + M7 revocation (10) + M8 API (13) + M9 no-leak (7) + M11 grounding (17) + M12 freshness (9) + M13 injection (17) + Hunyuan adapter (4). (Frontend is static; no automated tests.)
 - [x] Miora added to tech stack.
 - [x] Development log started with M0 screenshot.
 - [x] **M10:** demo runbook (`docs/demo-runbook.md`), getting-started instructions in README, all 5 demos verified end-to-end via API, architecture/trust-boundary diagrams polished, project description written (`docs/project-description.md`), README/architecture.md frontend tech corrected.
@@ -112,13 +112,12 @@ Project description written (`docs/project-description.md`).
 
 ## Blockers
 
-- **WorkBuddy API requires a Pro upgrade** (not currently available), so the
-  live Tencent LLM path cannot be exercised yet. Mitigated by ADR-0005: M6 is
-  built and tested against `StubLLMClient` offline; the WorkBuddy adapter is a
-  config-level swap once Pro access lands. Fallbacks if it never does:
-  CodeBuddy (already the documented dev tool / usage proof) and/or a local
-  open-source model for the live demo. **This blocks the live-LLM demo path
-  only — not M7 or any further implementation.**
+- **Hunyuan API key needed for live LLM demo.** The adapter is implemented
+  (`backend/agents/hunyuan_client.py`) and wired into the orchestrator with
+  automatic stub fallback. To go live: `set HUNYUAN_API_KEY=your-key` and
+  restart the server. The key is created in the
+  [Tencent Cloud Console](https://console.cloud.tencent.com/hunyuan/start).
+  The hackathon requirement to use Tencent Cloud AI is satisfied by Hunyuan.
 
 ## Key decisions made
 
