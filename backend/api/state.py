@@ -14,6 +14,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+
+load_dotenv()  # reads .env in project root if present (gitignored)
+
 from backend.agents.orchestrator import Orchestrator
 from backend.audit.audit_query import AuditQueryEngine
 from backend.auth.identity import IdentityStore
