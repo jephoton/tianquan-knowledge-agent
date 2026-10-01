@@ -1,0 +1,13 @@
+Title: [MIG-232] DB Migration: Verify replication lag under peak load
+Source: jira
+Resource ID: MIG-232
+URL: https://companya.atlassian.net/browse/MIG-232
+Sensitivity: internal
+
+Issue: MIG-232 | Project: Database Migration (MIG)
+Type: Sub-task | Status: Done | Assignee: John Doe
+
+Verified replication lag under simulated peak load (2x normal).
+Average lag: 40ms, max: 85ms. Within 100ms threshold.
+
+Acceptance criteria met. Story points: 2.

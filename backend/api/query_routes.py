@@ -1,4 +1,4 @@
-"""Query routes — POST /query.
+﻿"""Query routes — POST /query.
 
 Runs a user's question through the orchestrator and returns the grounded
 answer, citations, per-resource policy decisions (with reasons and ACL
@@ -21,7 +21,7 @@ router = APIRouter(tags=["query"])
 
 @router.post("/query", response_model=QueryResponseModel)
 def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
-    state = request.app.state.veribrain
+    state = request.app.state.tianquan
     user = state.identity.get_user(req.user_id)
     if user is None:
         raise HTTPException(status_code=404, detail=f"unknown user: {req.user_id}")

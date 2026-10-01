@@ -1,4 +1,4 @@
-# Plan — VeriBrain
+﻿# Plan — Tianquan 天权
 
 > **Status:** Source of truth. When this document and any other artifact disagree, this document wins until explicitly updated.
 >
@@ -23,7 +23,7 @@ The hard part is not RAG. The hard part is:
 
 > Enterprise AI assistants fail not because they cannot answer questions, but because they cannot prove they answered using only information the user was allowed to see.
 
-VeriBrain is a permission-aware internal brain where every retrieval, denial, answer, and audit event is checked against a formally specified access-control model.
+Tianquan (天权 — "heaven's authority") is a permission-aware internal brain where every retrieval, denial, answer, and audit event is checked against a formally specified access-control model.
 
 The core constraint:
 
@@ -200,7 +200,7 @@ All items below must be completed before considering the project submission-read
 
 | # | Deliverable | Required | Details |
 |---|------------|----------|---------|
-| 1 | Project title | ✅ | "VeriBrain" |
+| 1 | Project title | ✅ | "Tianquan" |
 | 2 | Short blurb | ✅ | Under 10 words: "Auditable AI answers that never overstep access rights." |
 | 3 | Project description | ✅ | Overview, real-world scenario insights, comprehensive solution design (business + technical architecture), how prompts drive AI generation, business value. |
 | 4 | CodeBuddy / WorkBuddy conversation history | ✅ | Min 3 screenshots/screen recordings of chat logs from CodeBuddy or WorkBuddy during development. **Track continuously from M0** — see dev log below. |

@@ -1,0 +1,11 @@
+Title: [SEC-101] Security: Leaked credential in staging deployment
+Source: jira
+Resource ID: SEC-101
+URL: https://companya.atlassian.net/browse/SEC-101
+Sensitivity: confidential
+
+Issue: SEC-101 | Project: Security (SEC)
+Type: Security Issue | Status: Closed
+Issue Security Level: security
+
+Service account credential 'staging-deploy' was found committed in a public Slack channel. Credential rotated, access logs reviewed, no unauthorized production access detected.

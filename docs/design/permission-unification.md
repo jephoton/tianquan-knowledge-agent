@@ -1,10 +1,10 @@
-# Design — Permission Model Unification
+﻿# Design — Permission Model Unification
 
 > **Last updated:** 2026-09-29
 
 ## Problem
 
-VeriBrain integrates four source systems (Confluence, Jira, Slack, Google
+Tianquan integrates four source systems (Confluence, Jira, Slack, Google
 Drive), each with a fundamentally different native permission model:
 
 | Source | Native model |

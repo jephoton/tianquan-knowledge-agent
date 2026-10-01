@@ -1,4 +1,4 @@
-"""Permission-aware retrieval pipeline for VeriBrain.
+﻿"""Permission-aware retrieval pipeline for Tianquan.
 
 Pipeline stages (M3):
     indexer          -> snapshot resources from all connectors

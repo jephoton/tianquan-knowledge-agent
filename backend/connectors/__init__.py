@@ -1,1 +1,1 @@
-"""Mock source-system connectors for VeriBrain."""
+﻿"""Mock source-system connectors for Tianquan."""

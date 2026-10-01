@@ -1,0 +1,14 @@
+Title: New Employee Onboarding Guide
+Source: gdrive
+Resource ID: gdrive:onboarding-guide
+URL: https://drive.google.com/onboarding/new-employee-guide.pdf
+Sensitivity: public
+
+Welcome to Company A!
+
+1. Set up laptop with IT script.
+2. Request Confluence, Jira, Slack access.
+3. Clone repo, run make dev.
+4. Read ENG handbook in Confluence.
+
+Questions? Ask in #help-desk.

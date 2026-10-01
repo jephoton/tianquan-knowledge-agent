@@ -1,4 +1,4 @@
-# Current State — VeriBrain
+﻿# Current State — Tianquan 天权
 
 > **Last updated:** 2026-09-29 (M14 in progress — ADP Chat API adapter wired)
 

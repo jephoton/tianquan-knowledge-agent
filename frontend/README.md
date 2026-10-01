@@ -1,6 +1,6 @@
-# Frontend — VeriBrain
+﻿# Frontend — Tianquan 天权
 
-The VeriBrain dashboard: query console, policy inspector, audit explorer, and
+The Tianquan (天权) dashboard: query console, policy inspector, audit explorer, and
 revocation controls. CRT/phosphor-terminal styling generated with **Miora**,
 then wired to the backend API.
 

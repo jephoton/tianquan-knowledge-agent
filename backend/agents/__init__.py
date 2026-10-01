@@ -1,4 +1,4 @@
-"""Agents for VeriBrain.
+﻿"""Agents for Tianquan.
 
 - llm_client:  LLMClient protocol + deterministic StubLLMClient (ADR-0005).
 - answer_agent: grounded, citation-validated answers (INV6/INV7).

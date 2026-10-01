@@ -1,4 +1,4 @@
-# Formal Specification — VeriBrain
+﻿# Formal Specification — Tianquan 天权
 
 TLA+ specification of the permission-aware retrieval access-control model.
 

@@ -1,7 +1,7 @@
-"""Tencent Cloud ADP (Agent Development Platform) LLM client adapter.
+﻿"""Tencent Cloud ADP (Agent Development Platform) LLM client adapter.
 
 Implements the LLMClient protocol by calling the ADP Chat API. The agent on
-ADP handles model orchestration and knowledge base; VeriBrain sends the
+ADP handles model orchestration and knowledge base; Tianquan sends the
 permission-filtered context as part of the question so the agent generates
 a grounded answer using only authorized content.
 

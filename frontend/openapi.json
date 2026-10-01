@@ -1,7 +1,7 @@
-{
+﻿{
   "openapi": "3.1.0",
   "info": {
-    "title": "VeriBrain API",
+    "title": "Tianquan 天权 API",
     "description": "Permission-aware enterprise knowledge agent.",
     "version": "0.1.0"
   },

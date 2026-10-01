@@ -1,6 +1,6 @@
-"""Orchestrator.
+﻿"""Orchestrator.
 
-Routes a user query through the full VeriBrain pipeline:
+Routes a user query through the full Tianquan pipeline:
 
     query
       -> retrieval (candidate search -> permission filter -> context assembler)

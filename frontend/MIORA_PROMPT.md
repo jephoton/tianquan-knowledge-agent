@@ -1,6 +1,6 @@
-# Miora Prompt — VeriBrain Frontend (M8)
+﻿# Miora Prompt — Tianquan 天权 Frontend (M8)
 
-This is the prompt to give Miora to generate the VeriBrain React UI. It codes
+This is the prompt to give Miora to generate the Tianquan (天权) React UI. It codes
 against the FastAPI backend in `backend/api/` (see the API contract at the
 bottom, and interactive docs at `http://localhost:8000/docs` while the server
 runs).
@@ -19,7 +19,7 @@ runs).
 
 ## The prompt
 
-Build a React + TypeScript single-page dashboard called **VeriBrain** — a
+Build a React + TypeScript single-page dashboard called **Tianquan (天权)** — a
 permission-aware enterprise knowledge assistant. It talks to a local REST API
 at `http://localhost:8000`. Use a clean, professional enterprise look (a
 security/compliance console): neutral background, card-based layout, clear

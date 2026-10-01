@@ -1,0 +1,13 @@
+Title: [HELP-12] FAQ: How to request access to a Confluence space
+Source: jira
+Resource ID: HELP-12
+URL: https://companya.atlassian.net/browse/HELP-12
+Sensitivity: public
+
+Issue: HELP-12 | Project: Help Desk (HELP)
+Type: Documentation | Status: Done
+
+To request access to a Confluence space:
+1. Navigate to the space.
+2. Click 'Space Settings' > 'Permissions'.
+3. Click 'Request Access'.

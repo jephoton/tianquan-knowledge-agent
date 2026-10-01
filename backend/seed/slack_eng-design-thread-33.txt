@@ -1,0 +1,16 @@
+Title: #eng-design - Thread: New auth service discussion
+Source: slack
+Resource ID: slack:eng-design-thread-33
+URL: https://companya.slack.com/archives/eng-design
+Sensitivity: internal
+
+Channel: #eng-design (public)
+Thread started by: alice (2026-09-12 16:00)
+
+alice: Design doc posted. OAuth 2.1 + PKCE.
+
+jdoe: Token refresh must be bulletproof or cascading auth failures.
+
+alice: Agreed. Graceful degradation: expired tokens trigger re-auth flow.
+
+jdoe: Good. Review in sprint planning.

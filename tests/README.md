@@ -1,6 +1,6 @@
-# Tests — VeriBrain
+﻿# Tests — Tianquan 天权
 
-Integration and property tests for VeriBrain.
+Integration and property tests for Tianquan (天权).
 
 ## Test categories
 

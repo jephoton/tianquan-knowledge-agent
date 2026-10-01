@@ -1,4 +1,4 @@
-"""FastAPI application factory.
+﻿"""FastAPI application factory.
 
 Assembles the query, audit, and admin routers over a shared AppState.
 Run for the demo with:
@@ -22,7 +22,7 @@ from backend.api.state import AppState
 def create_app() -> FastAPI:
     """Create a FastAPI app with a fresh, self-contained AppState."""
     app = FastAPI(
-        title="VeriBrain API",
+        title="Tianquan 天权 API",
         version="0.1.0",
         description="Permission-aware enterprise knowledge agent.",
     )
@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.state.veribrain = AppState.create()
+    app.state.tianquan = AppState.create()
 
     @app.get("/health", tags=["meta"])
     def health() -> dict:
@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
     @app.get("/users", tags=["meta"])
     def users() -> list[dict]:
         """List seed users for the demo persona switcher."""
-        store = app.state.veribrain.identity
+        store = app.state.tianquan.identity
         return [
             {"user_id": u.user_id, "name": u.name, "roles": u.roles,
              "department": u.department, "is_contractor": u.is_contractor}

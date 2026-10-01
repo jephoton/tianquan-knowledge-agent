@@ -1,4 +1,4 @@
-"""Core data models for VeriBrain.
+﻿"""Core data models for Tianquan.
 
 Defines the common Resource, User, Role, ACL, and Decision types
 used across connectors, policy engine, retrieval, and audit layers.

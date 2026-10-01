@@ -1,0 +1,18 @@
+Title: [MIG-231] DB Migration: Write traffic cutover pending
+Source: jira
+Resource ID: MIG-231
+URL: https://companya.atlassian.net/browse/MIG-231
+Sensitivity: internal
+
+Issue: MIG-231 | Project: Database Migration (MIG)
+Type: Task | Status: In Progress | Assignee: Alice Chen
+
+Phase 2 (read cutover) is complete. Phase 3 (write cutover) is scheduled for Friday 2AM SGT.
+
+Blockers:
+- Need to verify replication lag is under 100ms during peak.
+- Connection pool sizing for new cluster needs review.
+
+Comments:
+- jdoe: Replication lag averaging 40ms, should be fine.
+- alice: Pool sizing looks good, tested with 2x load.

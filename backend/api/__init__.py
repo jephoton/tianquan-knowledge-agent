@@ -1,4 +1,4 @@
-"""FastAPI REST layer for VeriBrain.
+﻿"""FastAPI REST layer for Tianquan.
 
 - app:          application factory + module-level `app` for uvicorn.
 - state:        shared singletons (connectors, identity, orchestrator).

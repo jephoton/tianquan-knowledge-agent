@@ -1,4 +1,4 @@
-"""User identities and identity store for VeriBrain.
+﻿"""User identities and identity store for Tianquan.
 
 Seed users are designed to cover all demo scenarios:
 - Alice: engineer with access to migration project + payment incident channel

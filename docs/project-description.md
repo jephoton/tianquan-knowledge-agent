@@ -1,4 +1,4 @@
-# Project Description — VeriBrain
+﻿# Project Description — Tianquan 天权
 
 > **Auditable AI answers that never overstep access rights.**
 
@@ -8,7 +8,7 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 
 ## Overview
 
-VeriBrain is a permission-aware enterprise knowledge agent that unifies context across Confluence, Jira, Slack, and Google Drive, answers natural-language questions grounded in that unified context, and does so under the uncompromising constraint that **every piece of information it exposes respects the original platform's access controls**, with full auditability.
+Tianquan (天权 — "heaven's authority") is a permission-aware enterprise knowledge agent that unifies context across Confluence, Jira, Slack, and Google Drive, answers natural-language questions grounded in that unified context, and does so under the uncompromising constraint that **every piece of information it exposes respects the original platform's access controls**, with full auditability.
 
 The core constraint:
 
@@ -20,13 +20,13 @@ Filtering happens **before** the LLM, not after. The model only ever sees conten
 
 Aspire (a B2B FinTech) has engineers, contractors, security teams, finance teams, and compliance officers — each with different access levels across Confluence, Jira, Slack, and Google Drive. An engineer asks: *"What's the status of the database migration and were there blockers raised in Slack?"* The answer should draw from the migration Jira ticket, the Slack thread, and the Confluence plan — but must **not** include the confidential security incident report that also mentions the migration, because the engineer lacks security-team clearance.
 
-Today, most "AI over your data" demos retrieve documents into LLM context with no regard for who is asking. VeriBrain solves this by making the policy engine the authoritative gate **before** retrieval reaches the model.
+Today, most "AI over your data" demos retrieve documents into LLM context with no regard for who is asking. Tianquan solves this by making the policy engine the authoritative gate **before** retrieval reaches the model.
 
 ## Solution design
 
 ### Business architecture
 
-VeriBrain sits between the user and four enterprise knowledge sources. The user asks a question through the query console. The system:
+Tianquan sits between the user and four enterprise knowledge sources. The user asks a question through the query console. The system:
 
 1. Resolves the user's identity and roles.
 2. Searches across all four sources for candidate documents.
@@ -97,7 +97,7 @@ TLC model-checks all invariants in the safe configuration (28 states, no error).
 
 ## CodeBuddy / WorkBuddy usage
 
-VeriBrain was built end-to-end using CodeBuddy as the primary development tool. The development log (`docs/dev-log/dev-log.md`) tracks each session with dates, tasks, and screenshots. The frontend UI was generated using Miora (Tencent Cloud AI creative studio).
+Tianquan was built end-to-end using CodeBuddy as the primary development tool. The development log (`docs/dev-log/dev-log.md`) tracks each session with dates, tasks, and screenshots. The frontend UI was generated using Miora (Tencent Cloud AI creative studio).
 
 ## Repository
 

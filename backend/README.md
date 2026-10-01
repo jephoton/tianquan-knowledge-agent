@@ -1,4 +1,4 @@
-# Backend — VeriBrain
+﻿# Backend — Tianquan 天权
 
 Python / FastAPI backend for the permission-aware enterprise knowledge agent.
 

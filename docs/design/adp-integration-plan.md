@@ -1,7 +1,7 @@
-# ADP Integration Plan
+﻿# ADP Integration Plan
 
 > Implementing Tencent Cloud Agent Development Platform (ADP) as the live LLM
-> backend for VeriBrain. Per `docs/ADP_Hackathon_Guide_EN.pdf`, ADP is the
+> backend for Tianquan (天权). Per `docs/ADP_Hackathon_Guide_EN.pdf`, ADP is the
 > recommended way to build agents on Tencent Cloud for this hackathon.
 
 ## What's already done
@@ -14,7 +14,7 @@ The adapter code is written and tested:
 - `tests/test_adp_client.py` — 5 tests (protocol, key check, SSE parsing, empty fallback, payload)
 - `requirements.txt` — `requests==2.32.5` added
 
-The adapter sends VeriBrain's permission-filtered context as part of the
+The adapter sends Tianquan's permission-filtered context as part of the
 question to the ADP agent, which streams an SSE response. The client
 accumulates text chunks and returns the final answer.
 
@@ -29,18 +29,18 @@ accumulates text chunks and returns the final answer.
 
 Reference: ADP guide §3 (pages 4-5).
 
-### Step 2: Build the VeriBrain agent on ADP (manual, ~15 min)
+### Step 2: Build the Tianquan agent on ADP (manual, ~15 min)
 
 1. **Create a new application** — choose "Start Free Trial" for a blank agent.
 2. **Configure the agent:**
-   - Name: "VeriBrain"
-   - Welcome message: "VeriBrain ready. Ask about your enterprise knowledge."
+   - Name: "Tianquan 天权"
+   - Welcome message: "Tianquan (天权) ready. Ask about your enterprise knowledge."
    - Model: DeepSeek (included in free allowance)
-3. **Upload the seed knowledge base** (optional — VeriBrain sends its own
+3. **Upload the seed knowledge base** (optional — Tianquan sends its own
    filtered context with each query, but uploading seed docs gives the ADP
    agent background for the "no access" case where context is empty):
    - `backend/seed/` — the 20 mock resources as plain text
-   - This is a "nice to have" — the primary knowledge path is VeriBrain's
+   - This is a "nice to have" — the primary knowledge path is Tianquan's
      own permission-filtered context, not the ADP knowledge base
 4. **Test the agent in the debug panel** — verify it can answer a simple
    question from the uploaded knowledge.
@@ -110,7 +110,7 @@ knowledge that contradicts the grounding checker.
 The guide says to keep proof of using the tools. After the live call works:
 - Screenshot the ADP console showing the published agent
 - Screenshot the `/health` response showing `"llm": "adp"`
-- Capture a query + response from the VeriBrain UI showing the ADP-powered answer
+- Capture a query + response from the Tianquan UI showing the ADP-powered answer
 - Note the AppKey prefix shown in the console (masked, safe to screenshot)
 
 ### Step 8: Experience URL for judges (manual, ~2 min)

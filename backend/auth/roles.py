@@ -1,4 +1,4 @@
-"""Role definitions and role-to-permission mapping for VeriBrain."""
+﻿"""Role definitions and role-to-permission mapping for Tianquan."""
 
 from __future__ import annotations
 

@@ -1,0 +1,23 @@
+Title: Database Migration Project - Q3 Plan
+Source: confluence
+Resource ID: confluence:db-migration-plan
+URL: https://companya.atlassian.net/wiki/confluence:db-migration-plan
+Sensitivity: internal
+
+# Database Migration Project
+
+## Objective
+Migrate the primary PostgreSQL cluster from v13 to v16 with zero downtime.
+
+## Timeline
+- Phase 1 (Week 1-2): Set up new cluster, configure logical replication.
+- Phase 2 (Week 3): Cut over read traffic. Monitor 48h.
+- Phase 3 (Week 4): Cut over write traffic. Decommission old cluster.
+
+## Risks
+- Replication lag during peak hours
+- Connection pool exhaustion during cutover
+- Rollback complexity if write cutover fails
+
+## Status
+Phase 2 complete. Read traffic on new cluster. Write cutover scheduled for Friday 2AM SGT.

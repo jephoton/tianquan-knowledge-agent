@@ -1,4 +1,4 @@
-# VeriBrain backend dependencies (pinned).
+# Tianquan backend dependencies (pinned).
 # Core has no third-party runtime deps; the API layer (M8) adds FastAPI.
 
 # -- API layer --------------------------------------

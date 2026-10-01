@@ -1,0 +1,16 @@
+Title: #db-migration - Thread: Migration blockers last week
+Source: slack
+Resource ID: slack:db-migration-thread-992
+URL: https://companya.slack.com/archives/db-migration
+Sensitivity: internal
+
+Channel: #db-migration (public)
+Thread started by: jdoe (2026-09-22 14:30)
+
+jdoe: Anyone seeing replication lag spikes during the morning peak? Seeing warnings.
+
+alice: 120ms at 9AM but settled to 40ms by 10AM. Fine for cutover.
+
+jdoe: Pool sizing test passed at 2x load. Clear for Friday.
+
+alice: Agreed. Go/no-go signal Thursday EOD.

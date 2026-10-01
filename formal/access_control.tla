@@ -1,6 +1,6 @@
--------------------------- MODULE access_control --------------------------
+﻿-------------------------- MODULE access_control --------------------------
 (***************************************************************************)
-(* VeriBrain — formal model of permission-aware retrieval.                 *)
+(* Tianquan 天权 — formal model of permission-aware retrieval.                 *)
 (*                                                                         *)
 (* Models the lifecycle of a single user query over a small universe of    *)
 (* users and resources:                                                    *)

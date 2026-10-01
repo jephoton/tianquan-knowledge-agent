@@ -1,8 +1,8 @@
-# VeriBrain
+﻿# Tianquan 天权
 
 > **Auditable AI answers that never overstep access rights.**
 
-VeriBrain is a formally constrained enterprise knowledge agent for permission-safe AI retrieval across Confluence, Jira, Slack, and Google Drive.
+Tianquan (天权 — "heaven's authority") is a formally constrained enterprise knowledge agent for permission-safe AI retrieval across Confluence, Jira, Slack, and Google Drive.
 
 Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4: FinTech (Aspire)**.
 
@@ -26,7 +26,7 @@ A permission-aware Internal Brain that:
 
 ## The differentiator
 
-Most "AI over your data" demos retrieve documents into LLM context with no regard for who is asking. VeriBrain's core constraint is:
+Most "AI over your data" demos retrieve documents into LLM context with no regard for who is asking. Tianquan's core constraint is:
 
 > **The LLM cannot leak what it never receives.**
 

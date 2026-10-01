@@ -1,4 +1,4 @@
-"""Audit routes — GET /audit, GET /audit/verify.
+﻿"""Audit routes — GET /audit, GET /audit/verify.
 
 Backs the audit explorer (Demo 4). /audit filters the hash chain by user,
 resource substring, query, decision, action; /audit/verify reports chain
@@ -30,7 +30,7 @@ def query_audit(
     decision: str | None = None,
     action: str | None = None,
 ) -> AuditQueryResponseModel:
-    state = request.app.state.veribrain
+    state = request.app.state.tianquan
     result = state.audit_query.run(
         AuditQuery(
             user_id=user_id,
@@ -53,7 +53,7 @@ def query_audit(
 @router.get("/verify")
 def verify_chain(request: Request) -> dict:
     """Report whether the audit chain is intact (tamper-evidence)."""
-    state = request.app.state.veribrain
+    state = request.app.state.tianquan
     v = state.orchestrator.audit.verify()
     return {
         "valid": v.valid,

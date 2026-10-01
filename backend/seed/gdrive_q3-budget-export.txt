@@ -1,0 +1,9 @@
+Title: Q3 Budget Export - Finance
+Source: gdrive
+Resource ID: gdrive:q3-budget-export
+URL: https://drive.google.com/budgets/q3-budget-export.xlsx
+Sensitivity: restricted
+
+Q3 Budget Export
+Revenue: $4.2M | Expenses: $2.8M | Net: $1.4M
+Runway: 18 months.

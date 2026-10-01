@@ -1,0 +1,9 @@
+Title: System Architecture Diagram v2
+Source: gdrive
+Resource ID: gdrive:arch-diagram-v2
+URL: https://drive.google.com/architecture/arch-diagram-v2.pdf
+Sensitivity: internal
+
+System architecture document.
+Diagrams: service topology, data flow, trust boundaries,
+network segmentation. Last updated: 2026-09-15

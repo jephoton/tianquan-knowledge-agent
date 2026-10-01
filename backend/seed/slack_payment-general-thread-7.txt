@@ -1,0 +1,12 @@
+Title: #payment-general - Thread: Circuit breaker follow-up
+Source: slack
+Resource ID: slack:payment-general-thread-7
+URL: https://companya.slack.com/archives/payment-general
+Sensitivity: internal
+
+Channel: #payment-general (public)
+Thread started by: alice (2026-09-18 10:00)
+
+alice: Circuit breaker re-enabled, 50% threshold. Integration test added to CI.
+
+jdoe: Should prevent the cascade from the 14th.

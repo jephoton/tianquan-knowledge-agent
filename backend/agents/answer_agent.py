@@ -1,4 +1,4 @@
-"""Answer agent.
+﻿"""Answer agent.
 
 Generates a grounded, cited answer from an AssembledContext using an
 LLMClient. The agent enforces two invariants at the answer boundary:
@@ -32,7 +32,7 @@ NO_ACCESS_MESSAGE = (
 _CITATION_RE = re.compile(r"\[(\d+)\]")
 
 _SYSTEM_PREAMBLE = (
-    "You are VeriBrain. Answer the user's question using ONLY the numbered "
+    "You are Tianquan (天权). Answer the user's question using ONLY the numbered "
     "sources in the context below. Cite sources with their bracketed markers "
     "(e.g. [1]). Do not use any information not present in the context. If the "
     "context is empty, say you could not find accessible information."

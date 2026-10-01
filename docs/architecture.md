@@ -1,4 +1,4 @@
-# Architecture — VeriBrain
+﻿# Architecture — Tianquan 天权
 
 > **Last updated:** 2026-09-29
 

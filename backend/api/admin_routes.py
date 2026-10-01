@@ -1,4 +1,4 @@
-"""Admin routes — POST /admin/revoke, POST /admin/grant.
+﻿"""Admin routes — POST /admin/revoke, POST /admin/grant.
 
 Live permission changes for Demo 3. A revoke/grant here mutates the live ACL
 on the shared orchestrator's connectors, so the very next /query reflects it
@@ -43,7 +43,7 @@ def _to_model(change) -> ACLChangeModel:
 
 @router.post("/revoke", response_model=ACLChangeModel)
 def revoke(req: RevokeGrantRequest, request: Request) -> ACLChangeModel:
-    admin = request.app.state.veribrain.orchestrator.admin
+    admin = request.app.state.tianquan.orchestrator.admin
     try:
         return _to_model(_apply(admin, "revoke", req))
     except ResourceNotFound:
@@ -52,7 +52,7 @@ def revoke(req: RevokeGrantRequest, request: Request) -> ACLChangeModel:
 
 @router.post("/grant", response_model=ACLChangeModel)
 def grant(req: RevokeGrantRequest, request: Request) -> ACLChangeModel:
-    admin = request.app.state.veribrain.orchestrator.admin
+    admin = request.app.state.tianquan.orchestrator.admin
     try:
         return _to_model(_apply(admin, "grant", req))
     except ResourceNotFound:

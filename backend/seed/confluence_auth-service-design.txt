@@ -1,0 +1,19 @@
+Title: New Auth Service - Design Decision
+Source: confluence
+Resource ID: confluence:auth-service-design
+URL: https://companya.atlassian.net/wiki/confluence:auth-service-design
+Sensitivity: internal
+
+# Auth Service Design Decision
+
+## Decision
+Adopt a dedicated auth service using OAuth 2.1 with PKCE.
+
+## Rationale
+- Eliminates shared session secret across services.
+- Enables fine-grained scope-based access.
+- Supports eventual SSO integration.
+
+## Trade-offs
+- Adds one network hop for auth verification.
+- Requires token refresh logic in all clients.

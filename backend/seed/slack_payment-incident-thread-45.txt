@@ -1,0 +1,15 @@
+Title: #payment-incident-private - Thread: 2026-09-14 outage
+Source: slack
+Resource ID: slack:payment-incident-thread-45
+URL: https://companya.slack.com/archives/payment-incident-private
+Sensitivity: restricted
+
+Channel: #payment-incident-private (private)
+Thread started by: jdoe (2026-09-14 03:15)
+
+jdoe: Payment service down. Redis failover triggered.
+alice: Circuit breaker disabled. That's why it cascaded.
+jdoe: Manual failover to backup region.
+alice: Failover complete. Recovering.
+jdoe: 45 min outage. Creating RCA PAY-456.
+alice: Breaker disabled last Tuesday deploy. Re-enable ASAP.

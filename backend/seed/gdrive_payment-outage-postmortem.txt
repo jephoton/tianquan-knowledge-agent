@@ -1,0 +1,20 @@
+Title: Payment Outage Postmortem - 2026-09-14
+Source: gdrive
+Resource ID: gdrive:payment-outage-postmortem
+URL: https://drive.google.com/postmortems/payment-outage-2026-09-14.pdf
+Sensitivity: internal
+
+Postmortem: Payment Service Outage
+Date: 2026-09-14 | Duration: 45 min | Impact: All SG payments
+
+Summary:
+Redis primary failed, triggering failover to replica. Circuit breaker was disabled (erroneous deploy 2026-09-10), so failure cascaded to all payment-service pods.
+
+Timeline:
+03:12 Redis failover | 03:25 On-call paged
+03:45 Failover to backup | 03:57 Full recovery
+
+Action Items:
+1. Re-enable circuit breaker (PAY-460) - DONE
+2. Circuit breaker validation in CI (PAY-461)
+3. Redis failover chaos test

@@ -1,4 +1,4 @@
-# Demo Runbook — VeriBrain
+﻿# Demo Runbook — Tianquan 天权
 
 > Step-by-step script for the 5 demo scenarios. All queries and outcomes below
 > are verified against the seed data. Run through this once before presenting.

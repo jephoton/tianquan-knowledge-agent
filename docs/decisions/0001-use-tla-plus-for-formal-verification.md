@@ -16,7 +16,7 @@ These are temporal/state-machine properties involving state transitions (revocat
 
 The candidate tools are:
 
-1. **TLA+ / TLC** — description语言 for concurrent and distributed systems, model-checker.
+1. **TLA+ / TLC** — description language for concurrent and distributed systems, model-checker.
 2. **Dafny** — program verifier with Hoare-logic-style pre/postconditions.
 3. **Alloy** — declarative modeling language with analyzer.
 

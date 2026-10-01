@@ -1,0 +1,24 @@
+Title: Payment Service Incident Runbook
+Source: confluence
+Resource ID: confluence:payment-runbook
+URL: https://companya.atlassian.net/wiki/confluence:payment-runbook
+Sensitivity: internal
+
+# Payment Service Incident Runbook
+
+## Last updated: 2026-09-27 13:00 SGT
+
+## Triage Steps
+1. Check Stripe webhook health dashboard.
+2. Verify payment-service pod health.
+3. Check Redis connectivity for idempotency keys.
+
+## Failover Procedure
+1. Switch payment-service to backup region.
+2. **NEW STEP (added 2026-09-27):** Enable circuit breaker on payment-gateway client with 50% threshold before failover to prevent cascade.
+3. Drain connections from primary region.
+4. Verify failover via health check endpoint.
+
+## Escalation
+- P0: Page on-call + VP Engineering
+- P1: Page on-call only

@@ -1,0 +1,18 @@
+Title: Q3 Budget Report - Finance
+Source: confluence
+Resource ID: confluence:q3-budget
+URL: https://companya.atlassian.net/wiki/confluence:q3-budget
+Sensitivity: restricted
+
+# Q3 Budget Report
+
+## Revenue
+- Q3 Revenue: $4.2M (up 12% QoQ)
+
+## Expenses
+- Engineering: $1.8M
+- Operations: $600K
+- Marketing: $400K
+
+## Runway
+Current runway: 18 months at current burn rate.

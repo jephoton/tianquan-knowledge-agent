@@ -1,4 +1,4 @@
-/* VeriBrain frontend wiring.
+﻿/* Tianquan frontend wiring.
  *
  * Connects the Miora-generated CRT dashboard to the FastAPI backend.
  * Static, no build step — served as-is. Base URL is a single constant.

@@ -1,0 +1,17 @@
+Title: [PAY-456] Payment outage - 2026-09-14 root cause analysis
+Source: jira
+Resource ID: PAY-456
+URL: https://companya.atlassian.net/browse/PAY-456
+Sensitivity: internal
+
+Issue: PAY-456 | Project: Payment Service (PAY)
+Type: Bug | Status: Closed | Priority: P0
+
+On 2026-09-14, the payment service experienced a 45-minute outage affecting all Singapore transactions.
+
+Root Cause:
+Cascading failure triggered by Redis failover. The circuit breaker on the payment-gateway client was disabled during a previous deployment, allowing the failure to cascade.
+
+Follow-up:
+- Created PAY-460: Re-enable circuit breaker.
+- Created PAY-461: Add circuit breaker config validation to CI.

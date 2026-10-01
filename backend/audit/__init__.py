@@ -1,4 +1,4 @@
-"""Tamper-evident audit trail for VeriBrain.
+﻿"""Tamper-evident audit trail for Tianquan.
 
 - event_schema: canonical AuditEvent + deterministic serialization.
 - hash_chain:   append-only SHA-256 hash chain with tamper detection.

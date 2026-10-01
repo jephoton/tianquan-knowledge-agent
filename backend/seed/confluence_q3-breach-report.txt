@@ -1,0 +1,24 @@
+Title: Q3 Security Incident Report - Data Breach
+Source: confluence
+Resource ID: confluence:q3-breach-report
+URL: https://companya.atlassian.net/wiki/confluence:q3-breach-report
+Sensitivity: confidential
+
+# Q3 Security Incident Report
+
+## Classification: CONFIDENTIAL
+
+## Summary
+On 2026-08-15, an unauthorized actor gained access to the staging database via a leaked service account credential found in a public Slack channel.
+
+## Impact
+- ~2,000 staging customer records exposed.
+- Service account staging-deploy compromised.
+
+## Root Cause
+Credential committed to a public Slack channel by a contractor during deployment troubleshooting.
+
+## Remediation
+1. Rotated all staging service account credentials.
+2. Implemented secret scanning on Slack messages.
+3. Restricted CI/CD secret access to senior engineers.

@@ -1,0 +1,10 @@
+Title: [PAY-460] Re-enable circuit breaker on payment-gateway client
+Source: jira
+Resource ID: PAY-460
+URL: https://companya.atlassian.net/browse/PAY-460
+Sensitivity: internal
+
+Issue: PAY-460 | Project: Payment Service (PAY)
+Type: Task | Status: Done
+
+Re-enabled circuit breaker with 50% error threshold. Added integration test to verify breaker state on deploy.
