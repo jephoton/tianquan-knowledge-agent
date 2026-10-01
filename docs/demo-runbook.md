@@ -3,6 +3,12 @@
 > Step-by-step script for the 5 demo scenarios. All queries and outcomes below
 > are verified against the seed data. Run through this once before presenting.
 
+> **Live ADP agent:** The Tianquan agent is published on Tencent Cloud ADP at
+> [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
+> Agent name "Tianquan 天权" and welcome message are confirmed visible. Use this
+> for the hackathon submission deliverable; the local UI below is for the
+> permission-aware demo scenarios.
+
 ## Setup (before the demo)
 
 1. **Start the backend** (from the repo root):

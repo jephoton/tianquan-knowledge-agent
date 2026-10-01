@@ -1,13 +1,15 @@
 """Tests for the ADP (Agent Development Platform) LLM client adapter.
 
 These tests verify that ADPClient correctly implements the LLMClient
-protocol and handles the ADP Chat API SSE response format. HTTP calls
-are mocked so tests run fully offline.
+protocol and handles the Tencent Cloud ADP Chat API SSE response format.
+HTTP calls are mocked so tests run fully offline.
+
+Reference: https://cloud.tencent.com/document/product/1759/129202
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -44,14 +46,14 @@ def test_adp_client_requires_app_key():
             ADPClient(app_key=None)
 
 
-def test_adp_client_generate_accumulates_sse_text():
-    """generate() should accumulate text from SSE data events."""
-    client = ADPClient(app_key="fake-key")
+def test_adp_client_generate_accumulates_text_delta_events():
+    """generate() should accumulate text from official ADP text.delta events."""
+    client = ADPClient(app_key="fake-key", visitor_id="visitor-1")
 
     sse_lines = [
-        'data: {"type": "text", "data": "Based on the "}',
-        'data: {"type": "text", "data": "available sources, "}',
-        'data: {"type": "text", "data": "here is the answer."}',
+        'data: {"Type": "text.delta", "Text": "Based on the "}',
+        'data: {"Type": "text.delta", "Text": "available sources, "}',
+        'data: {"Type": "text.delta", "Text": "here is the answer."}',
         "",
     ]
     fake_resp = _FakeSSEResponse(sse_lines)
@@ -60,6 +62,21 @@ def test_adp_client_generate_accumulates_sse_text():
         result = client.generate("Summarize the migration plan.")
 
     assert result == "Based on the available sources, here is the answer."
+
+
+def test_adp_client_generate_handles_text_replace_events():
+    """generate() should also handle text.replace events."""
+    client = ADPClient(app_key="fake-key")
+
+    sse_lines = [
+        'data: {"Type": "text.replace", "Text": "Replacement answer."}',
+    ]
+    fake_resp = _FakeSSEResponse(sse_lines)
+
+    with patch("backend.agents.adp_client.requests.post", return_value=fake_resp):
+        result = client.generate("What is the DB migration plan?")
+
+    assert result == "Replacement answer."
 
 
 def test_adp_client_generate_handles_empty_response():
@@ -74,12 +91,12 @@ def test_adp_client_generate_handles_empty_response():
     assert "No response" in result
 
 
-def test_adp_client_generate_sends_appkey():
-    """generate() should send the AppKey in the Authorization header."""
-    client = ADPClient(app_key="test-appkey")
+def test_adp_client_generate_sends_official_payload():
+    """generate() should send the official ADP request body format."""
+    client = ADPClient(app_key="test-appkey", visitor_id="visitor-42")
 
     fake_resp = _FakeSSEResponse([
-        'data: {"data": "ok"}',
+        'data: {"Type": "text.delta", "Text": "ok"}',
     ])
 
     with patch("backend.agents.adp_client.requests.post", return_value=fake_resp) as mock_post:
@@ -87,8 +104,14 @@ def test_adp_client_generate_sends_appkey():
 
     call_args = mock_post.call_args
     headers = call_args.kwargs["headers"]
-    assert headers["Authorization"] == "Bearer test-appkey"
+    assert "Authorization" not in headers
 
     payload = call_args.kwargs["json"]
-    assert payload["content"][0]["type"] == "text"
-    assert payload["content"][0]["data"] == "test prompt"
+    assert payload["AppKey"] == "test-appkey"
+    assert payload["VisitorId"] == "visitor-42"
+    assert payload["UserId"] == "visitor-42"
+    assert "ConversationId" in payload
+    assert "RequestId" in payload
+    assert payload["Contents"][0]["Type"] == "text"
+    assert payload["Contents"][0]["Text"] == "test prompt"
+    assert payload["Stream"] == "enable"

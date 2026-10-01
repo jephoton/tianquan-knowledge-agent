@@ -112,12 +112,12 @@ Project description written (`docs/project-description.md`).
 
 ## Blockers
 
-- **ADP AppKey needed for live LLM demo.** The adapter is implemented
-  (`backend/agents/adp_client.py`) and wired into the orchestrator with
-  automatic stub fallback. To go live: create/publish an agent on the ADP
-  console (see `docs/ADP_Hackathon_Guide_EN.pdf`), copy the AppKey, set
-  `ADP_APP_KEY=your-key`, and restart the server. The hackathon requirement
-  to use Tencent Cloud AI is satisfied by ADP.
+- ~~**ADP AppKey needed for live LLM demo.**~~ **Resolved.** The ADP agent is
+  published live at [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
+  Agent name "Tianquan 天权" and welcome message confirmed visible (even in
+  incognito). The adapter (`backend/agents/adp_client.py`) is wired into the
+  orchestrator with automatic stub fallback for offline dev. The hackathon
+  requirement to use Tencent Cloud AI is satisfied by ADP.
 
 ## Key decisions made
 

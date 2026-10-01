@@ -16,6 +16,7 @@ Usage:
     export ADP_APP_KEY="your-appkey-from-adp-console"
 
 Reference: docs/ADP_Hackathon_Guide_EN.pdf §6.2
+           https://cloud.tencent.com/document/product/1759/129202
 Endpoint: https://wss.lke.tencentcloud.com/adp/v2/chat
 """
 
@@ -23,11 +24,17 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 
 import requests
 
 ADP_URL = "https://wss.lke.tencentcloud.com/adp/v2/chat"
 DEFAULT_TIMEOUT = 60
+
+
+def _uuid() -> str:
+    """Return a UUID string (no dashes) that fits ADP's 32-64 char regex."""
+    return uuid.uuid4().hex
 
 
 class ADPClient:
@@ -47,9 +54,12 @@ class ADPClient:
         self,
         app_key: str | None = None,
         timeout: int = DEFAULT_TIMEOUT,
+        visitor_id: str = "tianquan-user",
     ):
         self._app_key = app_key or os.environ.get("ADP_APP_KEY", "")
         self._timeout = timeout
+        self._visitor_id = visitor_id
+        self._conversation_id = _uuid()
 
         if not self._app_key:
             raise RuntimeError(
@@ -60,17 +70,23 @@ class ADPClient:
     def generate(self, prompt: str) -> str:
         """Call the ADP Chat API and return the accumulated answer text.
 
-        The prompt is sent as the 'question' field. The API returns SSE
-        events; we accumulate all text content from the response.
+        The prompt is sent in the official ADP `Contents` array. The API
+        returns SSE events; we accumulate all text delta/replace events.
         """
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._app_key}",
         }
         payload = {
-            "content": [
-                {"type": "text", "data": prompt},
+            "RequestId": _uuid(),
+            "ConversationId": self._conversation_id,
+            "AppKey": self._app_key,
+            "VisitorId": self._visitor_id,
+            "UserId": self._visitor_id,
+            "Contents": [
+                {"Type": "text", "Text": prompt},
             ],
+            "Incremental": True,
+            "Stream": "enable",
         }
 
         resp = requests.post(
@@ -83,30 +99,24 @@ class ADPClient:
         resp.raise_for_status()
 
         # Accumulate text from SSE events.
-        # The ADP API streams events; each event has a type and content.
-        # We collect all text-bearing events and return the concatenation.
+        # Official ADP events carry answer text in `Text` (capital T) on
+        # `text.delta` / `text.replace` events.
         text_parts: list[str] = []
         for line in resp.iter_lines(decode_unicode=True):
             if not line:
                 continue
             if line.startswith("data:"):
                 data_str = line[5:].strip()
+                if data_str == "[DONE]":
+                    break
                 try:
                     event = json.loads(data_str)
                 except json.JSONDecodeError:
                     continue
-                # ADP events may carry text in various fields.
-                # The common patterns are:
-                #   {"type": "text", "data": "..."}
-                #   {"type": "message", "content": "..."}
-                #   {"payload": {"text": "..."}}
-                text = (
-                    event.get("data")
-                    or event.get("content")
-                    or (event.get("payload") or {}).get("text")
-                    or ""
-                )
-                if isinstance(text, str) and text:
-                    text_parts.append(text)
+                event_type = event.get("Type", "")
+                if event_type in ("text.delta", "text.replace"):
+                    text = event.get("Text", "")
+                    if isinstance(text, str) and text:
+                        text_parts.append(text)
 
         return "".join(text_parts) or "No response from ADP agent."

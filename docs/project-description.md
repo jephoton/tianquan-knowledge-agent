@@ -102,6 +102,7 @@ Tianquan was built end-to-end using CodeBuddy as the primary development tool. T
 ## Repository
 
 - **GitHub:** [tencent-hackathon](.) — complete source code
+- **Live ADP agent:** [Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — agent name "Tianquan 天权" and welcome message confirmed visible.
 - **Docs:** `docs/` — plan, architecture, current-state, ADRs, demo runbook, dev log
 - **Tests:** 138 passing (`python -m pytest -q`)
 - **Formal model:** `formal/` — TLA+ specification with TLC model configs

@@ -8,6 +8,7 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 
 ## Quick links
 
+- **Live ADP agent:** [Try Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — the agent name and welcome message are confirmed visible.
 - [Plan & Roadmap](docs/plan.md) — source of truth, scope, milestones
 - [Architecture](docs/architecture.md) — system design, trust boundaries, module map
 - [Current State](docs/current-state.md) — what exists now, what's next
