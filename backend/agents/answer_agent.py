@@ -31,11 +31,40 @@ NO_ACCESS_MESSAGE = (
 
 _CITATION_RE = re.compile(r"\[(\d+)\]")
 
+# Regex to detect "lazy" answers that are just citation pointers with no
+# real informational content — e.g. "see [1] [2] [3]" or "refer to [1]".
+_LAZY_PATTERNS = [
+    re.compile(
+        r"^(see|refer to|check|look at|view|consult)\b.*\[\d+\]", re.IGNORECASE
+    ),
+    re.compile(
+        r"^(see|refer to|check|look at|view|consult)\b.*\[\d+\].*\[\d+\]",
+        re.IGNORECASE,
+    ),
+]
+
+_REINFORCEMENT_PROMPT = (
+    "Your previous answer was too vague — it only pointed at references "
+    "without stating the actual information. Please answer again, this time "
+    "writing a COMPLETE, self-contained answer that states the facts directly. "
+    "Do NOT say 'see references' or 'refer to'. State the actual content."
+)
+
+_MAX_RETRIES = 2
+
 _SYSTEM_PREAMBLE = (
     "You are Tianquan (天权). Answer the user's question using ONLY the numbered "
-    "sources in the context below. Cite sources with their bracketed markers "
-    "(e.g. [1]). Do not use any information not present in the context. If the "
-    "context is empty, say you could not find accessible information."
+    "sources in the context below.\n\n"
+    "CRITICAL RULES:\n"
+    "1. Your answer must be SELF-CONTAINED — a reader should understand the full "
+    "answer WITHOUT looking at the source list. Synthesize the actual facts, "
+    "status, dates, and details from the context into a complete sentence.\n"
+    "2. Do NOT write lazy pointer answers like \"see references [1]\" or "
+    "\"refer to [1] [2] [3]\" — always state the actual information.\n"
+    "3. Cite sources with bracketed markers (e.g. [1]) AFTER the relevant "
+    "statement, not as a standalone reference.\n"
+    "4. Do not use any information not present in the context.\n"
+    "5. If the context is empty, say you could not find accessible information."
 )
 
 
@@ -88,12 +117,46 @@ class AnswerAgent:
         raw = self._llm.generate(prompt)
         clean_text, valid_citations = self._validate_citations(raw, context)
 
+        # Retry if the answer is just a lazy pointer to references.
+        for _ in range(_MAX_RETRIES):
+            if not self._is_lazy(clean_text):
+                break
+            raw = self._llm.generate(
+                prompt + "\n\n" + _REINFORCEMENT_PROMPT
+            )
+            clean_text, valid_citations = self._validate_citations(raw, context)
+
         return Answer(
             text=clean_text,
             citations=valid_citations,
             grounded=True,
             no_access=False,
         )
+
+    @staticmethod
+    def _is_lazy(text: str) -> bool:
+        """Return True if the answer is just citation pointers, not real info.
+
+        Detects patterns like "See [1] [2]" or "Refer to [1]" where the entire
+        answer line is a directive to look at references rather than stating
+        the actual information.
+        """
+        stripped = text.strip()
+        if not stripped:
+            return True
+
+        # If the answer is very short and mostly citation markers, it's lazy.
+        citation_chars = len(_CITATION_RE.findall(stripped))
+        non_citation_text = _CITATION_RE.sub("", stripped).strip()
+        if len(non_citation_text) < 20 and citation_chars > 0:
+            return True
+
+        # Check explicit lazy patterns.
+        for pattern in _LAZY_PATTERNS:
+            if pattern.match(stripped):
+                return True
+
+        return False
 
     # -- INV6 enforcement ----------------------------------------------
 
