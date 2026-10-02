@@ -164,6 +164,54 @@ leak that pre-LLM filtering prevents."
 
 ---
 
+## Demo 6 — Tamper-evident audit chain
+
+**Point:** the audit trail is not just append-only — it's hash-chained, so
+modifying a past event is detectable.
+
+1. Run a couple of queries first (Demos 1–2 populate the chain).
+2. In the **Audit Explorer** (Admin tab), click **verify chain**.
+   **Expected:** badge shows **[CHAIN VERIFIED]**, toast reads "chain verified
+   (N blocks)".
+3. Click **tamper chain** (red button).
+   **Expected:** a toast reads "tampered: Event #0 field 'resource_id'
+   modified."
+4. Click **verify chain** again.
+   **Expected:** badge turns red **[CHAIN TAMPERED]**, toast reads "TAMPERED
+   at #0: hash_mismatch".
+
+**Talking point:** "Each audit event's hash includes the previous event's hash —
+like a blockchain. Tamper with any past decision and the entire chain from that
+point fails verification. This is what makes the audit trail legally
+defensible."
+
+> **Reset:** restart the backend to restore an untampered chain.
+
+---
+
+## Demo 7 — Real-time feedback (stretch goal)
+
+**Point:** the organiser noted that real-time feedback would be ideal. The
+system already demonstrates a form of this:
+
+1. **Live policy evaluation (Demo 3):** when you revoke access and re-ask, the
+   policy filter evaluates the *current* ACL version — no cache, no reindex.
+   The response reflects the change within the same query round-trip.
+2. **Streaming-ready architecture:** the ADP Chat API uses SSE streaming
+   (`Stream: "enable"`), and the `ADPClient` accumulates `text.delta` events.
+   The backend can be extended to stream these deltas to the frontend via
+   Server-Sent Events for token-by-token rendering.
+3. **Audit chain grows live:** every query appends to the hash chain in real
+   time — refresh the Audit Explorer mid-conversation to see new events appear.
+
+**If asked "is this real-time?":** "Policy decisions are real-time — every
+query hits the live ACL. The LLM response itself is currently request-response,
+but the ADP backend streams via SSE, so we can flip to token streaming with a
+frontend SSE handler. The architecture is ready; we prioritized the
+permission-safety story for this demo."
+
+---
+
 ## Reset between runs
 
 Restart the backend (`Ctrl+C`, re-run `uvicorn ...`) to clear the audit chain
