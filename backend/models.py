@@ -19,6 +19,7 @@ class Source(str, Enum):
     JIRA = "jira"
     SLACK = "slack"
     GDRIVE = "gdrive"
+    UPLOAD = "upload"
 
 
 class SensitivityLevel(str, Enum):

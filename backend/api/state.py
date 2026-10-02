@@ -25,6 +25,7 @@ from backend.connectors.confluence import ConfluenceConnector
 from backend.connectors.gdrive import GDriveConnector
 from backend.connectors.jira import JiraConnector
 from backend.connectors.slack import SlackConnector
+from backend.connectors.upload import UploadConnector
 
 
 def _build_llm():
@@ -50,19 +51,23 @@ class AppState:
     identity: IdentityStore
     orchestrator: Orchestrator
     audit_query: AuditQueryEngine
+    upload_connector: UploadConnector
 
     @classmethod
     def create(cls) -> "AppState":
         """Build a fresh application state with seed connectors and users."""
+        upload = UploadConnector()
         connectors = [
             ConfluenceConnector(),
             JiraConnector(),
             SlackConnector(),
             GDriveConnector(),
+            upload,
         ]
         orchestrator = Orchestrator(connectors, llm=_build_llm())
         return cls(
             identity=IdentityStore(),
             orchestrator=orchestrator,
             audit_query=AuditQueryEngine(orchestrator.audit),
+            upload_connector=upload,
         )

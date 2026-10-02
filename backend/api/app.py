@@ -15,7 +15,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import admin_routes, audit_routes, query_routes
+from backend.api import admin_routes, audit_routes, query_routes, upload_routes
 from backend.api.state import AppState
 
 
@@ -57,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(query_routes.router)
     app.include_router(audit_routes.router)
     app.include_router(admin_routes.router)
+    app.include_router(upload_routes.router)
     return app
 
 

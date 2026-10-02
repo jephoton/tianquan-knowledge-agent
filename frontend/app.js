@@ -279,6 +279,49 @@ async function adminChange(kind) {
   } catch (e) { toast(e.message, true); }
 }
 
+// -- admin: upload document (Demo 7) -----------------------------------
+
+async function uploadDocument() {
+  const resource_id = $("up-resource").value.trim();
+  const title = $("up-title").value.trim();
+  const content = $("up-content").value.trim();
+  const rolesStr = $("up-roles").value.trim();
+  if (!resource_id || !title || !content) {
+    toast("resource_id, title, and content required", true);
+    return;
+  }
+  let allowed_roles = null;
+  if (rolesStr) {
+    allowed_roles = rolesStr.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  try {
+    const r = await api("/upload", {
+      method: "POST",
+      body: JSON.stringify({ resource_id, title, content, allowed_roles }),
+    });
+    toast(r.message);
+    $("upload-status").textContent = `uploaded: ${r.title} — ${r.indexed_resources} indexed`;
+    $("up-resource").value = "";
+    $("up-title").value = "";
+    $("up-content").value = "";
+    $("up-roles").value = "";
+  } catch (e) { toast(e.message, true); }
+}
+
+async function listUploads() {
+  try {
+    const r = await api("/upload");
+    if (!r.count) {
+      $("upload-status").textContent = "no uploaded documents";
+      toast("no uploaded documents");
+      return;
+    }
+    const docList = r.documents.map((d) => `${d.resource_id} (${d.title})`).join(", ");
+    $("upload-status").textContent = `${r.count} uploaded: ${docList}`;
+    toast(`${r.count} documents listed`);
+  } catch (e) { toast(e.message, true); }
+}
+
 // -- boot --------------------------------------------------------------
 
 async function boot() {
@@ -303,6 +346,8 @@ async function boot() {
   $("audit-tamper").onclick = tamperChain;
   $("revoke-btn").onclick = () => adminChange("revoke");
   $("grant-btn").onclick = () => adminChange("grant");
+  $("upload-btn").onclick = () => uploadDocument();
+  $("upload-list-btn").onclick = () => listUploads();
 
   // Tab switching
   document.querySelectorAll(".tab-btn").forEach((btn) => {

@@ -189,26 +189,47 @@ defensible."
 
 ---
 
-## Demo 7 — Real-time feedback (stretch goal)
+## Demo 7 — Real-time data ingestion (upload connector)
 
-**Point:** the organiser noted that real-time feedback would be ideal. The
-system already demonstrates a form of this:
+**Point:** the organiser noted that real (non-mock) data would be better. This
+demo shows the system ingesting a document at runtime — no code changes, no
+seed file. The document is immediately searchable and permission-filtered.
 
-1. **Live policy evaluation (Demo 3):** when you revoke access and re-ask, the
-   policy filter evaluates the *current* ACL version — no cache, no reindex.
-   The response reflects the change within the same query round-trip.
-2. **Streaming-ready architecture:** the ADP Chat API uses SSE streaming
-   (`Stream: "enable"`), and the `ADPClient` accumulates `text.delta` events.
-   The backend can be extended to stream these deltas to the frontend via
-   Server-Sent Events for token-by-token rendering.
-3. **Audit chain grows live:** every query appends to the hash chain in real
-   time — refresh the Audit Explorer mid-conversation to see new events appear.
+1. In the **Admin tab**, scroll to **Document Upload**.
+2. Fill in:
+   - `resource_id`: `upload:q4-incident`
+   - `title`: `Q4 Production Incident Report`
+   - `content`: *(paste any text — e.g. a real incident report, meeting notes,
+     or a log summary)*
+   - `allowed_roles`: *(leave blank for default, or restrict e.g.
+     `admin,security_team`)*
+3. Click **[UPLOAD & INDEX]**.
+   **Expected:** toast reads "uploaded: Q4 Production Incident Report — N
+   indexed resources."
+4. Switch to **Query tab**, select persona **alice**.
+5. Ask: *"What happened in the Q4 production incident?"*
+   **Expected:** the uploaded document appears in the citations with source
+   `upload`, and the answer draws from it.
+6. Switch to persona **bob** (contractor).
+7. Ask the same question.
+   **Expected:** if you restricted roles to `admin,security_team`, bob gets
+   *"could not find accessible information"* — the upload connector honours
+   the permission model just like Confluence/Jira/Slack.
 
-**If asked "is this real-time?":** "Policy decisions are real-time — every
-query hits the live ACL. The LLM response itself is currently request-response,
-but the ADP backend streams via SSE, so we can flip to token streaming with a
-frontend SSE handler. The architecture is ready; we prioritized the
-permission-safety story for this demo."
+**Talking point:** "This isn't mock data — I just pasted that document in
+during the demo. The system ingested it, indexed it, and the permission filter
+applied the same ACL checks as it does for Confluence or Jira. In production,
+this connector would be replaced by real OAuth integrations to Google Drive,
+Slack, Jira — same architecture, same permission boundary."
+
+**How this maps to real integrations:**
+- The `UploadConnector` implements the same `BaseConnector` interface as
+  `ConfluenceConnector`, `JiraConnector`, etc.
+- A real integration would swap `list_resources()` to call the Google Drive
+  API, Slack API, etc., and `check_membership()` to query the source's native
+  permission model.
+- The permission filter, audit chain, and LLM answer agent are unchanged —
+  they work against the interface, not the implementation.
 
 ---
 
