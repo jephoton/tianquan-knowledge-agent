@@ -88,9 +88,10 @@ stale-permitted content.
    - `subject`: `engineer`
    - `subject_kind`: `role`
 3. Click **REVOKE**.
-4. **Expected:** a toast reads **"ACL v1 → v2"**, and the query auto-re-runs.
+4. **Expected:** a toast reads **"ACL v1 → v2"**.
+5. Re-ask: *"database migration plan"*.
    `confluence:db-migration-plan` is now **gone** from the citations.
-5. (Optional) Click **GRANT** with the same fields to restore it.
+6. (Optional) Click **GRANT** with the same fields to restore it.
 
 **Talking point:** "No reindex. The policy filter re-fetches the live ACL on
 every query, so the version bump from v1 to v2 takes effect on the very next
@@ -119,9 +120,12 @@ event and verification fails — the audit trail is tamper-evident."
 
 **Point:** the access-control safety is model-checked, not just implemented.
 
-Run from the `formal/` directory (jar bundled with the TLA+ VS Code extension):
+Run from the `formal/` directory (jar bundled with the TLA+ VS Code extension).
+
+**Option A — PowerShell (recommended):**
 
 ```powershell
+cd formal
 $jar = "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar"
 
 # SAFE model — all invariants hold.
@@ -131,6 +135,24 @@ java -cp $jar tlc2.TLC -config MC_safe.cfg MC_safe.tla
 java -cp $jar tlc2.TLC -config MC_broken.cfg MC_broken.tla
 ```
 
+**Option B — Git Bash / MINGW64:**
+
+```bash
+cd formal
+JAR="$USERPROFILE/.vscode/extensions/tlaplus.vscode-ide-*/out/tools/tla2tools.jar"
+JAR=$(echo $USERPROFILE/.vscode/extensions/tlaplus.vscode-ide-*/out/tools/tla2tools.jar)
+
+# SAFE model — all invariants hold.
+java -cp "$JAR" tlc2.TLC -config MC_safe.cfg MC_safe.tla
+
+# BROKEN model (filter-after-retrieval) — TLC finds a counterexample.
+java -cp "$JAR" tlc2.TLC -config MC_broken.cfg MC_broken.tla
+```
+
+> **Note:** In Git Bash, don't use `$env:USERPROFILE` (that's PowerShell).
+> Use `$USERPROFILE` with `$(...)` to expand the glob, or just hardcode
+> the path: `java -cp "C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-2026.9.251644/out/tools/tla2tools.jar" ...`
+
 - **Safe:** *"Model checking completed. No error has been found."*
 - **Broken:** *"Invariant INV1_RetrievedOnlyIfAuthorized is violated."* with a
   4-step trace: search over-fetches `r2` → policy denies it → but retrieval
@@ -139,6 +161,54 @@ java -cp $jar tlc2.TLC -config MC_broken.cfg MC_broken.tla
 **Talking point:** "This is the whole thesis in 60 seconds. Flip one flag to put
 retrieval before the policy check, and the model checker immediately finds the
 leak that pre-LLM filtering prevents."
+
+---
+
+## Demo 6 — Tamper-evident audit chain
+
+**Point:** the audit trail is not just append-only — it's hash-chained, so
+modifying a past event is detectable.
+
+1. Run a couple of queries first (Demos 1–2 populate the chain).
+2. In the **Audit Explorer** (Admin tab), click **verify chain**.
+   **Expected:** badge shows **[CHAIN VERIFIED]**, toast reads "chain verified
+   (N blocks)".
+3. Click **tamper chain** (red button).
+   **Expected:** a toast reads "tampered: Event #0 field 'resource_id'
+   modified."
+4. Click **verify chain** again.
+   **Expected:** badge turns red **[CHAIN TAMPERED]**, toast reads "TAMPERED
+   at #0: hash_mismatch".
+
+**Talking point:** "Each audit event's hash includes the previous event's hash —
+like a blockchain. Tamper with any past decision and the entire chain from that
+point fails verification. This is what makes the audit trail legally
+defensible."
+
+> **Reset:** restart the backend to restore an untampered chain.
+
+---
+
+## Demo 7 — Real-time feedback (stretch goal)
+
+**Point:** the organiser noted that real-time feedback would be ideal. The
+system already demonstrates a form of this:
+
+1. **Live policy evaluation (Demo 3):** when you revoke access and re-ask, the
+   policy filter evaluates the *current* ACL version — no cache, no reindex.
+   The response reflects the change within the same query round-trip.
+2. **Streaming-ready architecture:** the ADP Chat API uses SSE streaming
+   (`Stream: "enable"`), and the `ADPClient` accumulates `text.delta` events.
+   The backend can be extended to stream these deltas to the frontend via
+   Server-Sent Events for token-by-token rendering.
+3. **Audit chain grows live:** every query appends to the hash chain in real
+   time — refresh the Audit Explorer mid-conversation to see new events appear.
+
+**If asked "is this real-time?":** "Policy decisions are real-time — every
+query hits the live ACL. The LLM response itself is currently request-response,
+but the ADP backend streams via SSE, so we can flip to token streaming with a
+frontend SSE handler. The architecture is ready; we prioritized the
+permission-safety story for this demo."
 
 ---
 

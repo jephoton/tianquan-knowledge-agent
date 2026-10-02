@@ -250,6 +250,15 @@ async function verifyChain() {
   } catch (e) { toast(e.message, true); }
 }
 
+async function tamperChain() {
+  try {
+    const r = await api("/audit/tamper?index=0&field=resource_id", { method: "POST" });
+    toast("tampered: " + r.message, true);
+    await refreshAudit();
+    await verifyChain();
+  } catch (e) { toast(e.message, true); }
+}
+
 // -- admin: revoke / grant --------------------------------------------
 
 async function adminChange(kind) {
@@ -266,14 +275,7 @@ async function adminChange(kind) {
     const msg = `${r.change} ${r.subject_kind}:${r.subject} on ${r.resource_id} — ACL ${r.version_transition}`;
     toast(msg);
     $("rev-status").textContent = "last change: " + msg;
-
-    // Auto re-run last query and switch to query tab so the change is visible.
-    if (state.lastQuery) {
-      await runQuery(state.lastQuery);
-      switchTab("query", document.querySelector('[data-tab="query"]'));
-    } else {
-      await refreshAudit();
-    }
+    await refreshAudit();
   } catch (e) { toast(e.message, true); }
 }
 
@@ -298,6 +300,7 @@ async function boot() {
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
   $("audit-verify").onclick = verifyChain;
+  $("audit-tamper").onclick = tamperChain;
   $("revoke-btn").onclick = () => adminChange("revoke");
   $("grant-btn").onclick = () => adminChange("grant");
 

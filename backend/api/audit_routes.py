@@ -61,3 +61,26 @@ def verify_chain(request: Request) -> dict:
         "broken_at_index": v.broken_at_index,
         "length": len(state.orchestrator.audit),
     }
+
+
+@router.post("/tamper")
+def tamper_chain(request: Request, index: int = 0, field: str = "resource_id") -> dict:
+    """Tamper with an audit event to demonstrate chain breakage (Demo 6).
+
+    Mutates a single field on the event at the given index. The next
+    /audit/verify call will report CHAIN TAMPERED with the break index.
+    """
+    state = request.app.state.tianquan
+    chain = state.orchestrator.audit
+    events = chain.events()
+    if not events:
+        return {"error": "no events to tamper with"}
+    idx = min(index, len(events) - 1)
+    # Mutate the field — this changes the canonical payload, so the
+    # recomputed hash will no longer match event_hash.
+    setattr(events[idx], field, "TAMPERED_" + getattr(events[idx], field, ""))
+    return {
+        "tampered_index": idx,
+        "field": field,
+        "message": f"Event #{idx} field '{field}' modified. Verify chain to see the break.",
+    }
