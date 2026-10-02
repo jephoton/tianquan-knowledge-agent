@@ -1,10 +1,13 @@
 ﻿/* Tianquan frontend wiring.
  *
- * Connects the Miora-generated CRT dashboard to the FastAPI backend.
+ * Connects the CRT dashboard to the FastAPI backend.
  * Static, no build step — served as-is. Base URL is a single constant.
  */
 
 const API_BASE = "http://localhost:8000";
+
+// Minimum artificial delay (ms) so denied/no-access queries don't appear instant.
+const MIN_QUERY_DELAY = 1200;
 
 // -- tiny helpers ------------------------------------------------------
 
@@ -26,8 +29,8 @@ async function api(path, opts = {}) {
 function toast(msg, isError = false) {
   const t = $("toast");
   t.textContent = msg;
-  t.style.borderColor = isError ? "#8a3a3a" : "#ffb000";
-  t.style.color = isError ? "#c47a7a" : "#ffb000";
+  t.style.borderColor = isError ? "#8a3a3a" : "#3a8a5a";
+  t.style.color = isError ? "#c47a7a" : "#3a8a5a";
   t.style.display = "block";
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { t.style.display = "none"; }, 3500);
@@ -43,11 +46,18 @@ function pill(result) {
   return `<span class="${cls}">${result.toUpperCase()}</span>`;
 }
 
+function sourceIcon(source) {
+  const icons = {
+    confluence: "📖", jira: "🎫", slack: "💬", gdrive: "📁",
+  };
+  return icons[source] || "📄";
+}
+
 // -- app state ---------------------------------------------------------
 
 const state = {
-  currentUser: null,   // user_id
-  lastQuery: null,     // last question, for auto re-run after revoke/grant
+  currentUser: null,
+  lastQuery: null,
 };
 
 // -- personas ----------------------------------------------------------
@@ -81,18 +91,35 @@ async function runQuery(question) {
   if (!state.currentUser) { toast("select a persona first", true); return; }
   if (!question) return;
   state.lastQuery = question;
-  $("answer-text").textContent = "> processing...";
+
+  // Show processing state — faded text, spinner.
+  const ans = $("answer-text");
+  ans.className = "phosphor-text answer-processing";
+  ans.textContent = "> processing...";
+  $("answer-citations").innerHTML = "";
+  $("query-meta").style.display = "none";
+
+  const startTime = Date.now();
+
   try {
     const r = await api("/query", {
       method: "POST",
       body: JSON.stringify({ user_id: state.currentUser, question, k: 20 }),
     });
+
+    // Ensure minimum delay so denied/no-access doesn't appear instant.
+    const elapsed = Date.now() - startTime;
+    if (elapsed < MIN_QUERY_DELAY) {
+      await new Promise((r2) => setTimeout(r2, MIN_QUERY_DELAY - elapsed));
+    }
+
     renderAnswer(r);
     renderInspector(r);
     await refreshAudit();
   } catch (e) {
     toast(e.message, true);
-    $("answer-text").textContent = "> error: " + e.message;
+    ans.className = "phosphor-text";
+    ans.textContent = "> error: " + e.message;
   }
 }
 
@@ -110,40 +137,35 @@ function freshnessBadge(updatedAt) {
 
 function renderAnswer(r) {
   const ans = $("answer-text");
-  ans.style.color = r.no_access ? "#6b6150" : "#e8dcc8";
+  // Full brightness for actual answers; faded only for no-access (intentional).
+  ans.className = "phosphor-text answer-complete";
   ans.textContent = r.answer;
 
+  // Query meta bar.
+  const meta = $("query-meta");
+  meta.style.display = "flex";
+  $("meta-allowed").textContent = r.allow_count;
+  $("meta-denied").textContent = r.deny_count;
+  $("meta-sources").textContent = r.citations.length + " source" + (r.citations.length !== 1 ? "s" : "");
+
+  // Render citation cards.
   const cites = $("answer-citations");
   cites.innerHTML = "";
-  r.citations.forEach((c) => {
-    const span = document.createElement("span");
-    span.innerHTML = `${esc(c.marker)} <span style="color:#ffb000;">${esc(c.source)}</span>:${esc(c.resource_id)}${freshnessBadge(c.updated_at)}`;
-    cites.appendChild(span);
-  });
-}
-
-function renderInspector(r) {
-  $("inspector-summary").innerHTML =
-    `<span style="color:#ffb000;" class="phosphor-glow">${r.allow_count}</span>` +
-    `<span style="color:#6b6150;"> ALLOWED &middot; </span>` +
-    `<span style="color:#c47a7a;">${r.deny_count}</span>` +
-    `<span style="color:#6b6150;"> DENIED</span>`;
-
-  const rows = $("inspector-rows");
-  rows.innerHTML = "";
-  if (!r.decisions.length) {
-    rows.innerHTML = `<div class="log-row"><span style="color:#6b6150;font-size:12px;">no candidate resources matched</span></div>`;
+  if (!r.citations.length) {
+    cites.innerHTML = "";
     return;
   }
-  r.decisions.forEach((d) => {
-    const row = document.createElement("div");
-    row.className = "log-row";
-    row.innerHTML =
-      `${pill(d.result)}` +
-      `<span style="color:#6b6150;font-size:12px;">${esc(d.resource_id)}</span>` +
-      `<span style="font-size:12px;color:#e8dcc8;flex:1;" class="phosphor-text">${esc(d.reason)}</span>` +
-      `<span style="color:#6b6150;font-size:11px;">ACL v${d.acl_version}</span>`;
-    rows.appendChild(row);
+  r.citations.forEach((c) => {
+    const card = document.createElement("div");
+    card.className = "citation-card";
+    card.innerHTML =
+      `<div class="citation-marker">${esc(c.marker)}</div>` +
+      `<div class="citation-body">` +
+      `<div class="citation-source">${sourceIcon(c.source)} ${esc(c.source)} · ${esc(c.resource_id)}</div>` +
+      `<div class="citation-title">${esc(c.title)}</div>` +
+      `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
+      `</div>`;
+    cites.appendChild(card);
   });
 }
 
@@ -244,9 +266,14 @@ async function adminChange(kind) {
     const msg = `${r.change} ${r.subject_kind}:${r.subject} on ${r.resource_id} — ACL ${r.version_transition}`;
     toast(msg);
     $("rev-status").textContent = "last change: " + msg;
-    // Auto re-run the last query so the change is visible live (Demo 3).
-    if (state.lastQuery) await runQuery(state.lastQuery);
-    else await refreshAudit();
+
+    // Auto re-run last query and switch to query tab so the change is visible.
+    if (state.lastQuery) {
+      await runQuery(state.lastQuery);
+      switchTab("query", document.querySelector('[data-tab="query"]'));
+    } else {
+      await refreshAudit();
+    }
   } catch (e) { toast(e.message, true); }
 }
 
@@ -259,7 +286,7 @@ async function boot() {
     await loadPersonas();
     await refreshAudit();
   } catch (e) {
-    $("footer-status").textContent = "api: offline — start `uvicorn backend.api.app:app`";
+    $("footer-status").textContent = "api: offline — start `python -m uvicorn backend.api.app:app`";
     $("footer-status").style.color = "#c47a7a";
     $("health-dot").style.color = "#8a3a3a";
     toast("cannot reach API at " + API_BASE, true);
@@ -283,7 +310,9 @@ async function boot() {
 function switchTab(tabId, btn) {
   document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-  btn.classList.add("active");
+  if (btn) btn.classList.add("active");
+  else btn = document.querySelector(`[data-tab="${tabId}"]`);
+  if (btn) btn.classList.add("active");
   $("tab-" + tabId).classList.add("active");
 }
 
