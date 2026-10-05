@@ -146,6 +146,21 @@
 
 ---
 
+### 2026-09-29 — UI/UX + access-control refinement batch (B1–B5, F1–F6)
+
+- **Tool:** Kiro
+- **Task:** Second refinement pass — fixed the lazy LLM output, per-permission access control, document list, inspector merge, pagination, per-citation export, ADP TLS.
+- **Summary:**
+  - **Root-caused the "Relevant sources found: [1][2][3]" output** — not a prompt I wrote; it's the grounding fallback firing because ADP's live call failed (TLS) → stub → grounding stripped the generic stub text → terminal fallback. Fixed two ways: (B3) ADP client now uses `truststore` so it trusts the OS cert store (works on TLS-inspected networks); (B4) rewrote `StubLLMClient` as an extractive summarizer that pulls real sentences from the context, so its output survives grounding and reads like a real answer.
+  - **Verified the roles claim** — the user was right: gating was too coarse (single "privileged" check let compliance_officer revoke/upload). Split into `audit_query` (audit surfaces) vs `manage_permissions` (revoke/grant/upload). Added `audit_query` to security_team. Granular flags on `/users` + `/query`. (B1, B2)
+  - **`/export` endpoint** (B5): per-cited-resource `Action.EXPORT` re-check + audit, gated by `export` permission.
+  - **Frontend:** document list → cards (F1); policy inspector merged into audit explorer (F2); conditional panel rendering by permission, no locked boxes (F3); audit pagination default 10 + adjustable (F4); per-citation green export button shown only with `export` (F5); permission-denied toasts (F6); trimmed admin-lock to just "ADMIN ACCESS REQUIRED".
+  - 212 tests pass. Live-validated the full permission matrix end to end.
+  - **Flagged** a pre-existing test-isolation weakness (random-order ACL bleed) as a follow-up, not fixed in this batch.
+- **Screenshot captured:** N — capture the polished UI (per-persona admin states, export buttons) for the submission.
+
+---
+
 ### 2026-09-29 — Role-based admin gating + UX restructure
 
 - **Tool:** Kiro

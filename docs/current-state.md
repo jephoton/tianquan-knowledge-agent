@@ -2,25 +2,35 @@
 
 > **Last updated:** 2026-09-29 (M14 in progress; UI/UX + access-control refinement batch underway)
 
-## Active work batch — UI/UX + access-control refinement
+## Active work batch — UI/UX + access-control refinement → COMPLETE
 
-Scoped checklist (implement in order, validate each chunk). Permission model:
-`audit_query` (compliance_officer, admin, security_team) · `manage_permissions` (admin).
+Permission model: `audit_query` (compliance_officer, admin, security_team) ·
+`manage_permissions` (admin) · `export` (senior_engineer, finance_analyst,
+security_team, compliance_officer, admin).
 
 Backend:
-- [ ] B1. Add `audit_query` to `security_team` role.
-- [ ] B2. Per-permission gating: `audit_query` → `/audit/*`; `manage_permissions` → `/admin/*`, `/upload`. Expose `can_audit`/`can_manage`/`can_export` on `/users` and `/query`.
-- [ ] B3. ADP client: trust system/certifi cert store (fix TLS `CERTIFICATE_VERIFY_FAILED`).
-- [ ] B4. Improve stub/grounding fallback — kill the lazy "Relevant sources found: [1][2][3]".
-- [ ] B5. `/export` endpoint: re-check `Action.EXPORT` per cited resource, audit it.
+- [x] B1. Added `audit_query` to `security_team` role.
+- [x] B2. Per-permission gating: `audit_query` → `/audit/*`; `manage_permissions` → `/admin/*`, `/upload`. `can_audit`/`can_manage`/`can_export` exposed on `/users`; `viewer_privileged`/`viewer_can_export` on `/query`. (Fixed authz bug: compliance_officer could previously revoke/upload.)
+- [x] B3. ADP client uses `truststore` (OS cert store) → fixes TLS `CERTIFICATE_VERIFY_FAILED` on intercepted networks; falls back to certifi then stub.
+- [x] B4. Rewrote `StubLLMClient` as extractive summarizer (pulls real context sentences) — no more lazy "Relevant sources found: [1][2][3]".
+- [x] B5. `/export` endpoint re-checks `Action.EXPORT` per cited resource and audits it; gated by `export` permission.
 
 Frontend:
-- [ ] F1. Document list → card list (not comma text).
-- [ ] F2. Merge policy inspector into audit explorer (drop standalone inspector).
-- [ ] F3. Conditional panel rendering (no locked boxes): none → bare "ADMIN ACCESS REQUIRED"; `audit_query` → stats + explorer; `manage_permissions` → + revocation + upload.
-- [ ] F4. Audit explorer pagination (default 10, adjustable, prev/next).
-- [ ] F5. Per-citation green "Export" button, rendered only when persona has `export`.
-- [ ] F6. Permission-denied actions → clear toast.
+- [x] F1. Document list → card list.
+- [x] F2. Policy inspector merged into audit explorer (standalone panel removed).
+- [x] F3. Conditional panel rendering (no locked boxes): none → bare "ADMIN ACCESS REQUIRED"; `audit_query` → stats + explorer; `manage_permissions` → + revocation + upload.
+- [x] F4. Audit explorer pagination (default 10, adjustable box, prev/next).
+- [x] F5. Per-citation green "Export" button, rendered only when persona has `export`.
+- [x] F6. Permission-denied actions → clear toast (via `api()` error path).
+
+212 tests pass (`-p no:randomly`). Live-validated: per-permission 401/403/200,
+extractive grounded answers, per-user export flags.
+
+> **Known follow-up (pre-existing, not from this batch):** test isolation —
+> `pytest-randomly` ordering can surface shared seed-ACL state across tests
+> (`test_grant_restores_access` fails only under certain random orders; passes
+> in isolation and with `-p no:randomly`). Fix: give each test fresh connector
+> instances / deep-copied seed data.
 
 Panel → permission mapping:
 | Panel | Permission | contractor/engineer/senior_engineer/finance_analyst | security_team/compliance_officer | admin |
