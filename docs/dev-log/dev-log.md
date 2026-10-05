@@ -146,6 +146,19 @@
 
 ---
 
+### 2026-09-29 — Role-based admin gating + UX restructure
+
+- **Tool:** Kiro
+- **Task:** Made the admin/audit surfaces genuinely access-controlled (not cosmetic), restructured the dense admin tab, and added a query spinner.
+- **Summary:**
+  - **Backend (server-enforced):** added `is_privileged()` to `roles.py` (holds `manage_permissions` or `audit_query`) and `backend/api/deps.py` with a `require_privileged` dependency. Gated `/admin/*`, `/audit/*`, and `/upload` to privileged personas via the `X-User-Id` header — 401 without identity, 403 for non-privileged (bob/alice). `/query` now strips DENY details from the response for non-privileged askers (true no-metadata-leak at the wire — the browser never receives denied resource IDs) and returns a `viewer_privileged` flag; aggregate `deny_count` is kept (names no resource). `/users` exposes a `privileged` flag.
+  - **Frontend:** admin tab stays visible but shows a server-backed locked state ("ADMIN ACCESS REQUIRED") for non-privileged personas, revealing the full panel only for admin/compliance; the acting `X-User-Id` is sent on all calls. Restructured the dense admin tab — revocation + upload now sit side-by-side as an "operator actions" row. Query console: reduced artificial delay 1200→400ms and added an animated spinner; example-query chips; "querying as [persona]" hint.
+  - **Robustness fix (pre-existing bug):** the ADP client was 500ing on this TLS-inspected network (`CERTIFICATE_VERIFY_FAILED` to wss.lke.tencentcloud.com). Added a runtime fallback in the orchestrator: if the live LLM call throws, degrade to the stub (safety unaffected — stub still only sees filtered context). `/query` now returns 200 via fallback instead of crashing.
+  - Full suite: 212 tests passing (was 205; +7 gating/query tests). Verified live: alice query 200 with 0 denies shown, bob /audit 403, diana /audit 200.
+- **Screenshot captured:** N — capture the polished UI + the locked admin state for the submission.
+
+---
+
 ### 2026-09-29 — UI/UX polish pass (demo prep)
 
 - **Tool:** Kiro

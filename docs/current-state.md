@@ -1,6 +1,6 @@
 ﻿# Current State — Tianquan 天权
 
-> **Last updated:** 2026-09-29 (M14 in progress — ADP Chat API adapter wired)
+> **Last updated:** 2026-09-29 (M14 in progress; UI polish + server-enforced admin/audit role gating added)
 
 ## Milestone
 
@@ -118,6 +118,23 @@ Project description written (`docs/project-description.md`).
   incognito). The adapter (`backend/agents/adp_client.py`) is wired into the
   orchestrator with automatic stub fallback for offline dev. The hackathon
   requirement to use Tencent Cloud AI is satisfied by ADP.
+
+- **ADP live call fails on TLS-inspected networks** (observed in dev:
+  `CERTIFICATE_VERIFY_FAILED` reaching `wss.lke.tencentcloud.com`). The
+  orchestrator now falls back to the stub LLM at runtime so `/query` still
+  returns 200 instead of 500. For the live ADP demo, run on a network without
+  TLS interception (or configure system/corporate CA certs). The stub fallback
+  keeps the full permission/audit demo working offline regardless.
+
+## Access control (frontend ↔ API)
+
+The admin and audit surfaces are **server-enforced**, not cosmetic:
+`/admin/*`, `/audit/*`, `/upload` require a privileged acting persona
+(`admin` or `compliance_officer`, via `X-User-Id`) → 401 without identity,
+403 otherwise. `/query` strips DENY details for non-privileged askers (no
+metadata leak at the wire) and returns `viewer_privileged`. The frontend
+reflects this: the Admin tab shows a locked state for non-privileged personas.
+Privileged seed users: **diana** (compliance_officer), **frank** (admin).
 
 ## Key decisions made
 
