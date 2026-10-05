@@ -60,9 +60,14 @@ function sourceIcon(source) {
 const state = {
   currentUser: null,
   currentRole: null,
-  currentPrivileged: false,
+  canAudit: false,
+  canManage: false,
+  canExport: false,
   lastQuery: null,
   lastDecisions: [],
+  auditPage: 0,
+  auditPageSize: 10,
+  lastAuditEvents: [],
 };
 
 // -- personas ----------------------------------------------------------
@@ -80,51 +85,66 @@ async function loadPersonas() {
     opt.dataset.userId = u.user_id;
     opt.dataset.role = u.roles[0] || "user";
     opt.dataset.name = u.name;
-    opt.dataset.privileged = u.privileged ? "1" : "";
-    const lock = u.privileged ? ` <span style="color:#ffb000;font-size:9px;">◆</span>` : "";
+    opt.dataset.canAudit = u.can_audit ? "1" : "";
+    opt.dataset.canManage = u.can_manage ? "1" : "";
+    opt.dataset.canExport = u.can_export ? "1" : "";
+    const mark = u.privileged ? ` <span style="color:#ffb000;font-size:9px;">◆</span>` : "";
     opt.innerHTML =
-      `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span>${lock}</span>` +
+      `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span>${mark}</span>` +
       `<span class="role-tag">${esc(u.roles[0] || "user")}</span>`;
     opt.onclick = () => {
-      selectPersona(u.user_id, u.roles[0] || "user", u.name, u.privileged);
+      selectPersona(u);
       closePersonaMenu();
     };
     menu.appendChild(opt);
-    if (i === 0) selectPersona(u.user_id, u.roles[0] || "user", u.name, u.privileged);
+    if (i === 0) selectPersona(u);
   });
 }
 
-function selectPersona(userId, role, name, privileged) {
-  state.currentUser = userId;
-  state.currentRole = role;
-  state.currentPrivileged = !!privileged;
-  document.querySelectorAll(".persona-option").forEach((c) => c.classList.remove("active"));
+function selectPersona(u) {
+  state.currentUser = u.user_id;
+  state.currentRole = u.roles[0] || "user";
+  state.canAudit = !!u.can_audit;
+  state.canManage = !!u.can_manage;
+  state.canExport = !!u.can_export;
   document.querySelectorAll(".persona-option").forEach((c) => {
-    if (c.dataset.userId === userId) c.classList.add("active");
+    c.classList.toggle("active", c.dataset.userId === u.user_id);
   });
-  $("current-user").textContent = `${name} [${role}]`;
+  $("current-user").textContent = `${u.name} [${state.currentRole}]`;
   const qp = $("query-persona");
-  if (qp) qp.textContent = `${name} · ${role}`;
+  if (qp) qp.textContent = `${u.name} · ${state.currentRole}`;
   applyAdminGate();
 }
 
-// Show/lock the Admin tab based on the current persona's privilege.
+// Conditionally render admin panels by permission (no locked boxes):
+//   none        -> bare "ADMIN ACCESS REQUIRED"
+//   audit_query -> stats + audit explorer
+//   manage_perm -> + revocation + upload
 function applyAdminGate() {
   const locked = $("admin-locked");
   const content = $("admin-content");
   if (!locked || !content) return;
-  if (state.currentPrivileged) {
-    locked.style.display = "none";
-    content.style.display = "flex";
-    refreshAudit().catch(() => {});
-  } else {
+
+  if (!state.canAudit && !state.canManage) {
     content.style.display = "none";
-    locked.style.display = "block";
-    $("admin-lock-msg").textContent =
-      `persona '${state.currentUser}' (${state.currentRole}) has no admin access. ` +
-      `Admin and audit surfaces require manage_permissions or audit_query. ` +
-      `Switch to Diana (compliance) or Frank (admin).`;
+    locked.style.display = "flex";
+    return;
   }
+
+  locked.style.display = "none";
+  content.style.display = "flex";
+
+  // audit_query gates the stats + audit explorer.
+  const auditSection = $("audit-section");
+  const statsSection = $("stats-section");
+  if (auditSection) auditSection.style.display = state.canAudit ? "block" : "none";
+  if (statsSection) statsSection.style.display = state.canAudit ? "grid" : "none";
+
+  // manage_permissions gates revocation + upload.
+  const opsSection = $("ops-section");
+  if (opsSection) opsSection.style.display = state.canManage ? "grid" : "none";
+
+  if (state.canAudit) refreshAudit().catch(() => {});
 }
 
 function togglePersonaMenu() {
@@ -168,8 +188,9 @@ async function runQuery(question) {
     }
 
     renderAnswer(r);
-    renderInspector(r);
-    await refreshAudit();
+    // Policy decisions now live in the audit explorer (merged), refreshed
+    // below for personas with audit access.
+    if (state.canAudit) await refreshAudit();
   } catch (e) {
     toast(e.message, true);
     ans.className = "phosphor-text";
@@ -204,51 +225,48 @@ function renderAnswer(r) {
   r.citations.forEach((c) => {
     const card = document.createElement("div");
     card.className = "citation-card";
+    // Export button only when the persona holds the export permission.
+    const exportBtn = state.canExport
+      ? `<button class="export-btn" data-rid="${esc(c.resource_id)}">export</button>`
+      : "";
     card.innerHTML =
       `<div class="citation-marker">${esc(c.marker)}</div>` +
       `<div class="citation-body">` +
       `<div class="citation-source">${sourceIcon(c.source)} ${esc(c.source)} · ${esc(c.resource_id)}</div>` +
       `<div class="citation-title">${esc(c.title)}</div>` +
       `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
-      `</div>`;
+      `</div>` +
+      exportBtn;
     cites.appendChild(card);
   });
+
+  // Wire export buttons.
+  cites.querySelectorAll(".export-btn").forEach((btn) => {
+    btn.onclick = () => exportResource(btn.dataset.rid);
+  });
+}
+
+// -- export (per-citation) --------------------------------------------
+
+async function exportResource(resourceId) {
+  try {
+    const r = await api("/export", {
+      method: "POST",
+      body: JSON.stringify({ resource_ids: [resourceId] }),
+    });
+    if (r.allowed && r.allowed.length) {
+      toast(`exported ${resourceId}`);
+    } else {
+      toast(`export denied for ${resourceId}`, true);
+    }
+  } catch (e) {
+    toast("export denied: " + e.message, true);
+  }
 }
 
 // -- policy inspector --------------------------------------------------
 
-function renderInspector(r) {
-  const decisions = r.decisions || [];
-  state.lastDecisions = decisions;
-  // The inspector is an operator surface. For non-privileged viewers the
-  // server sends no DENY details and the Admin tab is locked, so there is
-  // nothing to render here. Use the aggregate counts (which name no resource).
-  const allowed = r.allow_count != null ? r.allow_count
-    : decisions.filter((d) => d.result === "allow").length;
-  const denied = r.deny_count != null ? r.deny_count
-    : decisions.filter((d) => d.result === "deny").length;
-  $("inspector-summary").innerHTML =
-    `<span style="color:#3a8a5a;">${allowed} ALLOW</span> · ` +
-    `<span style="color:#c47a7a;">${denied} DENY</span>`;
-
-  const rows = $("inspector-rows");
-  rows.innerHTML = "";
-  if (!decisions.length) {
-    rows.innerHTML = `<div class="log-row"><span style="color:#9a8e78;font-size:12px;">&gt; no decisions for this query</span></div>`;
-    return;
-  }
-  decisions.forEach((d) => {
-    const row = document.createElement("div");
-    row.className = "log-row";
-    row.innerHTML =
-      `<span style="width:60px;flex-shrink:0;">${pill(d.result)}</span>` +
-      `<span style="color:#f0e6d2;min-width:220px;">${esc(d.resource_id || "—")}</span>` +
-      `<span style="color:#b8ad98;font-size:11px;">${esc(d.reason || "")}</span>`;
-    rows.appendChild(row);
-  });
-}
-
-// -- audit -------------------------------------------------------------
+// -- audit (merged with policy decisions) -----------------------------
 
 async function refreshAudit() {
   const params = new URLSearchParams();
@@ -261,32 +279,71 @@ async function refreshAudit() {
   const qs = params.toString();
 
   const r = await api("/audit" + (qs ? "?" + qs : ""));
-  renderAudit(r);
+  // Newest first; store for pagination.
+  state.lastAuditEvents = r.events.slice().reverse();
+  state.auditPage = 0;
+  renderAudit();
   renderStats(r);
+  setChainBadge(r.chain_valid, r.chain_status);
 }
 
-function renderAudit(r) {
+function renderAudit() {
   const body = $("audit-body");
+  const events = state.lastAuditEvents;
   body.innerHTML = "";
-  if (!r.events.length) {
+  if (!events.length) {
     body.innerHTML = `<tr><td colspan="6" style="color:#9a8e78;">no matching events</td></tr>`;
-  } else {
-    r.events.slice().reverse().forEach((e) => {
-      const tr = document.createElement("tr");
-      const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
-      const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
-      tr.innerHTML =
-        `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
-        `<td>${esc(e.user_id)}</td>` +
-        `<td>${esc((e.action || "").toUpperCase())}</td>` +
-        `<td>${esc(e.resource_id || "—")}</td>` +
-        `<td>${pill(e.decision)}</td>` +
-        `<td style="font-size:11px;">${esc(hash)}</td>`;
-      body.appendChild(tr);
-    });
+    $("audit-count").textContent = "showing 0 events";
+    renderAuditPager();
+    return;
   }
-  $("audit-count").textContent = `showing ${r.events.length} of ${r.count} events`;
-  setChainBadge(r.chain_valid, r.chain_status);
+  const size = state.auditPageSize;
+  const start = state.auditPage * size;
+  const page = events.slice(start, start + size);
+  page.forEach((e) => {
+    const tr = document.createElement("tr");
+    const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
+    const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
+    tr.innerHTML =
+      `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
+      `<td>${esc(e.user_id)}</td>` +
+      `<td>${esc((e.action || "").toUpperCase())}</td>` +
+      `<td>${esc(e.resource_id || "—")}</td>` +
+      `<td>${pill(e.decision)}</td>` +
+      `<td style="font-size:11px;">${esc(hash)}</td>`;
+    body.appendChild(tr);
+  });
+  const end = Math.min(start + size, events.length);
+  $("audit-count").textContent =
+    `showing ${start + 1}–${end} of ${events.length} events`;
+  renderAuditPager();
+}
+
+function renderAuditPager() {
+  const pager = $("audit-pager");
+  if (!pager) return;
+  const total = state.lastAuditEvents.length;
+  const pages = Math.max(1, Math.ceil(total / state.auditPageSize));
+  const cur = state.auditPage + 1;
+  $("audit-prev").disabled = state.auditPage <= 0;
+  $("audit-next").disabled = state.auditPage >= pages - 1;
+  $("audit-pageinfo").textContent = `page ${cur} / ${pages}`;
+}
+
+function auditPrev() {
+  if (state.auditPage > 0) { state.auditPage--; renderAudit(); }
+}
+
+function auditNext() {
+  const pages = Math.ceil(state.lastAuditEvents.length / state.auditPageSize);
+  if (state.auditPage < pages - 1) { state.auditPage++; renderAudit(); }
+}
+
+function setAuditPageSize(n) {
+  const v = parseInt(n, 10);
+  state.auditPageSize = (Number.isFinite(v) && v > 0) ? v : 10;
+  state.auditPage = 0;
+  renderAudit();
 }
 
 function renderStats(r) {
@@ -385,13 +442,29 @@ async function uploadDocument() {
 async function listUploads() {
   try {
     const r = await api("/upload");
+    const listEl = $("upload-list");
     if (!r.count) {
       $("upload-status").textContent = "no uploaded documents";
+      if (listEl) listEl.innerHTML = "";
       toast("no uploaded documents");
       return;
     }
-    const docList = r.documents.map((d) => `${d.resource_id} (${d.title})`).join(", ");
-    $("upload-status").textContent = `${r.count} uploaded: ${docList}`;
+    $("upload-status").textContent = `${r.count} document${r.count === 1 ? "" : "s"} uploaded`;
+    if (listEl) {
+      listEl.innerHTML = "";
+      r.documents.forEach((d) => {
+        const card = document.createElement("div");
+        card.className = "doc-card";
+        const when = d.updated ? d.updated.replace("T", " ").slice(0, 16) : "";
+        card.innerHTML =
+          `<div class="doc-icon">${sourceIcon("upload")}</div>` +
+          `<div class="doc-body">` +
+          `<div class="doc-title">${esc(d.title)}</div>` +
+          `<div class="doc-meta">${esc(d.resource_id)}${when ? " · " + esc(when) : ""}</div>` +
+          `</div>`;
+        listEl.appendChild(card);
+      });
+    }
     toast(`${r.count} documents listed`);
   } catch (e) { toast(e.message, true); }
 }
@@ -437,6 +510,9 @@ async function boot() {
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
   $("audit-verify").onclick = verifyChain;
   $("audit-tamper").onclick = tamperChain;
+  $("audit-prev").onclick = auditPrev;
+  $("audit-next").onclick = auditNext;
+  $("audit-pagesize").addEventListener("change", (e) => setAuditPageSize(e.target.value));
   $("revoke-btn").onclick = () => adminChange("revoke");
   $("grant-btn").onclick = () => adminChange("grant");
   $("upload-btn").onclick = () => uploadDocument();

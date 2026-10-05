@@ -293,6 +293,41 @@
   .citation-title { font-size: 13px; color: #f0e6d2; line-height: 1.4; }
   .citation-fresh { font-size: 10px; margin-top: 4px; }
 
+  /* Export button (green, per-citation; only shown with export permission) */
+  .export-btn {
+    align-self: flex-start;
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border: 1px solid rgba(58,138,90,0.4);
+    border-radius: 2px;
+    background: rgba(58,138,90,0.08);
+    color: #4fb87a;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .export-btn:hover {
+    background: rgba(58,138,90,0.18);
+    color: #6fd89a;
+    text-shadow: 0 0 6px rgba(79,184,122,0.6);
+  }
+
+  /* Uploaded document cards */
+  .doc-card {
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(20,20,20,0.6);
+    border: 1px solid rgba(232,220,200,0.06);
+    border-radius: 2px;
+  }
+  .doc-icon { font-size: 15px; flex-shrink: 0; }
+  .doc-title { font-size: 12px; color: #f0e6d2; }
+  .doc-meta { font-size: 10px; color: #9a8e78; margin-top: 2px; }
+
   /* Persona dropdown */
   .persona-dropdown {
     position: relative;
@@ -454,21 +489,17 @@
   <!-- ====== ADMIN TAB ====== -->
   <div id="tab-admin" class="tab-panel">
 
-  <!-- Locked state (non-privileged personas) -->
-  <div id="admin-locked" class="crt-card" style="display:none;padding:48px;text-align:center;">
+  <!-- Locked state (personas with no admin permissions) -->
+  <div id="admin-locked" class="crt-card" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:64px;text-align:center;">
     <div style="font-size:40px;color:#8a3a3a;margin-bottom:16px;">&#128274;</div>
-    <div style="font-size:18px;color:#c47a7a;letter-spacing:0.05em;margin-bottom:12px;">ADMIN ACCESS REQUIRED</div>
-    <div id="admin-lock-msg" style="font-size:13px;color:#b8ad98;line-height:1.7;max-width:520px;margin:0 auto;">
-      This persona has no admin access.
-    </div>
-    <div style="margin-top:16px;font-size:11px;color:#9a8e78;">server-enforced &middot; the API returns 403 for non-privileged callers</div>
+    <div style="font-size:18px;color:#c47a7a;letter-spacing:0.05em;">ADMIN ACCESS REQUIRED</div>
   </div>
 
   <!-- Privileged content -->
   <div id="admin-content" class="flex flex-col gap-8">
 
-  <!-- STATS ROW -->
-  <div class="grid grid-cols-4 gap-4">
+  <!-- STATS ROW (gated: audit_query) -->
+  <div id="stats-section" class="grid grid-cols-4 gap-4">
     <div class="crt-card p-5 text-center">
       <div class="section-label mb-2">audit events</div>
       <div id="stat-total" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
@@ -487,21 +518,8 @@
     </div>
   </div>
 
-  <!-- POLICY INSPECTOR -->
-  <section class="crt-card p-6">
-    <div class="flex items-center justify-between mb-4">
-      <div class="section-label">policy inspector</div>
-      <div id="inspector-summary" style="font-size:12px;">
-        <span style="color:#9a8e78;">no query yet</span>
-      </div>
-    </div>
-    <div id="inspector-rows" class="flex flex-col">
-      <div class="log-row"><span style="color:#9a8e78;font-size:12px;">&gt; run a query to see policy decisions</span></div>
-    </div>
-  </section>
-
-  <!-- AUDIT EXPLORER -->
-  <section class="crt-card p-6">
+  <!-- AUDIT EXPLORER (gated: audit_query; includes merged policy decisions) -->
+  <section id="audit-section" class="crt-card p-6">
     <div class="flex items-center justify-between mb-4">
       <div class="section-label">audit explorer</div>
       <div class="flex items-center gap-3">
@@ -550,13 +568,21 @@
         <tr><td colspan="6" style="color:#9a8e78;">no events yet</td></tr>
       </tbody>
     </table>
-    <div class="mt-3">
+    <div class="mt-3 flex items-center justify-between">
       <span id="audit-count" style="font-size:11px;color:#9a8e78;">showing 0 events</span>
+      <div id="audit-pager" class="flex items-center gap-3" style="font-size:11px;color:#b8ad98;">
+        <span>rows</span>
+        <input id="audit-pagesize" type="number" min="1" max="100" value="10"
+               class="crt-input" style="width:60px;padding:4px 8px;font-size:11px;" />
+        <button id="audit-prev" class="outline-btn" style="padding:3px 10px;font-size:11px;">prev</button>
+        <span id="audit-pageinfo">page 1 / 1</span>
+        <button id="audit-next" class="outline-btn" style="padding:3px 10px;font-size:11px;">next</button>
+      </div>
     </div>
   </section>
 
-  <!-- OPERATOR ACTIONS: revocation + upload side by side -->
-  <div class="grid grid-cols-2 gap-6">
+  <!-- OPERATOR ACTIONS: revocation + upload side by side (gated: manage_permissions) -->
+  <div id="ops-section" class="grid grid-cols-2 gap-6">
 
     <!-- REVOCATION CONTROLS -->
     <section class="crt-card p-6 flex flex-col">
@@ -622,6 +648,7 @@
         <div id="upload-status" style="font-size:12px;color:#9a8e78;">
           no documents uploaded this session
         </div>
+        <div id="upload-list" class="mt-3 flex flex-col gap-2"></div>
       </div>
     </section>
 
