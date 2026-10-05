@@ -1,5 +1,33 @@
 ﻿# Current State — Tianquan 天权
 
+> **Last updated:** 2026-09-29 (M14 in progress; UI/UX + access-control refinement batch underway)
+
+## Active work batch — UI/UX + access-control refinement
+
+Scoped checklist (implement in order, validate each chunk). Permission model:
+`audit_query` (compliance_officer, admin, security_team) · `manage_permissions` (admin).
+
+Backend:
+- [ ] B1. Add `audit_query` to `security_team` role.
+- [ ] B2. Per-permission gating: `audit_query` → `/audit/*`; `manage_permissions` → `/admin/*`, `/upload`. Expose `can_audit`/`can_manage`/`can_export` on `/users` and `/query`.
+- [ ] B3. ADP client: trust system/certifi cert store (fix TLS `CERTIFICATE_VERIFY_FAILED`).
+- [ ] B4. Improve stub/grounding fallback — kill the lazy "Relevant sources found: [1][2][3]".
+- [ ] B5. `/export` endpoint: re-check `Action.EXPORT` per cited resource, audit it.
+
+Frontend:
+- [ ] F1. Document list → card list (not comma text).
+- [ ] F2. Merge policy inspector into audit explorer (drop standalone inspector).
+- [ ] F3. Conditional panel rendering (no locked boxes): none → bare "ADMIN ACCESS REQUIRED"; `audit_query` → stats + explorer; `manage_permissions` → + revocation + upload.
+- [ ] F4. Audit explorer pagination (default 10, adjustable, prev/next).
+- [ ] F5. Per-citation green "Export" button, rendered only when persona has `export`.
+- [ ] F6. Permission-denied actions → clear toast.
+
+Panel → permission mapping:
+| Panel | Permission | contractor/engineer/senior_engineer/finance_analyst | security_team/compliance_officer | admin |
+|-------|-----------|:---:|:---:|:---:|
+| stats + audit explorer | `audit_query` | ✗ | ✓ | ✓ |
+| revocation + upload | `manage_permissions` | ✗ | ✗ | ✓ |
+
 > **Last updated:** 2026-09-29 (M14 in progress; UI polish + server-enforced admin/audit role gating added)
 
 ## Milestone
