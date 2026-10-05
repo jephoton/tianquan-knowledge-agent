@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     * {
-      scrollbar-width: none;
+      scrollbar-width: thin;
       scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
     }
   </style>
@@ -111,39 +111,6 @@
     background: #c47a7a;
   }
 
-  .persona-chip {
-    padding: 4px 12px;
-    border: 1px solid rgba(232,220,200,0.08);
-    border-radius: 2px;
-    background: transparent;
-    color: #6b6150;
-    font-size: 12px;
-    font-family: 'SF Mono','Menlo','Consolas',monospace;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .persona-chip:hover {
-    border-color: rgba(232,220,200,0.15);
-    color: #e8dcc8;
-  }
-  .persona-chip.active {
-    border-color: #ffb000;
-    color: #ffb000;
-    text-shadow: 0 0 8px #ffb000;
-    background: rgba(255,176,0,0.06);
-  }
-
-  .log-row {
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(232,220,200,0.04);
-    font-size: 12px;
-    line-height: 1.7;
-    display: flex;
-    gap: 16px;
-    align-items: center;
-  }
-  .log-row:last-child { border-bottom: none; }
-
   .section-label {
     font-size: 10px;
     text-transform: uppercase;
@@ -169,8 +136,29 @@
     border-color: rgba(255,176,0,0.3);
   }
 
+  .crt-select {
+    background: #0a0a0a;
+    border: 1px solid rgba(232,220,200,0.1);
+    border-radius: 2px;
+    color: #e8dcc8;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6150' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .crt-select:focus { border-color: rgba(255,176,0,0.3); }
+
   .outline-btn {
-    padding: 6px 16px;
+    padding: 8px 20px;
     border: 1px solid rgba(232,220,200,0.15);
     border-radius: 2px;
     background: transparent;
@@ -208,30 +196,6 @@
     white-space: nowrap;
   }
 
-  .filter-field {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #6b6150;
-  }
-  .filter-field label {
-    color: #6b6150;
-    white-space: nowrap;
-  }
-  .filter-field input {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(232,220,200,0.12);
-    color: #e8dcc8;
-    font-family: 'SF Mono','Menlo','Consolas',monospace;
-    font-size: 12px;
-    padding: 2px 4px;
-    outline: none;
-    width: 120px;
-  }
-  .filter-field input:focus { border-bottom-color: rgba(255,176,0,0.4); }
-
   /* Tab bar */
   .tab-bar {
     display: flex;
@@ -251,9 +215,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .tab-btn:hover {
-    color: #e8dcc8;
-  }
+  .tab-btn:hover { color: #e8dcc8; }
   .tab-btn.active {
     color: #ffb000;
     border-bottom-color: #ffb000;
@@ -263,34 +225,8 @@
   .tab-panel.active { display: block; }
 
   /* Answer states */
-  .answer-processing {
-    color: #6b6150 !important;
-    opacity: 0.6;
-  }
-  .answer-complete {
-    color: #e8dcc8 !important;
-    opacity: 1;
-  }
-
-  /* Query meta bar */
-  .query-meta {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-    padding: 8px 0;
-    margin-top: 12px;
-    border-top: 1px solid rgba(232,220,200,0.06);
-    font-size: 11px;
-  }
-  .query-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .query-meta-num {
-    font-size: 16px;
-    font-weight: 700;
-  }
+  .answer-processing { color: #6b6150 !important; opacity: 0.6; }
+  .answer-complete { color: #e8dcc8 !important; opacity: 1; }
 
   /* Citation cards */
   .citation-card {
@@ -303,9 +239,7 @@
     min-width: 260px;
     transition: border-color 0.15s;
   }
-  .citation-card:hover {
-    border-color: rgba(255,176,0,0.15);
-  }
+  .citation-card:hover { border-color: rgba(255,176,0,0.15); }
   .citation-marker {
     font-size: 18px;
     font-weight: 700;
@@ -314,10 +248,7 @@
     flex-shrink: 0;
     line-height: 1.4;
   }
-  .citation-body {
-    flex: 1;
-    min-width: 0;
-  }
+  .citation-body { flex: 1; min-width: 0; }
   .citation-source {
     font-size: 10px;
     color: #6b6150;
@@ -325,14 +256,83 @@
     letter-spacing: 0.05em;
     margin-bottom: 2px;
   }
-  .citation-title {
-    font-size: 12px;
-    color: #e8dcc8;
-    line-height: 1.4;
+  .citation-title { font-size: 12px; color: #e8dcc8; line-height: 1.4; }
+  .citation-fresh { font-size: 10px; margin-top: 4px; }
+
+  /* Persona dropdown */
+  .persona-dropdown {
+    position: relative;
+    display: inline-block;
   }
-  .citation-fresh {
-    font-size: 10px;
+  .persona-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid rgba(232,220,200,0.08);
+    border-radius: 2px;
+    background: transparent;
+    color: #e8dcc8;
+    font-size: 12px;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .persona-trigger:hover { border-color: #ffb000; color: #ffb000; }
+  .persona-trigger.active { border-color: #ffb000; color: #ffb000; }
+  .persona-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
     margin-top: 4px;
+    background: #141414;
+    border: 1px solid rgba(232,220,200,0.12);
+    border-radius: 2px;
+    min-width: 200px;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .persona-menu.open { display: block; }
+  .persona-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #6b6150;
+    cursor: pointer;
+    transition: all 0.1s;
+    border-bottom: 1px solid rgba(232,220,200,0.04);
+  }
+  .persona-option:last-child { border-bottom: none; }
+  .persona-option:hover { color: #e8dcc8; background: rgba(255,176,0,0.04); }
+  .persona-option.active { color: #ffb000; }
+  .persona-option .role-tag { font-size: 10px; color: #4a4540; }
+  .persona-option.active .role-tag { color: rgba(255,176,0,0.5); }
+
+  /* Inspector rows */
+  .log-row {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(232,220,200,0.04);
+    font-size: 12px;
+    line-height: 1.7;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .log-row:last-child { border-bottom: none; }
+
+  /* Chain badge large */
+  .chain-badge-lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'SF Mono','Menlo','Consolas',monospace;
   }
 </style>
 
@@ -346,7 +346,18 @@
     <div class="flex items-center gap-6">
       <span class="section-label" style="font-size:11px;">system operational</span>
       <span id="health-dot" style="color:#3a8a5a;font-size:11px;text-shadow:0 0 4px #3a8a5a;">&#9679;</span>
-      <span id="current-user" style="color:#6b6150;font-size:12px;">[--] --</span>
+
+      <!-- Persona dropdown -->
+      <div class="persona-dropdown" id="persona-dropdown">
+        <div class="persona-trigger" id="persona-trigger">
+          <i class="fas fa-user-circle" style="font-size:14px;opacity:0.6;"></i>
+          <span id="current-user">select user</span>
+          <i class="fas fa-chevron-down" style="font-size:10px;opacity:0.4;"></i>
+        </div>
+        <div class="persona-menu" id="persona-menu">
+          <div style="padding:6px 14px;font-size:10px;color:#4a4540;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(232,220,200,0.06);">switch persona</div>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -356,7 +367,7 @@
   <div class="max-w-[1440px] mx-auto px-12">
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="query">Query</button>
-      <button class="tab-btn" data-tab="admin">Admin &amp; Audit</button>
+      <button class="tab-btn" data-tab="admin">Admin</button>
     </div>
   </div>
 </nav>
@@ -366,14 +377,6 @@
 
   <!-- ====== QUERY TAB ====== -->
   <div id="tab-query" class="tab-panel active flex flex-col gap-8">
-
-  <!-- PERSONA SWITCHER -->
-  <section>
-    <div class="section-label mb-3">active persona</div>
-    <div id="persona-list" class="flex items-center gap-3 flex-wrap">
-      <span style="color:#6b6150;font-size:12px;">loading personas...</span>
-    </div>
-  </section>
 
   <!-- QUERY CONSOLE -->
   <section class="crt-card p-6">
@@ -389,30 +392,19 @@
     <!-- Answer area -->
     <div class="mt-5 pt-5" style="border-top:1px solid rgba(232,220,200,0.06);">
       <div class="section-label mb-3">response</div>
-      <div id="answer-text" class="phosphor-text answer-processing" style="font-size:14px;line-height:1.8;">
+      <div id="answer-text" class="phosphor-text answer-processing" style="font-size:16px;line-height:1.9;">
         &gt; awaiting query...
       </div>
 
-      <!-- Query meta bar -->
-      <div id="query-meta" class="query-meta" style="display:none;">
-        <div class="query-meta-item">
-          <span style="color:#3a8a5a;" class="query-meta-num phosphor-glow" id="meta-allowed">0</span>
-          <span style="color:#6b6150;">allowed</span>
-        </div>
-        <div class="query-meta-item">
-          <span style="color:#c47a7a;" class="query-meta-num" id="meta-denied">0</span>
-          <span style="color:#6b6150;">denied</span>
-        </div>
-        <div class="query-meta-item">
-          <span style="color:#ffb000;" class="query-meta-num" id="meta-sources">0</span>
-          <span style="color:#6b6150;">cited</span>
-        </div>
-      </div>
-
       <!-- Citations -->
-      <div id="answer-citations" class="mt-3 flex gap-3 flex-wrap"></div>
+      <div id="answer-citations" class="mt-4 flex gap-3 flex-wrap"></div>
     </div>
   </section>
+
+  </div><!-- /#tab-query -->
+
+  <!-- ====== ADMIN TAB ====== -->
+  <div id="tab-admin" class="tab-panel flex flex-col gap-8">
 
   <!-- STATS ROW -->
   <div class="grid grid-cols-4 gap-4">
@@ -426,7 +418,7 @@
     </div>
     <div class="crt-card p-5 text-center">
       <div class="section-label mb-2">denied</div>
-      <div id="stat-denied" style="font-size:32px;font-weight:700;color:#c47a7a;">0</div>
+      <div id="stat-denied" style="font-size:32px;font-weight:700;color:#c47a7a;" class="phosphor-glow">0</div>
     </div>
     <div class="crt-card p-5 text-center">
       <div class="section-label mb-2">audit integrity</div>
@@ -434,100 +426,7 @@
     </div>
   </div>
 
-  </div><!-- /#tab-query -->
-
-  <!-- ====== ADMIN & AUDIT TAB ====== -->
-  <div id="tab-admin" class="tab-panel flex flex-col gap-8">
-
-  <!-- STATS ROW -->
-  <div class="grid grid-cols-4 gap-4">
-    <div class="crt-card p-5 text-center">
-      <div class="section-label mb-2">audit events</div>
-      <div id="stat-total-admin" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
-    </div>
-    <div class="crt-card p-5 text-center">
-      <div class="section-label mb-2">allowed</div>
-      <div id="stat-allowed-admin" style="font-size:32px;font-weight:700;color:#3a8a5a;" class="phosphor-glow">0</div>
-    </div>
-    <div class="crt-card p-5 text-center">
-      <div class="section-label mb-2">denied</div>
-      <div id="stat-denied-admin" style="font-size:32px;font-weight:700;color:#c47a7a;">0</div>
-    </div>
-    <div class="crt-card p-5 text-center">
-      <div class="section-label mb-2">audit integrity</div>
-      <div id="stat-chain-admin" style="font-size:32px;font-weight:700;color:#3a8a5a;" class="phosphor-glow">--</div>
-    </div>
-  </div>
-
-  <!-- REVOCATION CONTROLS -->
-  <section class="crt-card p-6">
-    <div class="section-label mb-4">revocation controls</div>
-    <div class="grid grid-cols-3 gap-6">
-      <div>
-        <div class="filter-field mb-3">
-          <label>[resource_id]:</label>
-          <input id="rev-resource" type="text" placeholder="e.g. confluence:db-migration-plan" style="width:100%;" />
-        </div>
-        <div class="filter-field">
-          <label>[subject]:</label>
-          <input id="rev-subject" type="text" placeholder="e.g. engineer or alice" style="width:100%;" />
-        </div>
-      </div>
-      <div>
-        <div class="filter-field mb-3">
-          <label>[subject_kind]:</label>
-          <input id="rev-kind" type="text" placeholder="user | role" value="role" style="width:100%;" />
-        </div>
-      </div>
-      <div class="flex items-end gap-3">
-        <button id="revoke-btn" class="outline-btn">[REVOKE]</button>
-        <button id="grant-btn" class="outline-btn">[GRANT]</button>
-      </div>
-    </div>
-    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-      <div id="rev-status" style="font-size:11px;color:#6b6150;">
-        no revocations this session
-      </div>
-    </div>
-  </section>
-
-  <!-- UPLOAD CONNECTOR (Demo 7: real-time ingestion) -->
-  <section class="crt-card p-6">
-    <div class="section-label mb-4">document upload <span style="color:#6b6150;font-weight:400;">— real-time ingestion</span></div>
-    <div class="grid grid-cols-2 gap-6">
-      <div>
-        <div class="filter-field mb-3">
-          <label>[resource_id]:</label>
-          <input id="up-resource" type="text" placeholder="e.g. upload:incident-report-9" style="width:100%;" />
-        </div>
-        <div class="filter-field mb-3">
-          <label>[title]:</label>
-          <input id="up-title" type="text" placeholder="e.g. Q4 Incident Report" style="width:100%;" />
-        </div>
-        <div class="filter-field">
-          <label>[allowed_roles]:</label>
-          <input id="up-roles" type="text" placeholder="admin,engineer (comma-sep, blank=default)" style="width:100%;" />
-        </div>
-      </div>
-      <div>
-        <div class="filter-field mb-3">
-          <label>[content]:</label>
-          <textarea id="up-content" rows="4" placeholder="Paste document text here..." style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(232,220,200,0.08);color:#e8dcc8;padding:8px;font-family:inherit;font-size:12px;"></textarea>
-        </div>
-        <div class="flex items-end gap-3">
-          <button id="upload-btn" class="outline-btn">[UPLOAD & INDEX]</button>
-          <button id="upload-list-btn" class="outline-btn">[LIST]</button>
-        </div>
-      </div>
-    </div>
-    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-      <div id="upload-status" style="font-size:11px;color:#6b6150;">
-        no documents uploaded this session
-      </div>
-    </div>
-  </section>
-
-  <!-- POLICY INSPECTOR (admin-only, for demo operator) -->
+  <!-- POLICY INSPECTOR -->
   <section class="crt-card p-6">
     <div class="flex items-center justify-between mb-4">
       <div class="section-label">policy inspector</div>
@@ -535,15 +434,8 @@
         <span style="color:#6b6150;">no query yet</span>
       </div>
     </div>
-
     <div id="inspector-rows" class="flex flex-col">
       <div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; run a query to see policy decisions</span></div>
-    </div>
-
-    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-      <div style="font-size:11px;color:#6b6150;">
-        policy engine: Tianquan 天权 &middot; fail-closed &middot; live ACL evaluation
-      </div>
     </div>
   </section>
 
@@ -551,26 +443,34 @@
   <section class="crt-card p-6">
     <div class="flex items-center justify-between mb-4">
       <div class="section-label">audit explorer</div>
-      <span id="chain-badge" style="color:#6b6150;font-size:11px;">[CHAIN --]</span>
+      <div class="flex items-center gap-3">
+        <span id="chain-badge" class="chain-badge-lg" style="color:#6b6150;background:rgba(20,20,20,0.6);">[--]</span>
+        <button id="audit-verify" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify</button>
+        <button id="audit-tamper" class="outline-btn" style="padding:4px 12px;font-size:11px;color:#c47a7a;border-color:rgba(138,58,58,0.3);">tamper</button>
+        <button id="audit-refresh" class="outline-btn" style="padding:4px 12px;font-size:11px;">refresh</button>
+      </div>
     </div>
 
     <!-- Filters -->
-    <div class="flex gap-6 mb-4 items-end">
-      <div class="filter-field">
-        <label>[user_id]:</label>
-        <input id="f-user" type="text" placeholder="all" />
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div>
+        <div class="section-label mb-2">user</div>
+        <select id="f-user" class="crt-select">
+          <option value="">all users</option>
+        </select>
       </div>
-      <div class="filter-field">
-        <label>[decision]:</label>
-        <input id="f-decision" type="text" placeholder="allow|deny" />
+      <div>
+        <div class="section-label mb-2">decision</div>
+        <select id="f-decision" class="crt-select">
+          <option value="">all decisions</option>
+          <option value="allow">allow</option>
+          <option value="deny">deny</option>
+        </select>
       </div>
-      <div class="filter-field">
-        <label>[resource]:</label>
-        <input id="f-resource" type="text" placeholder="substring" />
+      <div>
+        <div class="section-label mb-2">resource</div>
+        <input id="f-resource" type="text" class="crt-input" placeholder="substring match" />
       </div>
-      <button id="audit-refresh" class="outline-btn" style="padding:3px 10px;font-size:11px;">refresh</button>
-      <button id="audit-verify" class="outline-btn" style="padding:3px 10px;font-size:11px;">verify chain</button>
-      <button id="audit-tamper" class="outline-btn" style="padding:3px 10px;font-size:11px;color:#c47a7a;border-color:rgba(138,58,58,0.3);">tamper chain</button>
     </div>
 
     <!-- Events table -->
@@ -589,9 +489,75 @@
         <tr><td colspan="6" style="color:#6b6150;">no events yet</td></tr>
       </tbody>
     </table>
-
-    <div class="mt-3 flex items-center justify-between">
+    <div class="mt-3">
       <span id="audit-count" style="font-size:11px;color:#6b6150;">showing 0 events</span>
+    </div>
+  </section>
+
+  <!-- REVOCATION CONTROLS -->
+  <section class="crt-card p-6">
+    <div class="section-label mb-4">revocation controls</div>
+    <div class="grid grid-cols-4 gap-4 items-end">
+      <div>
+        <div class="section-label mb-2">resource_id</div>
+        <input id="rev-resource" type="text" class="crt-input" placeholder="confluence:db-migration-plan" />
+      </div>
+      <div>
+        <div class="section-label mb-2">subject</div>
+        <input id="rev-subject" type="text" class="crt-input" placeholder="engineer or alice" />
+      </div>
+      <div>
+        <div class="section-label mb-2">subject kind</div>
+        <select id="rev-kind" class="crt-select">
+          <option value="role">role</option>
+          <option value="user">user</option>
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button id="revoke-btn" class="outline-btn" style="flex:1;">Revoke</button>
+        <button id="grant-btn" class="outline-btn" style="flex:1;">Grant</button>
+      </div>
+    </div>
+    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+      <div id="rev-status" style="font-size:12px;color:#6b6150;">
+        no revocations this session
+      </div>
+    </div>
+  </section>
+
+  <!-- UPLOAD CONNECTOR -->
+  <section class="crt-card p-6">
+    <div class="section-label mb-4">document upload <span style="color:#4a4540;font-weight:400;">— real-time ingestion</span></div>
+    <div class="grid grid-cols-2 gap-6">
+      <div class="flex flex-col gap-4">
+        <div>
+          <div class="section-label mb-2">resource_id</div>
+          <input id="up-resource" type="text" class="crt-input" placeholder="upload:incident-report-9" />
+        </div>
+        <div>
+          <div class="section-label mb-2">title</div>
+          <input id="up-title" type="text" class="crt-input" placeholder="Q4 Incident Report" />
+        </div>
+        <div>
+          <div class="section-label mb-2">allowed roles (blank = default)</div>
+          <input id="up-roles" type="text" class="crt-input" placeholder="admin, engineer, security_team" />
+        </div>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div>
+          <div class="section-label mb-2">content</div>
+          <textarea id="up-content" rows="5" class="crt-input" style="resize:vertical;min-height:100px;" placeholder="Paste document text here..."></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button id="upload-btn" class="outline-btn" style="flex:1;">Upload &amp; Index</button>
+          <button id="upload-list-btn" class="outline-btn" style="flex:1;">List Documents</button>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+      <div id="upload-status" style="font-size:12px;color:#6b6150;">
+        no documents uploaded this session
+      </div>
     </div>
   </section>
 

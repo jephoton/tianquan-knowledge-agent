@@ -48,7 +48,7 @@ function pill(result) {
 
 function sourceIcon(source) {
   const icons = {
-    confluence: "📖", jira: "🎫", slack: "💬", gdrive: "📁",
+    confluence: "📖", jira: "🎫", slack: "💬", gdrive: "📁", upload: "📤",
   };
   return icons[source] || "📄";
 }
@@ -57,32 +57,56 @@ function sourceIcon(source) {
 
 const state = {
   currentUser: null,
+  currentRole: null,
   lastQuery: null,
+  lastDecisions: [],
 };
 
 // -- personas ----------------------------------------------------------
 
 async function loadPersonas() {
   const users = await api("/users");
-  const list = $("persona-list");
-  list.innerHTML = "";
+  const menu = $("persona-menu");
+
+  // Keep the header label, remove old options.
+  while (menu.children.length > 1) menu.removeChild(menu.lastChild);
+
   users.forEach((u, i) => {
-    const btn = document.createElement("button");
-    btn.className = "persona-chip" + (i === 0 ? " active" : "");
-    btn.textContent = `${u.user_id}:${u.roles[0] || "user"}`;
-    btn.dataset.userId = u.user_id;
-    btn.dataset.role = u.roles[0] || "user";
-    btn.onclick = () => selectPersona(u.user_id, u.roles[0] || "user", btn);
-    list.appendChild(btn);
-    if (i === 0) selectPersona(u.user_id, u.roles[0] || "user", btn);
+    const opt = document.createElement("div");
+    opt.className = "persona-option" + (i === 0 ? " active" : "");
+    opt.dataset.userId = u.user_id;
+    opt.dataset.role = u.roles[0] || "user";
+    opt.dataset.name = u.name;
+    opt.innerHTML =
+      `<span>${esc(u.name)} <span style="color:#4a4540;">(${esc(u.user_id)})</span></span>` +
+      `<span class="role-tag">${esc(u.roles[0] || "user")}</span>`;
+    opt.onclick = () => {
+      selectPersona(u.user_id, u.roles[0] || "user", u.name);
+      closePersonaMenu();
+    };
+    menu.appendChild(opt);
+    if (i === 0) selectPersona(u.user_id, u.roles[0] || "user", u.name);
   });
 }
 
-function selectPersona(userId, role, btn) {
+function selectPersona(userId, role, name) {
   state.currentUser = userId;
-  document.querySelectorAll(".persona-chip").forEach((c) => c.classList.remove("active"));
-  if (btn) btn.classList.add("active");
-  $("current-user").textContent = `[${userId}] ${role}`;
+  state.currentRole = role;
+  document.querySelectorAll(".persona-option").forEach((c) => c.classList.remove("active"));
+  document.querySelectorAll(".persona-option").forEach((c) => {
+    if (c.dataset.userId === userId) c.classList.add("active");
+  });
+  $("current-user").textContent = `${name} [${role}]`;
+}
+
+function togglePersonaMenu() {
+  $("persona-menu").classList.toggle("open");
+  $("persona-trigger").classList.toggle("active");
+}
+
+function closePersonaMenu() {
+  $("persona-menu").classList.remove("open");
+  $("persona-trigger").classList.remove("active");
 }
 
 // -- query -------------------------------------------------------------
@@ -92,12 +116,10 @@ async function runQuery(question) {
   if (!question) return;
   state.lastQuery = question;
 
-  // Show processing state — faded text, spinner.
   const ans = $("answer-text");
   ans.className = "phosphor-text answer-processing";
   ans.textContent = "> processing...";
   $("answer-citations").innerHTML = "";
-  $("query-meta").style.display = "none";
 
   const startTime = Date.now();
 
@@ -107,7 +129,6 @@ async function runQuery(question) {
       body: JSON.stringify({ user_id: state.currentUser, question, k: 20 }),
     });
 
-    // Ensure minimum delay so denied/no-access doesn't appear instant.
     const elapsed = Date.now() - startTime;
     if (elapsed < MIN_QUERY_DELAY) {
       await new Promise((r2) => setTimeout(r2, MIN_QUERY_DELAY - elapsed));
@@ -137,24 +158,12 @@ function freshnessBadge(updatedAt) {
 
 function renderAnswer(r) {
   const ans = $("answer-text");
-  // Full brightness for actual answers; faded only for no-access (intentional).
   ans.className = "phosphor-text answer-complete";
   ans.textContent = r.answer;
 
-  // Query meta bar.
-  const meta = $("query-meta");
-  meta.style.display = "flex";
-  $("meta-allowed").textContent = r.allow_count;
-  $("meta-denied").textContent = r.deny_count;
-  $("meta-sources").textContent = r.citations.length + " source" + (r.citations.length !== 1 ? "s" : "");
-
-  // Render citation cards.
   const cites = $("answer-citations");
   cites.innerHTML = "";
-  if (!r.citations.length) {
-    cites.innerHTML = "";
-    return;
-  }
+  if (!r.citations.length) return;
   r.citations.forEach((c) => {
     const card = document.createElement("div");
     card.className = "citation-card";
@@ -166,6 +175,34 @@ function renderAnswer(r) {
       `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
       `</div>`;
     cites.appendChild(card);
+  });
+}
+
+// -- policy inspector --------------------------------------------------
+
+function renderInspector(r) {
+  const decisions = r.decisions || [];
+  state.lastDecisions = decisions;
+  const allowed = decisions.filter((d) => d.result === "allow").length;
+  const denied = decisions.filter((d) => d.result === "deny").length;
+  $("inspector-summary").innerHTML =
+    `<span style="color:#3a8a5a;">${allowed} ALLOW</span> · ` +
+    `<span style="color:#c47a7a;">${denied} DENY</span>`;
+
+  const rows = $("inspector-rows");
+  rows.innerHTML = "";
+  if (!decisions.length) {
+    rows.innerHTML = `<div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; no decisions for this query</span></div>`;
+    return;
+  }
+  decisions.forEach((d) => {
+    const row = document.createElement("div");
+    row.className = "log-row";
+    row.innerHTML =
+      `<span style="width:24px;">${pill(d.result)}</span>` +
+      `<span style="color:#e8dcc8;min-width:200px;">${esc(d.resource_id || "—")}</span>` +
+      `<span style="color:#6b6150;font-size:11px;">${esc(d.reason || "")}</span>`;
+    rows.appendChild(row);
   });
 }
 
@@ -214,29 +251,24 @@ function renderStats(r) {
   const total = r.count, allowed = r.allow_count, denied = r.deny_count;
   const chainOk = r.chain_valid ? "100%" : "FAIL";
   const chainColor = r.chain_valid ? "#3a8a5a" : "#c47a7a";
-  // Query tab stats
   $("stat-total").textContent = total;
   $("stat-allowed").textContent = allowed;
   $("stat-denied").textContent = denied;
   $("stat-chain").textContent = chainOk;
   $("stat-chain").style.color = chainColor;
-  // Admin tab stats (mirrored)
-  $("stat-total-admin").textContent = total;
-  $("stat-allowed-admin").textContent = allowed;
-  $("stat-denied-admin").textContent = denied;
-  $("stat-chain-admin").textContent = chainOk;
-  $("stat-chain-admin").style.color = chainColor;
 }
 
 function setChainBadge(valid, status) {
   const b = $("chain-badge");
   if (valid) {
-    b.textContent = "[CHAIN VERIFIED]";
+    b.textContent = "[VERIFIED]";
     b.style.color = "#3a8a5a";
+    b.style.background = "rgba(58,138,90,0.1)";
     b.style.textShadow = "0 0 4px #3a8a5a";
   } else {
-    b.textContent = "[CHAIN TAMPERED]";
+    b.textContent = "[TAMPERED]";
     b.style.color = "#c47a7a";
+    b.style.background = "rgba(138,58,58,0.1)";
     b.style.textShadow = "none";
   }
   b.title = status || "";
@@ -264,7 +296,7 @@ async function tamperChain() {
 async function adminChange(kind) {
   const resource_id = $("rev-resource").value.trim();
   const subject = $("rev-subject").value.trim();
-  const subject_kind = ($("rev-kind").value.trim() || "role");
+  const subject_kind = $("rev-kind").value.trim() || "role";
   if (!resource_id || !subject) { toast("resource_id and subject required", true); return; }
 
   try {
@@ -279,7 +311,7 @@ async function adminChange(kind) {
   } catch (e) { toast(e.message, true); }
 }
 
-// -- admin: upload document (Demo 7) -----------------------------------
+// -- admin: upload document -------------------------------------------
 
 async function uploadDocument() {
   const resource_id = $("up-resource").value.trim();
@@ -329,6 +361,15 @@ async function boot() {
     await api("/health");
     $("footer-status").textContent = "api: connected";
     await loadPersonas();
+    // Populate audit filter user dropdown.
+    const users = await api("/users");
+    const sel = $("f-user");
+    users.forEach((u) => {
+      const opt = document.createElement("option");
+      opt.value = u.user_id;
+      opt.textContent = `${u.name} (${u.user_id})`;
+      sel.appendChild(opt);
+    });
     await refreshAudit();
   } catch (e) {
     $("footer-status").textContent = "api: offline — start `python -m uvicorn backend.api.app:app`";
@@ -348,6 +389,19 @@ async function boot() {
   $("grant-btn").onclick = () => adminChange("grant");
   $("upload-btn").onclick = () => uploadDocument();
   $("upload-list-btn").onclick = () => listUploads();
+
+  // Persona dropdown
+  $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };
+  document.addEventListener("click", (e) => {
+    const dd = $("persona-dropdown");
+    if (dd && !dd.contains(e.target)) closePersonaMenu();
+  });
+
+  // Audit filter auto-refresh
+  ["f-user", "f-decision", "f-resource"].forEach((id) => {
+    $(id).addEventListener("change", () => refreshAudit().catch(() => {}));
+    $(id).addEventListener("input", () => refreshAudit().catch(() => {}));
+  });
 
   // Tab switching
   document.querySelectorAll(".tab-btn").forEach((btn) => {
