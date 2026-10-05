@@ -78,7 +78,7 @@ async function loadPersonas() {
     opt.dataset.role = u.roles[0] || "user";
     opt.dataset.name = u.name;
     opt.innerHTML =
-      `<span>${esc(u.name)} <span style="color:#4a4540;">(${esc(u.user_id)})</span></span>` +
+      `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span></span>` +
       `<span class="role-tag">${esc(u.roles[0] || "user")}</span>`;
     opt.onclick = () => {
       selectPersona(u.user_id, u.roles[0] || "user", u.name);
@@ -97,6 +97,8 @@ function selectPersona(userId, role, name) {
     if (c.dataset.userId === userId) c.classList.add("active");
   });
   $("current-user").textContent = `${name} [${role}]`;
+  const qp = $("query-persona");
+  if (qp) qp.textContent = `${name} · ${role}`;
 }
 
 function togglePersonaMenu() {
@@ -121,6 +123,11 @@ async function runQuery(question) {
   ans.textContent = "> processing...";
   $("answer-citations").innerHTML = "";
 
+  const askBtn = $("ask-btn");
+  askBtn.disabled = true;
+  askBtn.classList.add("ask-busy");
+  askBtn.textContent = "...";
+
   const startTime = Date.now();
 
   try {
@@ -141,6 +148,10 @@ async function runQuery(question) {
     toast(e.message, true);
     ans.className = "phosphor-text";
     ans.textContent = "> error: " + e.message;
+  } finally {
+    askBtn.disabled = false;
+    askBtn.classList.remove("ask-busy");
+    askBtn.textContent = "ASK";
   }
 }
 
@@ -192,16 +203,16 @@ function renderInspector(r) {
   const rows = $("inspector-rows");
   rows.innerHTML = "";
   if (!decisions.length) {
-    rows.innerHTML = `<div class="log-row"><span style="color:#6b6150;font-size:12px;">&gt; no decisions for this query</span></div>`;
+    rows.innerHTML = `<div class="log-row"><span style="color:#9a8e78;font-size:12px;">&gt; no decisions for this query</span></div>`;
     return;
   }
   decisions.forEach((d) => {
     const row = document.createElement("div");
     row.className = "log-row";
     row.innerHTML =
-      `<span style="width:24px;">${pill(d.result)}</span>` +
-      `<span style="color:#e8dcc8;min-width:200px;">${esc(d.resource_id || "—")}</span>` +
-      `<span style="color:#6b6150;font-size:11px;">${esc(d.reason || "")}</span>`;
+      `<span style="width:60px;flex-shrink:0;">${pill(d.result)}</span>` +
+      `<span style="color:#f0e6d2;min-width:220px;">${esc(d.resource_id || "—")}</span>` +
+      `<span style="color:#b8ad98;font-size:11px;">${esc(d.reason || "")}</span>`;
     rows.appendChild(row);
   });
 }
@@ -227,14 +238,14 @@ function renderAudit(r) {
   const body = $("audit-body");
   body.innerHTML = "";
   if (!r.events.length) {
-    body.innerHTML = `<tr><td colspan="6" style="color:#6b6150;">no matching events</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" style="color:#9a8e78;">no matching events</td></tr>`;
   } else {
     r.events.slice().reverse().forEach((e) => {
       const tr = document.createElement("tr");
       const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
       const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
       tr.innerHTML =
-        `<td style="color:#e8dcc8;" class="phosphor-text">${esc(ts)}</td>` +
+        `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
         `<td>${esc(e.user_id)}</td>` +
         `<td>${esc((e.action || "").toUpperCase())}</td>` +
         `<td>${esc(e.resource_id || "—")}</td>` +
@@ -381,6 +392,15 @@ async function boot() {
   $("ask-btn").onclick = () => runQuery($("query-input").value.trim());
   $("query-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") runQuery($("query-input").value.trim());
+  });
+
+  // Example-query chips: fill the input and run.
+  document.querySelectorAll(".example-chip").forEach((chip) => {
+    chip.onclick = () => {
+      const q = chip.dataset.q;
+      $("query-input").value = q;
+      runQuery(q);
+    };
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
   $("audit-verify").onclick = verifyChain;
