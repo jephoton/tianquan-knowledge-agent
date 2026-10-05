@@ -7,10 +7,14 @@ upload connector, and a reindex makes it searchable immediately.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/upload", tags=["upload"])
+from backend.api.deps import require_privileged
+
+# Uploading/listing documents is an operator action — privileged only.
+router = APIRouter(prefix="/upload", tags=["upload"],
+                   dependencies=[Depends(require_privileged)])
 
 
 class UploadDocument(BaseModel):

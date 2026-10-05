@@ -15,6 +15,8 @@ from backend.api.schemas import (
     QueryRequest,
     QueryResponseModel,
 )
+from backend.auth.roles import is_privileged
+from backend.models import DecisionResult
 
 router = APIRouter(tags=["query"])
 
@@ -27,6 +29,18 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
         raise HTTPException(status_code=404, detail=f"unknown user: {req.user_id}")
 
     resp = state.orchestrator.handle(user, req.question, k=req.k)
+
+    # No-metadata-leak (INV7) at the wire boundary: a non-privileged asker
+    # never receives the DENY details — only the resources they could see.
+    # The server does not send what the client is not allowed to know, so the
+    # denied resource IDs cannot leak into the browser DOM. Privileged
+    # personas (admin / compliance_officer) get the full decision list for the
+    # policy inspector. Aggregate counts are safe (they name no resource).
+    privileged = is_privileged(user.roles)
+    visible_decisions = [
+        d for d in resp.decisions
+        if privileged or d.result == DecisionResult.ALLOW
+    ]
 
     return QueryResponseModel(
         query_id=resp.query_id,
@@ -50,9 +64,10 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
                 acl_version=d.acl_version,
                 policy_version=d.policy_version,
             )
-            for d in resp.decisions
+            for d in visible_decisions
         ],
         allow_count=resp.allow_count,
         deny_count=resp.deny_count,
+        viewer_privileged=privileged,
         audit_chain_head=resp.audit_chain_head,
     )

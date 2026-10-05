@@ -46,11 +46,18 @@ def create_app() -> FastAPI:
 
     @app.get("/users", tags=["meta"])
     def users() -> list[dict]:
-        """List seed users for the demo persona switcher."""
+        """List seed users for the demo persona switcher.
+
+        `privileged` tells the frontend whether the persona may access the
+        admin/audit surfaces — the same check the server enforces, surfaced
+        so the UI can reflect (not define) the boundary.
+        """
+        from backend.auth.roles import is_privileged
         store = app.state.tianquan.identity
         return [
             {"user_id": u.user_id, "name": u.name, "roles": u.roles,
-             "department": u.department, "is_contractor": u.is_contractor}
+             "department": u.department, "is_contractor": u.is_contractor,
+             "privileged": is_privileged(u.roles)}
             for u in store.all_users().values()
         ]
 

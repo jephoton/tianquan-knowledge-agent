@@ -44,6 +44,7 @@ class QueryResponseModel(BaseModel):
     decisions: list[DecisionModel]
     allow_count: int
     deny_count: int
+    viewer_privileged: bool = False
     audit_chain_head: str
 
 

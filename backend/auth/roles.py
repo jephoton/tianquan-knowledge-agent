@@ -43,3 +43,20 @@ def role_exists(role: str) -> bool:
 def get_role_permissions(role: str) -> list[str]:
     """Get the default permissions for a role."""
     return ROLES.get(role, {}).get("default_permissions", [])
+
+
+# Permissions that grant access to the admin / audit surfaces.
+ADMIN_PERMISSIONS = frozenset({"manage_permissions", "audit_query"})
+
+
+def is_privileged(roles: list[str]) -> bool:
+    """True if any of the user's roles can access admin/audit surfaces.
+
+    Privileged = holds `manage_permissions` (admin) or `audit_query`
+    (compliance_officer). This is the single source of truth for whether a
+    persona may revoke/grant, query the audit trail, or see deny details.
+    """
+    for role in roles:
+        if ADMIN_PERMISSIONS & set(get_role_permissions(role)):
+            return True
+    return False

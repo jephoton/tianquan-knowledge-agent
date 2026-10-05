@@ -7,13 +7,16 @@ integrity for the tamper-evidence demo.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from backend.api.deps import require_privileged
 from backend.api.schemas import AuditEventModel, AuditQueryResponseModel
 from backend.audit.audit_query import AuditQuery
 
 
-router = APIRouter(prefix="/audit", tags=["audit"])
+# All audit routes require a privileged acting user (403 otherwise).
+router = APIRouter(prefix="/audit", tags=["audit"],
+                   dependencies=[Depends(require_privileged)])
 
 
 def _event_model(event) -> AuditEventModel:

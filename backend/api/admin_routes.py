@@ -8,13 +8,16 @@ policy inspector.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from backend.api.deps import require_privileged
 from backend.api.schemas import ACLChangeModel, RevokeGrantRequest
 from backend.policy.admin import ResourceNotFound
 
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+# All admin routes require a privileged acting user (403 otherwise).
+router = APIRouter(prefix="/admin", tags=["admin"],
+                   dependencies=[Depends(require_privileged)])
 
 
 def _apply(admin, action: str, req: RevokeGrantRequest):

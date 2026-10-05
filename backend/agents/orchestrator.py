@@ -117,7 +117,17 @@ class Orchestrator:
         self._audit.append_decisions(retrieval.outcome.decisions, query_id)
 
         # 3. Answer from the authorized context (citation-validated, no-leak).
-        answer: Answer = self._answer_agent.answer(query, retrieval.context)
+        #    If the live LLM client fails at runtime (e.g. network/TLS error
+        #    reaching the ADP endpoint), degrade gracefully to the stub rather
+        #    than failing the whole request. The stub still answers only from
+        #    the already-filtered context, so safety (INV1/INV2) is preserved.
+        try:
+            answer: Answer = self._answer_agent.answer(query, retrieval.context)
+        except Exception:
+            from backend.agents.answer_agent import AnswerAgent
+            from backend.agents.llm_client import StubLLMClient
+            fallback_agent = AnswerAgent(StubLLMClient())
+            answer = fallback_agent.answer(query, retrieval.context)
 
         # 3b. Grounding check — strip hallucinated sentences (INV8).
         #     Skipped on no-access (empty context) — the canonical message
