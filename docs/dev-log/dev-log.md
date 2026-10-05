@@ -146,6 +146,15 @@
 
 ---
 
+### 2026-09-29 — UI/UX polish pass (demo prep)
+
+- **Tool:** Kiro
+- **Task:** Resumed the frontend polish pass started in a prior session (dim text + dropdown issues) and did a broader UX review.
+- **Summary:** Primary fix — the dim text was near-unreadable (`#6b6150`/`#4a4540` on a dark bg, below WCAG AA). Brightened the full dim palette across `index.html` and `app.js`: muted text now `#9a8e78`+, section labels `#c2b79f`, body `#f0e6d2`; also fixed a double-dim answer-processing state (dim color at 0.6 opacity). Dropdown — the persona dropdown was already fully implemented (not a stub); hardened it with `pointer-events:none` on the trigger's child icons so FontAwesome's JS `<svg>` swap can't swallow the click. UX additions: clickable example-query chips tied to the demo scenarios (fixes the blank-input "don't know what to ask" problem), a "querying as [persona]" hint in the query console, and an ASK-button busy/disabled state to prevent double-submits. Verified both servers run and the query path is intact (alice: 7 allow / 2 deny, 4 citations). Committed as one `fix(ui)`.
+- **Screenshot captured:** N — capture the polished UI for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora
