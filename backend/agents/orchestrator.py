@@ -90,6 +90,48 @@ class Orchestrator:
     def reindex(self) -> int:
         return self._pipeline.reindex()
 
+    def export(self, user: User, resource_ids: list[str]) -> dict:
+        """Re-check EXPORT permission per resource for `user` and audit it.
+
+        Export is a distinct, higher-bar action than read (a user may read a
+        blended answer in-session but not export every source out of the
+        audited environment). Each resource is re-decided with Action.EXPORT
+        against the LIVE ACL and recorded in the audit trail. Returns the
+        resources the user may export and those denied.
+        """
+        from backend.policy.policy_engine import PolicyEngine
+        from backend.models import DecisionResult
+
+        engine = PolicyEngine()
+        query_id = str(uuid.uuid4())
+        allowed: list[str] = []
+        denied: list[str] = []
+        decisions: list[Decision] = []
+
+        for rid in resource_ids:
+            resource = None
+            for connector in self._connectors:
+                resource = connector.get_resource(rid)
+                if resource is not None:
+                    break
+            if resource is None:
+                denied.append(rid)
+                continue
+            decision = engine.decide(user, resource, Action.EXPORT)
+            decisions.append(decision)
+            if decision.result == DecisionResult.ALLOW:
+                allowed.append(rid)
+            else:
+                denied.append(rid)
+
+        self._audit.append_decisions(decisions, query_id)
+        return {
+            "query_id": query_id,
+            "allowed": allowed,
+            "denied": denied,
+            "all_allowed": len(denied) == 0 and len(allowed) > 0,
+        }
+
     def handle(
         self,
         user: User,
