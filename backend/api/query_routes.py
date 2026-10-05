@@ -15,7 +15,7 @@ from backend.api.schemas import (
     QueryRequest,
     QueryResponseModel,
 )
-from backend.auth.roles import is_privileged
+from backend.auth.roles import can_audit, can_export
 from backend.models import DecisionResult
 
 router = APIRouter(tags=["query"])
@@ -30,16 +30,17 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
 
     resp = state.orchestrator.handle(user, req.question, k=req.k)
 
-    # No-metadata-leak (INV7) at the wire boundary: a non-privileged asker
-    # never receives the DENY details — only the resources they could see.
-    # The server does not send what the client is not allowed to know, so the
-    # denied resource IDs cannot leak into the browser DOM. Privileged
-    # personas (admin / compliance_officer) get the full decision list for the
-    # policy inspector. Aggregate counts are safe (they name no resource).
-    privileged = is_privileged(user.roles)
+    # No-metadata-leak (INV7) at the wire boundary: a caller without audit
+    # access never receives the DENY details — only the resources they could
+    # see. The server does not send what the client is not allowed to know, so
+    # denied resource IDs cannot leak into the browser DOM. Callers with
+    # `audit_query` get the full decision list. Aggregate counts are safe
+    # (they name no resource).
+    auditor = can_audit(user.roles)
+    exporter = can_export(user.roles)
     visible_decisions = [
         d for d in resp.decisions
-        if privileged or d.result == DecisionResult.ALLOW
+        if auditor or d.result == DecisionResult.ALLOW
     ]
 
     return QueryResponseModel(
@@ -68,6 +69,7 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
         ],
         allow_count=resp.allow_count,
         deny_count=resp.deny_count,
-        viewer_privileged=privileged,
+        viewer_privileged=auditor,
+        viewer_can_export=exporter,
         audit_chain_head=resp.audit_chain_head,
     )

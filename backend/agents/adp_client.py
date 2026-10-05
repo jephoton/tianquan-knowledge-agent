@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import uuid
 
 import requests
+from requests.adapters import HTTPAdapter
 
 ADP_URL = "https://wss.lke.tencentcloud.com/adp/v2/chat"
 DEFAULT_TIMEOUT = 60
@@ -35,6 +37,40 @@ DEFAULT_TIMEOUT = 60
 def _uuid() -> str:
     """Return a UUID string (no dashes) that fits ADP's 32-64 char regex."""
     return uuid.uuid4().hex
+
+
+class _SSLContextAdapter(HTTPAdapter):
+    """requests adapter that uses a caller-supplied SSLContext."""
+
+    def __init__(self, ssl_context: ssl.SSLContext, **kwargs):
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = self._ssl_context
+        return super().init_poolmanager(*args, **kwargs)
+
+
+def _build_session() -> requests.Session:
+    """Return a requests Session that trusts the OS certificate store.
+
+    On networks that perform TLS interception (corporate proxy / VPN /
+    antivirus), the intercepting CA is installed in the operating system
+    trust store but NOT in certifi's bundle — which is why the default
+    requests call fails with CERTIFICATE_VERIFY_FAILED. `truststore` bridges
+    Python's TLS to the OS store, fixing that. Falls back to certifi, then
+    to the stock session, if truststore is unavailable.
+    """
+    session = requests.Session()
+    try:
+        import truststore
+        ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        session.mount("https://", _SSLContextAdapter(ctx))
+    except Exception:
+        # truststore not available — leave the default (certifi) session.
+        # The orchestrator still falls back to the stub if the call fails.
+        pass
+    return session
 
 
 class ADPClient:
@@ -60,6 +96,7 @@ class ADPClient:
         self._timeout = timeout
         self._visitor_id = visitor_id
         self._conversation_id = _uuid()
+        self._session = _build_session()
 
         if not self._app_key:
             raise RuntimeError(
@@ -89,7 +126,7 @@ class ADPClient:
             "Stream": "enable",
         }
 
-        resp = requests.post(
+        resp = self._session.post(
             ADP_URL,
             headers=headers,
             json=payload,

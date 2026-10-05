@@ -10,11 +10,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from backend.api.deps import require_privileged
+from backend.api.deps import require_permission
 
-# Uploading/listing documents is an operator action — privileged only.
+# Uploading/listing documents requires manage_permissions (admin only).
 router = APIRouter(prefix="/upload", tags=["upload"],
-                   dependencies=[Depends(require_privileged)])
+                   dependencies=[Depends(require_permission("manage_permissions"))])
 
 
 class UploadDocument(BaseModel):

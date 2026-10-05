@@ -9,14 +9,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.api.deps import require_privileged
+from backend.api.deps import require_permission
 from backend.api.schemas import AuditEventModel, AuditQueryResponseModel
 from backend.audit.audit_query import AuditQuery
 
 
-# All audit routes require a privileged acting user (403 otherwise).
+# All audit routes require audit_query (compliance_officer, security_team,
+# admin; 403 otherwise).
 router = APIRouter(prefix="/audit", tags=["audit"],
-                   dependencies=[Depends(require_privileged)])
+                   dependencies=[Depends(require_permission("audit_query"))])
 
 
 def _event_model(event) -> AuditEventModel:

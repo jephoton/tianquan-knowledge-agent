@@ -14,10 +14,17 @@ from __future__ import annotations
 
 from fastapi import Header, HTTPException, Request
 
-from backend.auth.roles import is_privileged
+from backend.auth.roles import has_permission
 from backend.models import User
 
 ACTING_USER_HEADER = "X-User-Id"
+
+# Human-readable labels for permission-denied messages.
+_PERM_LABELS = {
+    "audit_query": "audit access",
+    "manage_permissions": "permission management",
+    "export": "export",
+}
 
 
 def resolve_user(request: Request, x_user_id: str | None) -> User:
@@ -33,21 +40,27 @@ def resolve_user(request: Request, x_user_id: str | None) -> User:
     return user
 
 
-def require_privileged(
-    request: Request,
-    x_user_id: str | None = Header(default=None, alias=ACTING_USER_HEADER),
-) -> User:
-    """FastAPI dependency: 403 unless the acting user is privileged.
+def require_permission(permission: str):
+    """Build a FastAPI dependency that 403s unless the caller holds `permission`.
 
-    Use on admin/audit routes. Returns the User when authorized.
+    Enforcement is server-side: the frontend reflects it but does not define
+    it, so hitting the endpoint directly (bypassing the UI) is still refused.
     """
-    user = resolve_user(request, x_user_id)
-    if not is_privileged(user.roles):
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                f"persona '{user.user_id}' ({', '.join(user.roles)}) lacks "
-                "admin/audit access (requires manage_permissions or audit_query)"
-            ),
-        )
-    return user
+    label = _PERM_LABELS.get(permission, permission)
+
+    def _dep(
+        request: Request,
+        x_user_id: str | None = Header(default=None, alias=ACTING_USER_HEADER),
+    ) -> User:
+        user = resolve_user(request, x_user_id)
+        if not has_permission(user.roles, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"persona '{user.user_id}' ({', '.join(user.roles)}) "
+                    f"lacks {label} (requires '{permission}')"
+                ),
+            )
+        return user
+
+    return _dep

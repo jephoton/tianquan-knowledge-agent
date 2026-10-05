@@ -10,14 +10,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.api.deps import require_privileged
+from backend.api.deps import require_permission
 from backend.api.schemas import ACLChangeModel, RevokeGrantRequest
 from backend.policy.admin import ResourceNotFound
 
 
-# All admin routes require a privileged acting user (403 otherwise).
+# Revoke/grant require manage_permissions (admin only; 403 otherwise).
 router = APIRouter(prefix="/admin", tags=["admin"],
-                   dependencies=[Depends(require_privileged)])
+                   dependencies=[Depends(require_permission("manage_permissions"))])
 
 
 def _apply(admin, action: str, req: RevokeGrantRequest):

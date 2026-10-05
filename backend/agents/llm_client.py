@@ -33,31 +33,54 @@ class LLMClient(Protocol):
 class StubLLMClient:
     """Deterministic, offline stub for tests and development.
 
-    Produces a grounded, citation-bearing answer by echoing the citation
-    markers present in the prompt's context. It never introduces content
-    beyond what the prompt contains, which lets tests assert grounding and
-    citation properties deterministically.
+    Produces a grounded answer by extractive summarization: it pulls the
+    most informative sentences from the authorized context blocks and
+    stitches them into a cited summary. Because the output is composed of
+    real context sentences (each tagged with its citation marker), it
+    survives the grounding check (INV8) and reads like a genuine answer
+    rather than templated filler — while never introducing content beyond
+    the context it was given.
     """
 
     def generate(self, prompt: str) -> str:
-        # The prompt embeds context blocks headed by markers like "[1] ...".
-        # The stub "answers" by acknowledging the cited sources it was given.
         import re
 
-        markers = re.findall(r"\[\d+\]", prompt)
-        # Preserve order, drop duplicates.
-        seen: list[str] = []
-        for m in markers:
-            if m not in seen:
-                seen.append(m)
+        # The prompt has a "# Context" section with blocks headed by markers
+        # like "[1] source:id — Title" followed by body lines.
+        context = prompt.split("# Context", 1)[-1]
 
-        if not seen:
-            # No context was provided — the agent layer handles the no-leak
-            # message, but if the stub is called directly we stay neutral.
-            return "No sources were provided."
+        # Split into citation blocks keyed by marker.
+        blocks = re.split(r"(?=\[\d+\]\s)", context)
+        summary_parts: list[str] = []
+        for block in blocks:
+            m = re.match(r"(\[\d+\])", block.strip())
+            if not m:
+                continue
+            marker = m.group(1)
+            # Take the first substantive sentence from the block body.
+            body = block[m.end():]
+            # Drop the "source:id — Title" header line.
+            lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
+            body_lines = lines[1:] if len(lines) > 1 else lines
+            sentence = _first_sentence(" ".join(body_lines))
+            if sentence:
+                summary_parts.append(f"{sentence} {marker}")
 
-        cites = " ".join(seen)
-        return (
-            "Based on the available sources, here is a grounded summary "
-            f"drawing on {cites}."
-        )
+        if not summary_parts:
+            return ""  # agent layer handles empty/no-access
+
+        return " ".join(summary_parts)
+
+
+def _first_sentence(text: str, max_len: int = 220) -> str:
+    """Return the first sentence of `text`, trimmed to a sane length."""
+    text = text.strip()
+    if not text:
+        return ""
+    # Split on sentence terminators; fall back to the whole string.
+    import re
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    sentence = parts[0].strip() if parts else text
+    if len(sentence) > max_len:
+        sentence = sentence[:max_len].rsplit(" ", 1)[0] + "…"
+    return sentence

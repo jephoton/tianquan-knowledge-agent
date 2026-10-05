@@ -52,12 +52,17 @@ def create_app() -> FastAPI:
         admin/audit surfaces — the same check the server enforces, surfaced
         so the UI can reflect (not define) the boundary.
         """
-        from backend.auth.roles import is_privileged
+        from backend.auth.roles import (
+            is_privileged, can_audit, can_manage, can_export,
+        )
         store = app.state.tianquan.identity
         return [
             {"user_id": u.user_id, "name": u.name, "roles": u.roles,
              "department": u.department, "is_contractor": u.is_contractor,
-             "privileged": is_privileged(u.roles)}
+             "privileged": is_privileged(u.roles),
+             "can_audit": can_audit(u.roles),
+             "can_manage": can_manage(u.roles),
+             "can_export": can_export(u.roles)}
             for u in store.all_users().values()
         ]
 

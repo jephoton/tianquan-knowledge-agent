@@ -6,6 +6,7 @@ fastapi==0.135.1
 uvicorn==0.41.0
 requests==2.32.5        # used by ADPClient for Tencent Cloud ADP Chat API
 python-dotenv==1.1.0    # loads .env for ADP_APP_KEY (gitignored)
+truststore==0.10.4      # OS cert store for ADP TLS on intercepted networks
 
 # -- Testing ----------------------------------------
 pytest==9.0.2

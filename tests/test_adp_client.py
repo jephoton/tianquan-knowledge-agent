@@ -58,7 +58,7 @@ def test_adp_client_generate_accumulates_text_delta_events():
     ]
     fake_resp = _FakeSSEResponse(sse_lines)
 
-    with patch("backend.agents.adp_client.requests.post", return_value=fake_resp):
+    with patch.object(client._session, "post", return_value=fake_resp):
         result = client.generate("Summarize the migration plan.")
 
     assert result == "Based on the available sources, here is the answer."
@@ -73,7 +73,7 @@ def test_adp_client_generate_handles_text_replace_events():
     ]
     fake_resp = _FakeSSEResponse(sse_lines)
 
-    with patch("backend.agents.adp_client.requests.post", return_value=fake_resp):
+    with patch.object(client._session, "post", return_value=fake_resp):
         result = client.generate("What is the DB migration plan?")
 
     assert result == "Replacement answer."
@@ -85,7 +85,7 @@ def test_adp_client_generate_handles_empty_response():
 
     fake_resp = _FakeSSEResponse([])
 
-    with patch("backend.agents.adp_client.requests.post", return_value=fake_resp):
+    with patch.object(client._session, "post", return_value=fake_resp):
         result = client.generate("What is the DB migration plan?")
 
     assert "No response" in result
@@ -99,7 +99,7 @@ def test_adp_client_generate_sends_official_payload():
         'data: {"Type": "text.delta", "Text": "ok"}',
     ])
 
-    with patch("backend.agents.adp_client.requests.post", return_value=fake_resp) as mock_post:
+    with patch.object(client._session, "post", return_value=fake_resp) as mock_post:
         client.generate("test prompt")
 
     call_args = mock_post.call_args

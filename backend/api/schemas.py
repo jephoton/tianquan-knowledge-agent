@@ -45,6 +45,7 @@ class QueryResponseModel(BaseModel):
     allow_count: int
     deny_count: int
     viewer_privileged: bool = False
+    viewer_can_export: bool = False
     audit_chain_head: str
 
 
