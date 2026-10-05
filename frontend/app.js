@@ -7,21 +7,23 @@
 const API_BASE = "http://localhost:8000";
 
 // Minimum artificial delay (ms) so denied/no-access queries don't appear instant.
-const MIN_QUERY_DELAY = 1200;
+const MIN_QUERY_DELAY = 400;
 
 // -- tiny helpers ------------------------------------------------------
 
 const $ = (id) => document.getElementById(id);
 
 async function api(path, opts = {}) {
-  const res = await fetch(API_BASE + path, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  // Attach the acting identity so the server can authorize privileged routes.
+  if (state.currentUser) headers["X-User-Id"] = state.currentUser;
+  const res = await fetch(API_BASE + path, { ...opts, headers });
   if (!res.ok) {
     let detail = res.statusText;
     try { detail = (await res.json()).detail || detail; } catch (_) {}
-    throw new Error(detail);
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
   }
   return res.json();
 }
@@ -58,6 +60,7 @@ function sourceIcon(source) {
 const state = {
   currentUser: null,
   currentRole: null,
+  currentPrivileged: false,
   lastQuery: null,
   lastDecisions: [],
 };
@@ -77,21 +80,24 @@ async function loadPersonas() {
     opt.dataset.userId = u.user_id;
     opt.dataset.role = u.roles[0] || "user";
     opt.dataset.name = u.name;
+    opt.dataset.privileged = u.privileged ? "1" : "";
+    const lock = u.privileged ? ` <span style="color:#ffb000;font-size:9px;">◆</span>` : "";
     opt.innerHTML =
-      `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span></span>` +
+      `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span>${lock}</span>` +
       `<span class="role-tag">${esc(u.roles[0] || "user")}</span>`;
     opt.onclick = () => {
-      selectPersona(u.user_id, u.roles[0] || "user", u.name);
+      selectPersona(u.user_id, u.roles[0] || "user", u.name, u.privileged);
       closePersonaMenu();
     };
     menu.appendChild(opt);
-    if (i === 0) selectPersona(u.user_id, u.roles[0] || "user", u.name);
+    if (i === 0) selectPersona(u.user_id, u.roles[0] || "user", u.name, u.privileged);
   });
 }
 
-function selectPersona(userId, role, name) {
+function selectPersona(userId, role, name, privileged) {
   state.currentUser = userId;
   state.currentRole = role;
+  state.currentPrivileged = !!privileged;
   document.querySelectorAll(".persona-option").forEach((c) => c.classList.remove("active"));
   document.querySelectorAll(".persona-option").forEach((c) => {
     if (c.dataset.userId === userId) c.classList.add("active");
@@ -99,6 +105,26 @@ function selectPersona(userId, role, name) {
   $("current-user").textContent = `${name} [${role}]`;
   const qp = $("query-persona");
   if (qp) qp.textContent = `${name} · ${role}`;
+  applyAdminGate();
+}
+
+// Show/lock the Admin tab based on the current persona's privilege.
+function applyAdminGate() {
+  const locked = $("admin-locked");
+  const content = $("admin-content");
+  if (!locked || !content) return;
+  if (state.currentPrivileged) {
+    locked.style.display = "none";
+    content.style.display = "flex";
+    refreshAudit().catch(() => {});
+  } else {
+    content.style.display = "none";
+    locked.style.display = "block";
+    $("admin-lock-msg").textContent =
+      `persona '${state.currentUser}' (${state.currentRole}) has no admin access. ` +
+      `Admin and audit surfaces require manage_permissions or audit_query. ` +
+      `Switch to Diana (compliance) or Frank (admin).`;
+  }
 }
 
 function togglePersonaMenu() {
@@ -120,7 +146,7 @@ async function runQuery(question) {
 
   const ans = $("answer-text");
   ans.className = "phosphor-text answer-processing";
-  ans.textContent = "> processing...";
+  ans.innerHTML = `<span class="spinner"></span>processing query through permission filter...`;
   $("answer-citations").innerHTML = "";
 
   const askBtn = $("ask-btn");
@@ -194,8 +220,13 @@ function renderAnswer(r) {
 function renderInspector(r) {
   const decisions = r.decisions || [];
   state.lastDecisions = decisions;
-  const allowed = decisions.filter((d) => d.result === "allow").length;
-  const denied = decisions.filter((d) => d.result === "deny").length;
+  // The inspector is an operator surface. For non-privileged viewers the
+  // server sends no DENY details and the Admin tab is locked, so there is
+  // nothing to render here. Use the aggregate counts (which name no resource).
+  const allowed = r.allow_count != null ? r.allow_count
+    : decisions.filter((d) => d.result === "allow").length;
+  const denied = r.deny_count != null ? r.deny_count
+    : decisions.filter((d) => d.result === "deny").length;
   $("inspector-summary").innerHTML =
     `<span style="color:#3a8a5a;">${allowed} ALLOW</span> · ` +
     `<span style="color:#c47a7a;">${denied} DENY</span>`;
@@ -371,8 +402,7 @@ async function boot() {
   try {
     await api("/health");
     $("footer-status").textContent = "api: connected";
-    await loadPersonas();
-    // Populate audit filter user dropdown.
+    // Populate audit filter user dropdown (meta call, no auth needed).
     const users = await api("/users");
     const sel = $("f-user");
     users.forEach((u) => {
@@ -381,7 +411,9 @@ async function boot() {
       opt.textContent = `${u.name} (${u.user_id})`;
       sel.appendChild(opt);
     });
-    await refreshAudit();
+    // loadPersonas selects the first persona, which runs applyAdminGate ->
+    // refreshAudit only if that persona is privileged (avoids a boot 403).
+    await loadPersonas();
   } catch (e) {
     $("footer-status").textContent = "api: offline — start `python -m uvicorn backend.api.app:app`";
     $("footer-status").style.color = "#c47a7a";
@@ -436,6 +468,7 @@ function switchTab(tabId, btn) {
   else btn = document.querySelector(`[data-tab="${tabId}"]`);
   if (btn) btn.classList.add("active");
   $("tab-" + tabId).classList.add("active");
+  if (tabId === "admin") applyAdminGate();
 }
 
 boot();

@@ -247,7 +247,20 @@
 
   /* Answer states */
   .answer-processing { color: #b8ad98 !important; opacity: 0.85; }
-  .answer-complete { color: #e8dcc8 !important; opacity: 1; }
+  .answer-complete { color: #f0e6d2 !important; opacity: 1; }
+
+  /* Processing spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,176,0,0.25);
+    border-top-color: #ffb000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: -2px;
+    margin-right: 8px;
+  }
 
   /* Citation cards */
   .citation-card {
@@ -439,7 +452,20 @@
   </div><!-- /#tab-query -->
 
   <!-- ====== ADMIN TAB ====== -->
-  <div id="tab-admin" class="tab-panel flex flex-col gap-8">
+  <div id="tab-admin" class="tab-panel">
+
+  <!-- Locked state (non-privileged personas) -->
+  <div id="admin-locked" class="crt-card" style="display:none;padding:48px;text-align:center;">
+    <div style="font-size:40px;color:#8a3a3a;margin-bottom:16px;">&#128274;</div>
+    <div style="font-size:18px;color:#c47a7a;letter-spacing:0.05em;margin-bottom:12px;">ADMIN ACCESS REQUIRED</div>
+    <div id="admin-lock-msg" style="font-size:13px;color:#b8ad98;line-height:1.7;max-width:520px;margin:0 auto;">
+      This persona has no admin access.
+    </div>
+    <div style="margin-top:16px;font-size:11px;color:#9a8e78;">server-enforced &middot; the API returns 403 for non-privileged callers</div>
+  </div>
+
+  <!-- Privileged content -->
+  <div id="admin-content" class="flex flex-col gap-8">
 
   <!-- STATS ROW -->
   <div class="grid grid-cols-4 gap-4">
@@ -529,73 +555,79 @@
     </div>
   </section>
 
-  <!-- REVOCATION CONTROLS -->
-  <section class="crt-card p-6">
-    <div class="section-label mb-4">revocation controls</div>
-    <div class="grid grid-cols-4 gap-4 items-end">
-      <div>
-        <div class="section-label mb-2">resource_id</div>
-        <input id="rev-resource" type="text" class="crt-input" placeholder="confluence:db-migration-plan" />
-      </div>
-      <div>
-        <div class="section-label mb-2">subject</div>
-        <input id="rev-subject" type="text" class="crt-input" placeholder="engineer or alice" />
-      </div>
-      <div>
-        <div class="section-label mb-2">subject kind</div>
-        <select id="rev-kind" class="crt-select">
-          <option value="role">role</option>
-          <option value="user">user</option>
-        </select>
-      </div>
-      <div class="flex gap-3">
-        <button id="revoke-btn" class="outline-btn" style="flex:1;">Revoke</button>
-        <button id="grant-btn" class="outline-btn" style="flex:1;">Grant</button>
-      </div>
-    </div>
-    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-      <div id="rev-status" style="font-size:12px;color:#9a8e78;">
-        no revocations this session
-      </div>
-    </div>
-  </section>
+  <!-- OPERATOR ACTIONS: revocation + upload side by side -->
+  <div class="grid grid-cols-2 gap-6">
 
-  <!-- UPLOAD CONNECTOR -->
-  <section class="crt-card p-6">
-    <div class="section-label mb-4">document upload <span style="color:#9a8e78;font-weight:400;">— real-time ingestion</span></div>
-    <div class="grid grid-cols-2 gap-6">
-      <div class="flex flex-col gap-4">
+    <!-- REVOCATION CONTROLS -->
+    <section class="crt-card p-6 flex flex-col">
+      <div class="section-label mb-4">revocation controls <span style="color:#9a8e78;font-weight:400;">— Demo 3</span></div>
+      <div class="flex flex-col gap-4 flex-1">
         <div>
           <div class="section-label mb-2">resource_id</div>
-          <input id="up-resource" type="text" class="crt-input" placeholder="upload:incident-report-9" />
+          <input id="rev-resource" type="text" class="crt-input" placeholder="confluence:db-migration-plan" />
         </div>
-        <div>
-          <div class="section-label mb-2">title</div>
-          <input id="up-title" type="text" class="crt-input" placeholder="Q4 Incident Report" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="section-label mb-2">subject</div>
+            <input id="rev-subject" type="text" class="crt-input" placeholder="engineer or alice" />
+          </div>
+          <div>
+            <div class="section-label mb-2">subject kind</div>
+            <select id="rev-kind" class="crt-select">
+              <option value="role">role</option>
+              <option value="user">user</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button id="revoke-btn" class="outline-btn" style="flex:1;">Revoke</button>
+          <button id="grant-btn" class="outline-btn" style="flex:1;">Grant</button>
+        </div>
+      </div>
+      <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+        <div id="rev-status" style="font-size:12px;color:#9a8e78;">
+          no revocations this session
+        </div>
+      </div>
+    </section>
+
+    <!-- UPLOAD CONNECTOR -->
+    <section class="crt-card p-6 flex flex-col">
+      <div class="section-label mb-4">document upload <span style="color:#9a8e78;font-weight:400;">— Demo 7, real-time ingestion</span></div>
+      <div class="flex flex-col gap-4 flex-1">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="section-label mb-2">resource_id</div>
+            <input id="up-resource" type="text" class="crt-input" placeholder="upload:incident-report-9" />
+          </div>
+          <div>
+            <div class="section-label mb-2">title</div>
+            <input id="up-title" type="text" class="crt-input" placeholder="Q4 Incident Report" />
+          </div>
         </div>
         <div>
           <div class="section-label mb-2">allowed roles (blank = default)</div>
           <input id="up-roles" type="text" class="crt-input" placeholder="admin, engineer, security_team" />
         </div>
-      </div>
-      <div class="flex flex-col gap-4">
         <div>
           <div class="section-label mb-2">content</div>
-          <textarea id="up-content" rows="5" class="crt-input" style="resize:vertical;min-height:100px;" placeholder="Paste document text here..."></textarea>
+          <textarea id="up-content" rows="3" class="crt-input" style="resize:vertical;min-height:72px;" placeholder="Paste document text here..."></textarea>
         </div>
         <div class="flex gap-3">
           <button id="upload-btn" class="outline-btn" style="flex:1;">Upload &amp; Index</button>
           <button id="upload-list-btn" class="outline-btn" style="flex:1;">List Documents</button>
         </div>
       </div>
-    </div>
-    <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
-      <div id="upload-status" style="font-size:12px;color:#9a8e78;">
-        no documents uploaded this session
+      <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
+        <div id="upload-status" style="font-size:12px;color:#9a8e78;">
+          no documents uploaded this session
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
+  </div>
+
+  </div><!-- /#admin-content -->
   </div><!-- /#tab-admin -->
 
   <!-- FOOTER -->
