@@ -182,9 +182,15 @@ async function runQuery(question) {
       body: JSON.stringify({ user_id: state.currentUser, question, k: 20 }),
     });
 
-    const elapsed = Date.now() - startTime;
-    if (elapsed < MIN_QUERY_DELAY) {
-      await new Promise((r2) => setTimeout(r2, MIN_QUERY_DELAY - elapsed));
+    // Only pad the delay when there's nothing to show (no_access / empty) so
+    // a denial doesn't flash instantly. When there's real content, show it
+    // immediately — no artificial wait.
+    const hasContent = !r.no_access && r.citations && r.citations.length > 0;
+    if (!hasContent) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < MIN_QUERY_DELAY) {
+        await new Promise((r2) => setTimeout(r2, MIN_QUERY_DELAY - elapsed));
+      }
     }
 
     renderAnswer(r);
@@ -407,6 +413,10 @@ async function adminChange(kind) {
     toast(msg);
     $("rev-status").textContent = "last change: " + msg;
     await refreshAudit();
+    // Re-run the last query so the effect is immediately visible (Demo 3).
+    // The query re-runs as the acting query persona, not the admin — the
+    // whole point is to show the change reflected for the affected user.
+    if (state.lastQuery) await runQuery(state.lastQuery);
   } catch (e) { toast(e.message, true); }
 }
 
