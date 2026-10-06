@@ -34,12 +34,14 @@ extractive grounded answers, per-user export flags.
 > passing under random ordering.
 
 > **Later UI tweaks:** min-delay now applies only when there's no result
-> (instant display when content exists); revoke/grant auto-re-runs the last
-> query so the ACL change is immediately visible. Note on revoke semantics: a
-> **role** revoke leaves explicit `allowed_users` grants intact (access can
-> remain via another path) — a **user** revoke uses the deny-list and is
-> definitive. This is correct but can look like a no-op; demo with user-revoke
-> for the clearest effect.
+> (instant display when content exists). An access-control change does NOT
+> auto-re-run any query — admin changes and user queries are separate actions
+> by separate actors; the effect is seen on the affected user's next query, as
+> in production. Note on revoke semantics: a **role** revoke leaves explicit
+> `allowed_users` grants intact (access can remain via another path) — a
+> **user** revoke uses the deny-list and is definitive. This is correct but can
+> look like a no-op; demo with user-revoke (and re-query manually) for the
+> clearest effect.
 
 Panel → permission mapping:
 | Panel | Permission | contractor/engineer/senior_engineer/finance_analyst | security_team/compliance_officer | admin |

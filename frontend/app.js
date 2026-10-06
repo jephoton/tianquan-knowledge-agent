@@ -413,10 +413,9 @@ async function adminChange(kind) {
     toast(msg);
     $("rev-status").textContent = "last change: " + msg;
     await refreshAudit();
-    // Re-run the last query so the effect is immediately visible (Demo 3).
-    // The query re-runs as the acting query persona, not the admin — the
-    // whole point is to show the change reflected for the affected user.
-    if (state.lastQuery) await runQuery(state.lastQuery);
+    // No auto re-run: an access-control change and a user's query are
+    // separate actions by separate actors. The effect is observed on the
+    // NEXT query the affected user makes — as it would be in production.
   } catch (e) { toast(e.message, true); }
 }
 
