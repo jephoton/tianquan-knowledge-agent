@@ -26,11 +26,20 @@ Frontend:
 212 tests pass (`-p no:randomly`). Live-validated: per-permission 401/403/200,
 extractive grounded answers, per-user export flags.
 
-> **Known follow-up (pre-existing, not from this batch):** test isolation —
-> `pytest-randomly` ordering can surface shared seed-ACL state across tests
-> (`test_grant_restores_access` fails only under certain random orders; passes
-> in isolation and with `-p no:randomly`). Fix: give each test fresh connector
-> instances / deep-copied seed data.
+> **Resolved:** the earlier test-isolation flakiness
+> (`test_grant_restores_access` failing under some orderings) was NOT shared
+> ACL state — it was every `/query` attempting the live ADP call then falling
+> back (slow + order-sensitive). Fixed with `tests/conftest.py` forcing the
+> stub LLM (`ADP_APP_KEY=""`). Suite now runs deterministically in ~2s, 212
+> passing under random ordering.
+
+> **Later UI tweaks:** min-delay now applies only when there's no result
+> (instant display when content exists); revoke/grant auto-re-runs the last
+> query so the ACL change is immediately visible. Note on revoke semantics: a
+> **role** revoke leaves explicit `allowed_users` grants intact (access can
+> remain via another path) — a **user** revoke uses the deny-list and is
+> definitive. This is correct but can look like a no-op; demo with user-revoke
+> for the clearest effect.
 
 Panel → permission mapping:
 | Panel | Permission | contractor/engineer/senior_engineer/finance_analyst | security_team/compliance_officer | admin |
