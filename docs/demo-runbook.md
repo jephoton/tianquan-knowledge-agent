@@ -164,28 +164,39 @@ and it hands you the exact exploit trace."
 
 ---
 
-## Demo 6 — Tamper-evident audit chain
+## Demo 6 — Tamper-evident audit log (real file edit)
 
-**Point:** the audit trail is not just append-only — it's hash-chained, so
-modifying a past event is detectable.
+**Point:** the audit trail is hash-chained and persisted to a real file on
+disk. An insider editing that file to cover their tracks is detectable — we
+don't trust memory, we re-hash the file itself.
 
-1. Run a couple of queries first (Demos 1–2 populate the chain).
-2. In the **Audit Explorer** (Admin tab), click **verify chain**.
-   **Expected:** badge shows **[CHAIN VERIFIED]**, toast reads "chain verified
-   (N blocks)".
-3. Click **tamper chain** (red button).
-   **Expected:** a toast reads "tampered: Event #0 field 'resource_id'
-   modified."
-4. Click **verify chain** again.
-   **Expected:** badge turns red **[CHAIN TAMPERED]**, toast reads "TAMPERED
-   at #0: hash_mismatch".
+**Setup:** the backend writes every decision to `audit_log.json` in the repo
+root as it happens. Run a couple of queries first (Demos 1–2 populate it).
 
-**Talking point:** "Each audit event's hash includes the previous event's hash —
-like a blockchain. Tamper with any past decision and the entire chain from that
-point fails verification. This is what makes the audit trail legally
-defensible."
+1. As **frank** (admin) or **diana** (compliance), in the **Audit Explorer**
+   click **verify log file**.
+   **Expected:** badge **[CHAIN VERIFIED]**, toast "log file verified — chain
+   intact".
+2. **The attack — do it live:** open `audit_log.json` in your editor. Find a
+   `"decision": "deny"` event and change it to `"allow"` (an insider hiding
+   that they were denied access). Save the file.
+3. Click **verify log file** again.
+   **Expected:** badge turns red **[CHAIN TAMPERED]**, toast "LOG FILE TAMPERED
+   at event #N: tampered_event_at_N:hash_mismatch".
 
-> **Reset:** restart the backend to restore an untampered chain.
+**Talking point:** "Every decision is written to disk, and each event's hash
+includes the previous event's hash — a blockchain over the audit log. Watch: I'll
+play a malicious admin and edit the log file directly to turn a DENY into an
+ALLOW. Re-verify — and it's caught at the exact event, because the recomputed
+hash no longer matches. You cannot quietly rewrite history. That's what makes
+this legally defensible for a regulator."
+
+> This re-reads and re-hashes the actual file (`/audit/verify-file`), so the
+> edit is caught no matter how it was made. **Reset:** restart the backend (or
+> delete `audit_log.json`) to start a fresh clean log.
+>
+> There is also an in-memory **verify (memory)** button for a quick check that
+> doesn't involve the file.
 
 ---
 
