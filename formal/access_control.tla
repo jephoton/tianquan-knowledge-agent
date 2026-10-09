@@ -115,22 +115,37 @@ Decide ==
 (***************************************************************************)
 (* Retrieve into context — the safety-critical step.                       *)
 (*                                                                         *)
-(* SAFE (BROKEN = FALSE): a candidate enters the context only if the asker *)
-(*   is authorized per the LIVE acl AT RETRIEVAL TIME. This re-check (not  *)
-(*   trusting the decide-time snapshot) is what defeats the revocation     *)
-(*   race — it mirrors the real permission filter re-fetching live ACLs.   *)
+(* A candidate enters the LLM context ONLY if the asker is authorized per  *)
+(* the LIVE acl AT RETRIEVAL TIME (`AdmitToContext`). This re-check is the  *)
+(* heart of the system — it mirrors the real permission filter re-fetching *)
+(* live ACLs, and it is what defeats the revocation race.                  *)
 (*                                                                         *)
-(* BROKEN (BROKEN = TRUE): the naive implementation. It trusts the         *)
-(*   decide-time `decisions` snapshot and never re-checks. Under           *)
-(*   revoke-after-decide this leaks a now-unauthorized resource into the   *)
-(*   context — the time-of-check/time-of-use bug. TLC exhibits the exact   *)
-(*   interleaving as a counterexample to INV1/INV2/INV3.                   *)
+(* ================== THE LIVE DEMO EDIT ==================                 *)
+(* `AdmitToContext` is defined on ONE line below. In the demo, change the  *)
+(* correct definition to the "obvious optimization" a real engineer would  *)
+(* reach for — trust the decision we already made instead of re-checking:  *)
+(*                                                                         *)
+(*     correct:    AdmitToContext(r) == LiveAllowed(r)                      *)
+(*     optimized:  AdmitToContext(r) == decisions[r] = "allow"             *)
+(*                                                                         *)
+(* The "optimized" version looks faster and perfectly reasonable — we      *)
+(* already decided, why check again? Re-run TLC and it proves that under   *)
+(* revoke-after-decide it leaks a now-unauthorized resource into context   *)
+(* (INV1/INV2/INV3 violated), with the exact interleaving as evidence.     *)
+(* That is a bug discovered, not a flag flipped.                           *)
+(*                                                                         *)
+(* (The BROKEN constant selects the same two definitions for the automated *)
+(*  MC_safe / MC_broken regression harnesses; the live demo edits the line *)
+(*  directly so judges watch a plausible change become provably unsafe.)   *)
 (***************************************************************************)
+AdmitToContext(r) ==
+    IF BROKEN
+        THEN decisions[r] = "allow"   \* naive: trust the decide-time snapshot
+        ELSE LiveAllowed(r)           \* correct: re-check the live ACL
+
 Retrieve ==
     /\ phase = "decided"
-    /\ context' = IF BROKEN
-                    THEN { r \in candidates : decisions[r] = "allow" }
-                    ELSE { r \in candidates : LiveAllowed(r) }
+    /\ context' = { r \in candidates : AdmitToContext(r) }
     /\ phase' = "retrieved"
     /\ UNCHANGED << acl, revoked, candidates, decisions, citations, audit >>
 

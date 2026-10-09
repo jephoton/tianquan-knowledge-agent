@@ -82,18 +82,23 @@ Transition: *"Permissions aren't static, though —"*
 ## 4. The payoff: we didn't test it, we proved it (Demo 5) — 60s
 
 > "Everything so far, you could demo. Here's what you can't fake." Open the
-> terminal, run TLC on the spec → **no error, all invariants hold**.
+> terminal, run TLC on the spec → **no error, all invariants hold.**
 
-> "This model-checks every possible ordering of the pipeline. Now watch — I'll
-> introduce the subtle bug." **Flip `BROKEN <- FALSE` to `TRUE`, re-run.**
+> "This model-checks every possible ordering of the pipeline. Now watch me make
+> the mistake a real engineer would make." In `access_control.tla`, edit the
+> real retrieval rule — change `ELSE LiveAllowed(r)` (re-check the live
+> permission) to `ELSE decisions[r] = "allow"` ("we already decided, why check
+> again?"). Save, re-run.
 
 > **"Invariant violated."** Read the trace aloud: "A document is authorized when
-> the policy runs. Then — before it's retrieved — the user is revoked. A naive
-> implementation trusts the earlier decision and serves it anyway. That's a race
-> condition. The model checker *found it for us* and handed us the exact
-> sequence. Tests check the cases you imagined; this checks the ones you
-> didn't. For a security control, that's the difference between 'probably safe'
-> and 'proven safe.'"
+> the policy runs. Then — before it's retrieved — the user is revoked. This
+> 'optimized' code trusts the earlier decision and serves it anyway. That's a
+> race condition. I didn't flip a switch labelled 'broken' — I made a change
+> that looks like a reasonable optimization, and the model checker proved it
+> leaks, with the exact sequence as evidence. Tests check the cases you
+> imagined; this checks the ones you didn't. For a security control that's the
+> difference between 'probably safe' and 'proven safe.'" Then `git checkout` the
+> file — green again.
 
 ---
 

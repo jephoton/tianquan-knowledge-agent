@@ -115,52 +115,86 @@ event and verification fails — the audit trail is tamper-evident."
 
 ---
 
-## Demo 5 — Formal verification (TLA+), live flip
+## Demo 5 — Formal verification (TLA+): break the real logic, watch it get caught
 
-**Point:** the access-control safety is model-checked, not just tested — and the
-checker finds a race condition unit tests would miss.
+**Point:** the safety is model-checked, not just tested. We don't flip a switch
+labelled "broken" — we make the kind of change a real engineer would make, in
+the real retrieval logic, and the model checker proves it introduces a leak and
+hands us the exact exploit trace.
 
-Run from the `formal/` directory (jar bundled with the TLA+ VS Code extension).
-Use the single demo harness `MC_tianquan.tla`.
+**The one line that matters** is `AdmitToContext(r)` in
+`formal/access_control.tla` — the rule deciding whether a candidate enters the
+LLM context. Correct version:
+
+```tla
+AdmitToContext(r) == ... ELSE LiveAllowed(r)    \* re-check the LIVE ACL at retrieval
+```
+
+**Setup — one time:**
 
 ```powershell
 cd formal
 $jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar" | Select-Object -First 1).FullName
-
-# STEP 1 — run as-is (BROKEN = FALSE). Expect: "No error has been found." (34 states)
-java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
-```
-
-**STEP 2 — the live edit (the demo moment):** open `MC_tianquan.tla`, find the
-line `BROKEN <- FALSE` near the bottom, change it to `BROKEN <- TRUE`, save.
-
-```powershell
-# STEP 3 — re-run the SAME command. Expect: "Invariant INV1 ... is violated." + trace.
-java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
 ```
 
 > Git Bash alt: `JAR="C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-2026.9.251644/out/tools/tla2tools.jar"`
-> then `java -cp "$JAR" tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla`.
-> Remember to flip `BROKEN` back to `FALSE` after the demo.
 
-**What the counterexample shows (read it aloud):**
+**STEP 1 — prove it's safe:**
 
-1. `acl: r1→{alice}` — alice may read r1. Search finds it.
-2. Decide → r1 = **allow** (correct at that instant).
-3. **Revoke fires — alice removed from r1 — after the decision, before retrieval.**
-4. The naive retrieve trusts the stale "allow" and puts r1 in the context →
-   **INV1 violated: alice's context now holds a resource she can no longer read.**
+```powershell
+java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
+# Expect: "Model checking completed. No error has been found." (34 states)
+```
 
-**Talking point:** "The permission check itself is simple. What's hard — and
-what we proved — is that *filtering correctly isn't enough*. If you trust the
-permission decision from a moment ago, a concurrent revocation leaks the content.
-You must re-check the live ACL at retrieval time. Unit tests check the cases you
-imagined; the model checker exhaustively found the race we didn't. One flag flip,
-and it hands you the exact exploit trace."
+**STEP 2 — the live edit. Two bugs you can inject (pick one, or escalate from A
+to B). Both are edits to real logic, not a flag.**
 
-> Fallback if a live run is risky: `MC_safe.*` and `MC_broken.*` are fixed
-> variants you can run without editing, and the counterexample trace above can
-> be shown as a slide.
+### Bug A — "I forgot to filter" (obvious, relatable)
+
+In `access_control.tla`, change the `Retrieve` action's context line:
+
+```tla
+\* from:
+context' = { r \in candidates : AdmitToContext(r) }
+\* to (an engineer who forgot the filter):
+context' = candidates
+```
+
+Re-run STEP 1's command. **Expect INV1 violated.** Trace: search over-fetches
+`r2` (a doc the asker can't see) → Decide marks it **deny** → but Retrieve admits
+*everything* → `r2` lands in the context. *"We didn't filter at all, and the
+checker caught the exact document that leaked."*
+
+### Bug B — "the clever optimization" (subtle, impressive — the revocation race)
+
+Revert Bug A, then change the `AdmitToContext` operator's `ELSE` line:
+
+```tla
+\* from (correct — re-check live ACL):
+ELSE LiveAllowed(r)
+\* to (a plausible optimization — "we already decided, why check again?"):
+ELSE decisions[r] = "allow"
+```
+
+Re-run. **Expect INV1 violated.** Trace (read it aloud):
+
+1. `acl: r1→{alice}` — alice may read r1. Search finds it; Decide → **allow**.
+2. **Revoke fires — alice removed from r1 — AFTER the decision, BEFORE retrieval.**
+3. Retrieve trusts the stale "allow" → r1 enters the context though alice can no
+   longer read it. **Time-of-check / time-of-use leak.**
+
+**Talking point:** "The permission check is simple. What's hard — and what we
+proved — is the *timing*. Bug A is the obvious one. Bug B is the one that scares
+me: the code *does* filter, it just trusts a decision from a moment ago, and a
+concurrent revocation slips through. That's a race no one thinks to unit-test.
+The model checker explores every interleaving, found it, and handed us the exact
+sequence. For a security control, that's the difference between 'probably safe'
+and 'proven safe'. Then I revert — and it's green again."
+
+> **Reset:** `git checkout formal/access_control.tla` restores the correct spec
+> instantly after the demo.
+> **Fallback:** `MC_safe.*` / `MC_broken.*` run the safe/broken variants without
+> editing, and the traces above can be shown as a slide if a live run is risky.
 
 ---
 

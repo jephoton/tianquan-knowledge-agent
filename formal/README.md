@@ -45,43 +45,42 @@ init --Search--> searched --Decide--> decided --Retrieve--> retrieved --Answer--
 | INV6 | `NoUnauthorizedCitation` | ✅ |
 | INV7 | `NoMetadataLeakOnDeny` | ✅ |
 
-## Live demo — flip one flag
+## Live demo — edit the real logic, not a flag
 
-The VS Code TLA+ extension can run these directly (right-click the `.tla`,
-"Check model with TLC"). From the CLI, using the jar bundled with the extension:
+The demo injects a bug the way an engineer actually would — editing the real
+retrieval rule — and TLC proves it leaks. (The `BROKEN` constant still exists so
+the `MC_safe`/`MC_broken` harnesses run automatically, but the *demo* edits real
+logic so judges watch a plausible change become provably unsafe.)
 
 ```powershell
 $jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar" | Select-Object -First 1).FullName
 
-# 1. Run as-is (BROKEN=FALSE) — expect: "No error has been found." (34 states)
+# 1. Prove safe — expect: "No error has been found." (34 states)
 java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
-
-# 2. LIVE: edit MC_tianquan.tla, change `BROKEN <- FALSE` to `BROKEN <- TRUE`, save.
-# 3. Re-run the same command — expect: "Invariant INV1 ... is violated." + trace.
 ```
 
-## The counterexample (the payoff)
+Then make ONE of these edits in `access_control.tla` and re-run the same command:
 
-When `BROKEN=TRUE`, TLC prints the exact unsafe interleaving — the revocation
-race:
+**Bug A — "forgot to filter" (obvious).** In `Retrieve`, change
+`context' = { r \in candidates : AdmitToContext(r) }` to `context' = candidates`.
+→ an over-fetched *denied* resource (r2) reaches the context. INV1 violated.
 
-1. `acl: r1→{alice}` — alice may read r1. Search finds it.
-2. `Decide` → r1 = **allow** (correct at that instant).
-3. **`Revoke` fires — alice removed from r1 (`r1→{}`) — still in `decided`,
-   before retrieval.**
-4. Naive `Retrieve` trusts the stale "allow" snapshot → **r1 enters the context
-   though alice is no longer authorized.** INV1 violated.
+**Bug B — "clever optimization" / the revocation race (subtle).** In
+`AdmitToContext`, change the `ELSE LiveAllowed(r)` line to
+`ELSE decisions[r] = "allow"`. → a resource authorized at Decide time but revoked
+before Retrieve is served from the stale decision. INV1 violated:
 
-The lesson, proven not just tested: filtering correctly is not enough — you
-must re-check the live ACL **at retrieval time**, because permissions can change
-between the decision and the read. Unit tests check the cases you imagined; the
-model checker exhaustively found the one you didn't.
+1. `acl: r1→{alice}` — alice may read r1. Search finds it; Decide → **allow**.
+2. **Revoke fires — alice removed from r1 — after the decision, before retrieval.**
+3. Retrieve trusts the stale "allow" → r1 enters the context though alice can no
+   longer read it. Time-of-check/time-of-use leak.
 
-Two bugs are demonstrable from this one spec:
-- **"forgot to filter"** — change safe `Retrieve` to admit all candidates →
-  obvious leak (the relatable bug).
-- **the revocation race** — the `BROKEN` flag above → subtle TOCTOU leak (the
-  impressive bug).
+Reset with `git checkout formal/access_control.tla`.
+
+The lesson, proven not just tested: filtering correctly is not enough — you must
+re-check the live ACL **at retrieval time**, because permissions can change
+between the decision and the read. Tests check the cases you imagined; the model
+checker exhaustively found the one you didn't.
 
 > TLC writes a `states/` dir and `*_TTrace_*` files on a run; these are
 > generated artifacts and are gitignored.
