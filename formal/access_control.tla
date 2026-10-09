@@ -70,12 +70,16 @@ Init ==
     /\ audit = {}
 
 (***************************************************************************)
-(* Revocation: at any time before the decision, remove the asker from some *)
-(* resource's ACL. Bumps nothing but the live ACL — the model abstracts    *)
-(* ACL versions as "the live acl set".                                     *)
+(* Revocation: at ANY point before content is retrieved into context, an   *)
+(* admin may remove the asker from a resource's ACL. Crucially this is      *)
+(* allowed through the "decided" phase too, so TLC explores the            *)
+(* time-of-check / time-of-use race: a resource authorized at Decide time  *)
+(* can be revoked before Retrieve runs. A correct system must re-check the  *)
+(* LIVE ACL at retrieval; a naive one that trusts the decide-time snapshot  *)
+(* leaks. This is the race unit tests cannot exhaustively cover.           *)
 (***************************************************************************)
 Revoke(r) ==
-    /\ phase \in {"init", "searched"}
+    /\ phase \in {"init", "searched", "decided"}
     /\ Asker \in acl[r]
     /\ acl' = [acl EXCEPT ![r] = acl[r] \ {Asker}]
     /\ revoked' = revoked \cup { <<Asker, r>> }
@@ -109,18 +113,24 @@ Decide ==
     /\ UNCHANGED << acl, revoked, candidates, context, citations >>
 
 (***************************************************************************)
-(* Retrieve into context.                                                  *)
+(* Retrieve into context — the safety-critical step.                       *)
 (*                                                                         *)
-(* SAFE (BROKEN = FALSE): only candidates decided "allow" enter context.   *)
-(* BROKEN (BROKEN = TRUE): all candidates enter context regardless of the  *)
-(*   decision — i.e. filtering happens after retrieval. This is the        *)
-(*   deliberately unsafe variant that violates INV2.                       *)
+(* SAFE (BROKEN = FALSE): a candidate enters the context only if the asker *)
+(*   is authorized per the LIVE acl AT RETRIEVAL TIME. This re-check (not  *)
+(*   trusting the decide-time snapshot) is what defeats the revocation     *)
+(*   race — it mirrors the real permission filter re-fetching live ACLs.   *)
+(*                                                                         *)
+(* BROKEN (BROKEN = TRUE): the naive implementation. It trusts the         *)
+(*   decide-time `decisions` snapshot and never re-checks. Under           *)
+(*   revoke-after-decide this leaks a now-unauthorized resource into the   *)
+(*   context — the time-of-check/time-of-use bug. TLC exhibits the exact   *)
+(*   interleaving as a counterexample to INV1/INV2/INV3.                   *)
 (***************************************************************************)
 Retrieve ==
     /\ phase = "decided"
     /\ context' = IF BROKEN
-                    THEN candidates
-                    ELSE { r \in candidates : decisions[r] = "allow" }
+                    THEN { r \in candidates : decisions[r] = "allow" }
+                    ELSE { r \in candidates : LiveAllowed(r) }
     /\ phase' = "retrieved"
     /\ UNCHANGED << acl, revoked, candidates, decisions, citations, audit >>
 

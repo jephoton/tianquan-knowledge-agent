@@ -115,52 +115,52 @@ event and verification fails — the audit trail is tamper-evident."
 
 ---
 
-## Demo 5 — Formal verification (TLA+)
+## Demo 5 — Formal verification (TLA+), live flip
 
-**Point:** the access-control safety is model-checked, not just implemented.
+**Point:** the access-control safety is model-checked, not just tested — and the
+checker finds a race condition unit tests would miss.
 
 Run from the `formal/` directory (jar bundled with the TLA+ VS Code extension).
-
-**Option A — PowerShell (recommended):**
+Use the single demo harness `MC_tianquan.tla`.
 
 ```powershell
 cd formal
-$jar = "C:\Users\Jethro\.vscode\extensions\tlaplus.vscode-ide-2026.9.251644\out\tools\tla2tools.jar"
+$jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar" | Select-Object -First 1).FullName
 
-# SAFE model — all invariants hold.
-java -cp $jar tlc2.TLC -config MC_safe.cfg MC_safe.tla
-
-# BROKEN model (filter-after-retrieval) — TLC finds a counterexample.
-java -cp $jar tlc2.TLC -config MC_broken.cfg MC_broken.tla
+# STEP 1 — run as-is (BROKEN = FALSE). Expect: "No error has been found." (34 states)
+java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
 ```
 
-**Option B — Git Bash / MINGW64:**
+**STEP 2 — the live edit (the demo moment):** open `MC_tianquan.tla`, find the
+line `BROKEN <- FALSE` near the bottom, change it to `BROKEN <- TRUE`, save.
 
-```bash
-cd formal
-JAR="C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-2026.9.251644/out/tools/tla2tools.jar"
-
-# SAFE model — all invariants hold.
-java -cp "$JAR" tlc2.TLC -config MC_safe.cfg MC_safe.tla
-
-# BROKEN model (filter-after-retrieval) — TLC finds a counterexample.
-java -cp "$JAR" tlc2.TLC -config MC_broken.cfg MC_broken.tla
+```powershell
+# STEP 3 — re-run the SAME command. Expect: "Invariant INV1 ... is violated." + trace.
+java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
 ```
 
-> **Note:** In Git Bash, `$env:USERPROFILE` is PowerShell syntax and won't
-> work. `$USERPROFILE` may also be empty depending on your shell config. The
-> simplest fix is to hardcode the path with forward slashes as shown above.
-> If the extension version changes, find the jar with:
-> `ls "$HOME/.vscode/extensions/tlaplus.vscode-ide-"*/out/tools/tla2tools.jar`
+> Git Bash alt: `JAR="C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-2026.9.251644/out/tools/tla2tools.jar"`
+> then `java -cp "$JAR" tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla`.
+> Remember to flip `BROKEN` back to `FALSE` after the demo.
 
-- **Safe:** *"Model checking completed. No error has been found."*
-- **Broken:** *"Invariant INV1_RetrievedOnlyIfAuthorized is violated."* with a
-  4-step trace: search over-fetches `r2` → policy denies it → but retrieval
-  (done before filtering, in the broken variant) puts it in the context anyway.
+**What the counterexample shows (read it aloud):**
 
-**Talking point:** "This is the whole thesis in 60 seconds. Flip one flag to put
-retrieval before the policy check, and the model checker immediately finds the
-leak that pre-LLM filtering prevents."
+1. `acl: r1→{alice}` — alice may read r1. Search finds it.
+2. Decide → r1 = **allow** (correct at that instant).
+3. **Revoke fires — alice removed from r1 — after the decision, before retrieval.**
+4. The naive retrieve trusts the stale "allow" and puts r1 in the context →
+   **INV1 violated: alice's context now holds a resource she can no longer read.**
+
+**Talking point:** "The permission check itself is simple. What's hard — and
+what we proved — is that *filtering correctly isn't enough*. If you trust the
+permission decision from a moment ago, a concurrent revocation leaks the content.
+You must re-check the live ACL at retrieval time. Unit tests check the cases you
+imagined; the model checker exhaustively found the race we didn't. One flag flip,
+and it hands you the exact exploit trace."
+
+> Fallback if a live run is risky: `MC_safe.*` and `MC_broken.*` are fixed
+> variants you can run without editing, and the counterexample trace above can
+> be shown as a slide.
 
 ---
 
