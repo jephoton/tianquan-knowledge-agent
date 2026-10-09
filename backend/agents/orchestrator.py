@@ -68,7 +68,10 @@ class Orchestrator:
             self._connectors, max_context_chars=max_context_chars,
         )
         self._answer_agent = AnswerAgent(llm or StubLLMClient())
-        self._audit = audit_chain or HashChain()
+        # NB: `audit_chain or HashChain()` would be wrong — an empty HashChain
+        # is falsy (len 0), so a freshly-built persisting chain would be
+        # silently discarded. Check identity against None instead.
+        self._audit = audit_chain if audit_chain is not None else HashChain()
         self._admin = PermissionAdmin(self._connectors)
         self._grounding_checker = grounding_checker or GroundingChecker()
         self._query_scanner = QueryScanner()

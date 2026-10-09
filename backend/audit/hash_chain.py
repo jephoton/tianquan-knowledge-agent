@@ -25,7 +25,9 @@ import json
 import uuid
 from dataclasses import dataclass
 
-from backend.audit.event_schema import AuditEvent, event_from_decision
+from backend.audit.event_schema import (
+    AuditEvent, event_from_decision, event_from_dict,
+)
 from backend.models import Decision
 
 # The chain's anchor. The first event's previous_hash points here.
@@ -55,10 +57,17 @@ class VerificationResult:
 
 
 class HashChain:
-    """An append-only, tamper-evident chain of audit events."""
+    """An append-only, tamper-evident chain of audit events.
 
-    def __init__(self) -> None:
+    If `persist_path` is set, the full chain is written to that JSON file on
+    every append. That file is the on-disk source of truth: `verify_file()`
+    re-reads and re-hashes it, so a hand-edit of the file (e.g. an insider
+    flipping a DENY to ALLOW to cover their tracks) is detected.
+    """
+
+    def __init__(self, persist_path: str | None = None) -> None:
         self._events: list[AuditEvent] = []
+        self._persist_path = persist_path
 
     # -- Append ---------------------------------------------------------
 
@@ -66,11 +75,13 @@ class HashChain:
         """Append an event, linking and hashing it. Returns the event.
 
         Mutates the event's `previous_hash` and `event_hash` to place it at
-        the head of the chain.
+        the head of the chain, then persists the chain if configured.
         """
         event.previous_hash = self.head_hash()
         event.event_hash = compute_hash(event.previous_hash, event)
         self._events.append(event)
+        if self._persist_path:
+            self.save(self._persist_path)
         return event
 
     def append_decision(self, decision: Decision, query_id: str) -> AuditEvent:
@@ -135,3 +146,51 @@ class HashChain:
         """Persist the chain to a JSON file."""
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.to_json())
+
+    @property
+    def persist_path(self) -> str | None:
+        return self._persist_path
+
+    @staticmethod
+    def verify_events(events: list[AuditEvent]) -> VerificationResult:
+        """Verify an arbitrary list of events (used by both in-memory and
+        file verification). Recomputes each hash and checks the links."""
+        expected_prev = GENESIS_HASH
+        for i, event in enumerate(events):
+            if event.previous_hash != expected_prev:
+                return VerificationResult(
+                    valid=False, broken_at_index=i,
+                    reason=f"broken_link_at_{i}:previous_hash_mismatch",
+                )
+            if compute_hash(event.previous_hash, event) != event.event_hash:
+                return VerificationResult(
+                    valid=False, broken_at_index=i,
+                    reason=f"tampered_event_at_{i}:hash_mismatch",
+                )
+            expected_prev = event.event_hash
+        return VerificationResult(valid=True, reason="chain_valid")
+
+    def verify_file(self, path: str | None = None) -> VerificationResult:
+        """Re-read the on-disk log and verify it from scratch.
+
+        This is the realistic tamper check: it does NOT trust the in-memory
+        chain. It parses the JSON file as written (or hand-edited) and
+        recomputes the hashes over that content, so any out-of-band
+        modification to the file is caught.
+        """
+        p = path or self._persist_path
+        if not p:
+            return VerificationResult(
+                valid=False, reason="no_persist_path_configured")
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except FileNotFoundError:
+            return VerificationResult(valid=False, reason="log_file_not_found")
+        except json.JSONDecodeError as e:
+            # A hand-edit that breaks JSON structure is itself tamper evidence.
+            return VerificationResult(
+                valid=False, broken_at_index=None,
+                reason=f"log_file_corrupt_json:{e.msg}")
+        events = [event_from_dict(d) for d in raw]
+        return self.verify_events(events)

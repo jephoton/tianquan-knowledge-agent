@@ -30,6 +30,9 @@ formal/states/
 *_TTrace_*.tla
 *_TTrace_*.bin
 
+# ── Runtime audit log (hash-chained; regenerated per run) ──
+audit_log.json
+
 # ── Misc ────────────────────────────────────────
 *.log
 tmp_*

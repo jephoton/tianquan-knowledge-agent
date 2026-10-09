@@ -383,16 +383,22 @@ async function verifyChain() {
   try {
     const v = await api("/audit/verify");
     setChainBadge(v.valid, v.reason);
-    toast(v.valid ? `chain verified (${v.length} blocks)` : `TAMPERED at #${v.broken_at_index}: ${v.reason}`, !v.valid);
+    toast(v.valid ? `in-memory chain verified (${v.length} blocks)` : `TAMPERED at #${v.broken_at_index}: ${v.reason}`, !v.valid);
   } catch (e) { toast(e.message, true); }
 }
 
-async function tamperChain() {
+// Re-reads the on-disk audit_log.json and verifies it from scratch. This is
+// the realistic tamper check — hand-edit the file and this catches it.
+async function verifyFile() {
   try {
-    const r = await api("/audit/tamper?index=0&field=resource_id", { method: "POST" });
-    toast("tampered: " + r.message, true);
-    await refreshAudit();
-    await verifyChain();
+    const v = await api("/audit/verify-file");
+    setChainBadge(v.valid, v.reason);
+    if (v.valid) {
+      toast(`log file verified — chain intact (${v.path})`);
+    } else {
+      const where = v.broken_at_index != null ? ` at event #${v.broken_at_index}` : "";
+      toast(`LOG FILE TAMPERED${where}: ${v.reason}`, true);
+    }
   } catch (e) { toast(e.message, true); }
 }
 
@@ -518,7 +524,7 @@ async function boot() {
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
   $("audit-verify").onclick = verifyChain;
-  $("audit-tamper").onclick = tamperChain;
+  $("audit-verify-file").onclick = verifyFile;
   $("audit-prev").onclick = auditPrev;
   $("audit-next").onclick = auditNext;
   $("audit-pagesize").addEventListener("change", (e) => setAuditPageSize(e.target.value));

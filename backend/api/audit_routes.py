@@ -56,7 +56,7 @@ def query_audit(
 
 @router.get("/verify")
 def verify_chain(request: Request) -> dict:
-    """Report whether the audit chain is intact (tamper-evidence)."""
+    """Report whether the in-memory audit chain is intact (tamper-evidence)."""
     state = request.app.state.tianquan
     v = state.orchestrator.audit.verify()
     return {
@@ -64,6 +64,26 @@ def verify_chain(request: Request) -> dict:
         "reason": v.reason,
         "broken_at_index": v.broken_at_index,
         "length": len(state.orchestrator.audit),
+    }
+
+
+@router.get("/verify-file")
+def verify_file(request: Request) -> dict:
+    """Re-read the on-disk audit log and verify it from scratch.
+
+    Unlike /verify (in-memory), this parses the actual JSON log file and
+    recomputes every hash over its current contents — so a hand-edit of the
+    file (the realistic insider-tamper scenario) is detected. This is the
+    endpoint behind the "verify log file" demo.
+    """
+    state = request.app.state.tianquan
+    chain = state.orchestrator.audit
+    v = chain.verify_file()
+    return {
+        "valid": v.valid,
+        "reason": v.reason,
+        "broken_at_index": v.broken_at_index,
+        "path": chain.persist_path,
     }
 
 

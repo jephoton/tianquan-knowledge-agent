@@ -93,6 +93,34 @@ class AuditEvent:
         return d
 
 
+def event_from_dict(d: dict[str, Any]) -> AuditEvent:
+    """Reconstruct an AuditEvent from its serialized dict (e.g. from the log
+    file on disk). Timestamps are parsed back to datetime. This is what makes
+    the file the source of truth for verification: a hand-edited field flows
+    straight into `canonical_payload()` and breaks the recomputed hash.
+    """
+    ts = d.get("timestamp")
+    if isinstance(ts, str):
+        try:
+            ts = datetime.fromisoformat(ts)
+        except ValueError:
+            ts = utc_now()
+    return AuditEvent(
+        event_id=d.get("event_id", ""),
+        user_id=d.get("user_id", ""),
+        query_id=d.get("query_id", ""),
+        action=d.get("action", ""),
+        decision=d.get("decision", ""),
+        reason=d.get("reason", ""),
+        acl_version=d.get("acl_version", 0),
+        policy_version=d.get("policy_version", 0),
+        resource_id=d.get("resource_id"),
+        timestamp=ts or utc_now(),
+        previous_hash=d.get("previous_hash", ""),
+        event_hash=d.get("event_hash", ""),
+    )
+
+
 def event_from_decision(
     decision: Decision,
     query_id: str,

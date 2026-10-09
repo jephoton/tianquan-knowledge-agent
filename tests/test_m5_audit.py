@@ -228,3 +228,70 @@ def test_query_reports_tamper_status():
     engine = AuditQueryEngine(chain)
     res = engine.run(AuditQuery())
     assert res.verification.valid is False
+
+
+# -- File-based persistence + tamper detection (realistic insider edit) --
+
+def _decn(uid="alice", rid="r1", result=DecisionResult.ALLOW, reason="ok"):
+    return Decision(
+        user_id=uid, resource_id=rid, action=Action.READ,
+        result=result, reason=reason, acl_version=1, policy_version=1,
+        timestamp=datetime(2026, 9, 28, 12, tzinfo=timezone.utc),
+    )
+
+
+def test_persist_on_append_writes_file(tmp_path):
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(_decn(rid="r1"), "q1")
+    chain.append_decision(_decn(rid="r2"), "q1")
+    assert os.path.exists(log)
+    import json
+    data = json.load(open(log, encoding="utf-8"))
+    assert len(data) == 2
+
+
+def test_verify_file_clean(tmp_path):
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    for i in range(3):
+        chain.append_decision(_decn(rid=f"r{i}"), "q1")
+    result = chain.verify_file()
+    assert result.valid is True
+
+
+def test_verify_file_detects_hand_edit(tmp_path):
+    """Simulate an insider editing the log file to flip a DENY to ALLOW."""
+    import json
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(_decn(rid="r1", result=DecisionResult.DENY, reason="no_access"), "q1")
+    chain.append_decision(_decn(rid="r2"), "q1")
+
+    # Edit the file out-of-band: flip event 0's decision deny -> allow.
+    data = json.load(open(log, encoding="utf-8"))
+    data[0]["decision"] = "allow"
+    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+
+    # In-memory chain still "verifies" (it wasn't touched) — but the FILE does not.
+    result = chain.verify_file()
+    assert result.valid is False
+    assert result.broken_at_index == 0
+    assert "tampered" in result.reason
+
+
+def test_verify_file_detects_corrupt_json(tmp_path):
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(_decn(), "q1")
+    open(log, "w", encoding="utf-8").write("{ this is not valid json ]")
+    result = chain.verify_file()
+    assert result.valid is False
+    assert "corrupt_json" in result.reason
+
+
+def test_verify_file_no_path():
+    chain = HashChain()  # no persist_path
+    result = chain.verify_file()
+    assert result.valid is False
+    assert "no_persist_path" in result.reason
