@@ -1,5 +1,40 @@
 ﻿# Current State — Tianquan 天权
 
+> **Last updated:** 2026-10-09 (demo-hardening pass: TOCTOU formal demo, file-based audit tamper, FinTech narrative)
+
+## Demo-hardening pass (2026-10-09)
+
+Done this session, aimed at the live demo + submission narrative:
+
+- **Formal (TLA+):** modeled revocation interleaved through the `decided` phase
+  → spec now exercises the **time-of-check/time-of-use race**. Safe variant
+  re-checks live ACL at retrieval (proven race-free); naive variant trusts the
+  decide-time snapshot (TLC finds the leak). Consolidated to one live-flip
+  harness `MC_tianquan.tla` (flip `BROKEN` FALSE→TRUE to go from "no error" to
+  counterexample). This is a stronger story than the old filter-after-retrieval
+  one.
+- **Audit:** hash chain now **persists to `audit_log.json` on disk** every
+  append; new `/audit/verify-file` re-reads and re-hashes the file, so a real
+  hand-edit of the log is detected (replaces the gimmicky in-memory tamper
+  button). UI button "verify log file". Fixed a real bug: `audit_chain or
+  HashChain()` discarded a passed-in empty chain (empty chain is falsy via
+  `__len__`) → now `is not None`.
+- **Narrative:** rewrote `docs/project-description.md` to lead with the FinTech
+  breach stakes (judges reward impact over complexity — see winner research
+  below); added `docs/demo-script.md` (≈4-min rehearsable narration).
+- Tests: 217 passing (added 5 file-tamper unit tests).
+
+### Winner research (verified from tch.tencentcloud.com, 2026-10-09)
+
+Hackathon = "Tencent Cloud AI CAN DO IT Singapore 2026", SGD $17k pool, 5 tracks
+(Banking, Real Estate, FinTech, Digital Native, Healthcare). Showcased winners
+skew **social-good / impact-led**: 1st Auntie AI (scam checker for elderly),
+2nd EyeDentify (accessibility), 3rd NaviCore (maritime). Media framing rewards
+"beyond technical complexity." Implication for us: our technical rigor is a
+differentiator, but the *pitch must sell felt FinTech stakes*, not architecture.
+FinTech/Aspire likely rewards rigor more than the social-good tracks, so the
+formal-methods angle is an asset — framed as business risk, not academia.
+
 > **Last updated:** 2026-09-29 (M14 in progress; UI/UX + access-control refinement batch underway)
 
 ## Active work batch — UI/UX + access-control refinement → COMPLETE

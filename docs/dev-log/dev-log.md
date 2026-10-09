@@ -161,6 +161,20 @@
 
 ---
 
+### 2026-10-09 — Demo-hardening: TOCTOU formal proof, real audit tamper, FinTech narrative
+
+- **Tool:** Kiro
+- **Task:** Strengthen the three things that win this hackathon: the formal-methods demo, the tamper-evidence demo, and the pitch narrative. Grounded in verified winner research from the hackathon site.
+- **Summary:**
+  - **Researched actual winners** (tch.tencentcloud.com): social-good/impact-led projects win; framing rewards "beyond technical complexity". Concluded our rigor is a differentiator *if* sold as FinTech business risk.
+  - **TLA+:** extended `Revoke` to fire through the `decided` phase so the model explores the revocation race (TOCTOU). Made safe `Retrieve` re-check the live ACL (proven race-free) and the broken variant trust the stale decide-time snapshot (TLC finds the leak with a concrete trace). Consolidated to one live-flip harness `MC_tianquan.tla`. Verified both runs with TLC. Much stronger than the old filter-after-retrieval variant.
+  - **Audit tamper (real):** chain persists to `audit_log.json` on every append; added `/audit/verify-file` that re-reads + re-hashes the file so a genuine hand-edit is caught; UI "verify log file" button replaces the gimmicky in-memory tamper. Found and fixed a real latent bug — `audit_chain or HashChain()` silently discarded a passed-in empty chain (empty `HashChain` is falsy via `__len__`); changed to `is not None`. 5 new file-tamper tests; suite 217 green.
+  - **Narrative:** rewrote `docs/project-description.md` to open with the FinTech breach stakes and lead with impact; added `docs/demo-script.md`, a ~4-min rehearsable narration sequencing all demos around the story arc. Fixed stale facts (removed INV5-as-stretch, test count 138→217).
+  - Also answered the user's conceptual question: the formal work is load-bearing (proves temporal race safety across all interleavings), not just "tests in disguise" — the permission *check* is simple, the *timing* is what's proven.
+- **Screenshot captured:** N — capture the TLC flip + the live log-file tamper for the submission.
+
+---
+
 ### 2026-09-29 — Role-based admin gating + UX restructure
 
 - **Tool:** Kiro

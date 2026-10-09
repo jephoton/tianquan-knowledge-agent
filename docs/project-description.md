@@ -6,21 +6,31 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 
 ---
 
-## Overview
+## The problem, told straight
 
-Tianquan (天权 — "heaven's authority") is a permission-aware enterprise knowledge agent that unifies context across Confluence, Jira, Slack, and Google Drive, answers natural-language questions grounded in that unified context, and does so under the uncompromising constraint that **every piece of information it exposes respects the original platform's access controls**, with full auditability.
+A FinTech rolls out an internal AI assistant over all its company knowledge — Confluence, Jira, Slack, Google Drive. It's brilliant and everyone loves it. Then a **contractor** asks: *"What's our biggest client's default risk and the Q3 breach details?"* — and the assistant, trained to be helpful, answers. It pulls from a confidential incident report and a restricted finance doc the contractor was never cleared to see.
 
-The core constraint:
+In most industries that's an embarrassing bug. **In regulated finance it's a reportable data breach** — a MAS compliance failure, a client-confidentiality violation, and a headline. The irony: the AI didn't get hacked. It did exactly what it was built to do. The access control was simply never there.
+
+Here's the uncomfortable truth about today's "AI over your data" tools: they retrieve documents into the model's context with **no regard for who is asking**, or they bolt on filtering *after* generation and trust the model not to leak. Both approaches leak. You cannot prompt your way to a security guarantee.
+
+## The insight
+
+The problem isn't the model's intelligence — it's that it answers from information the user was never authorized to receive. So the fix isn't a smarter prompt or a post-hoc filter. It's structural:
 
 > **The LLM cannot leak what it never receives.**
 
-Filtering happens **before** the LLM, not after. The model only ever sees content the asker is authorized to view. Every retrieval, denial, answer, and audit event is checked against a formally specified access-control model.
+Tianquan (天权 — "heaven's authority") filters by permission **before** the model sees anything. The model only ever receives content the asker is authorized to view — and every retrieval, denial, and answer is checked against an access-control model we **formally proved** correct, then written to a tamper-evident audit trail a regulator can verify.
+
+Not "we tested it and it seemed fine." **Proven, and provable.**
 
 ## Real-world scenario
 
-Aspire (a B2B FinTech) has engineers, contractors, security teams, finance teams, and compliance officers — each with different access levels across Confluence, Jira, Slack, and Google Drive. An engineer asks: *"What's the status of the database migration and were there blockers raised in Slack?"* The answer should draw from the migration Jira ticket, the Slack thread, and the Confluence plan — but must **not** include the confidential security incident report that also mentions the migration, because the engineer lacks security-team clearance.
+Aspire (a B2B FinTech) has engineers, contractors, security teams, finance teams, and compliance officers — each with different access across Confluence, Jira, Slack, and Google Drive. An engineer asks: *"What's the status of the database migration and were there blockers raised in Slack?"* The answer should draw from the migration Jira ticket, the Slack thread, and the Confluence plan — but must **not** include the confidential Q3 security incident report that *also* mentions the migration, because the engineer lacks security-team clearance.
 
-Today, most "AI over your data" demos retrieve documents into LLM context with no regard for who is asking. Tianquan solves this by making the policy engine the authoritative gate **before** retrieval reaches the model.
+A contractor asking the same question — or fishing for the breach report directly — gets nothing, and crucially **cannot even tell whether the restricted content exists**. Same response as a question about something that isn't there. No side channel, no confirmation, no leak.
+
+Tianquan makes the policy engine the authoritative gate **before** retrieval reaches the model, so these outcomes are architectural guarantees, not best-effort hopes.
 
 ## Solution design
 
@@ -73,19 +83,25 @@ The access-control model is specified in TLA+ with 7 safety invariants:
 | INV2 | LLMSeesOnlyRetrievedContent | The model never receives unauthorized content. |
 | INV3 | RevokedAccessNotReusable | After permission revocation, future queries cannot use the old permission. |
 | INV4 | EveryDecisionAudited | Every allow/deny decision creates an audit event. |
-| INV5 | NoPrivilegeEscalation | Agent effective permissions ⊆ delegating user's permissions (stretch). |
 | INV6 | NoUnauthorizedCitation | Every citation corresponds to an authorized retrieved resource. |
 | INV7 | NoMetadataLeakOnDeny | Denied content is not exposed through answer text or source titles. |
 
-TLC model-checks all invariants in the safe configuration (28 states, no error). A deliberately broken variant (filter-after-retrieval) produces an INV1 counterexample at depth 4 — demonstrating the value of pre-LLM filtering in 60 seconds.
+TLC model-checks every invariant across all reachable states of the pipeline (safe configuration: no error). The spec models **revocation interleaved with the query lifecycle** — so it explores orderings a human would never think to unit-test.
 
-## Business value
+**What the model checker found (and why it matters):** the hard part of this system is not the permission check itself — that's a simple lookup. The hard part is *timing*. The checker proved that even a correctly-filtering implementation **leaks under a race**: if a resource is authorized at decision time but the user is revoked a moment later, a naive implementation that trusts the earlier decision serves content the user can no longer see (a time-of-check/time-of-use bug). The safe implementation re-checks the **live** ACL at retrieval time and is proven race-free. Flip one line in the spec and TLC hands you the exact exploit trace in seconds.
 
-- **Compliance-ready AI**: every decision is auditable in a tamper-evident trail. Compliance officers can query who accessed what, when, and whether the chain is intact.
-- **No data leakage**: the LLM structurally cannot leak restricted content because it never receives it. This is a architectural guarantee, not a prompt-level hope.
-- **Live revocation**: permission changes take effect on the next query with no reindexing — the policy filter re-fetches live ACLs every time.
-- **Source-native semantics**: each platform's permission model is preserved (Confluence spaces/pages, Jira issue security, Slack channel membership, GDrive sharing) rather than flattened into a generic ACL.
-- **Formally verified**: the safety properties are model-checked, not just implemented — providing provable guarantees that matter in a FinTech context.
+This is the distinction that matters: **tests check the cases you imagined; the model checker exhaustively finds the ones you didn't.** For a FinTech security control, "we proved no interleaving leaks" is a categorically stronger claim than "our tests passed."
+
+## Business value — why a FinTech would deploy this
+
+The thing blocking every bank and FinTech from rolling out an internal LLM today is exactly the risk in the opening: an assistant that can't *prove* it only used information the asker was allowed to see. Tianquan is that proof.
+
+- **It unblocks AI adoption in regulated finance.** The blocker isn't capability, it's trust and auditability. Tianquan provides both, so the assistant can be deployed over sensitive client and internal data without becoming a breach vector.
+- **No data leakage — structurally.** The LLM cannot leak restricted content because it never receives it. An architectural guarantee, not a prompt-level hope that survives one jailbreak.
+- **Compliance-ready by construction.** Every allow/deny is written to a tamper-evident, hash-chained log. A compliance officer can query who accessed what, when — and detect if anyone edited the record. This is the artifact an auditor or regulator asks for.
+- **Live revocation.** Off-board someone or pull a clearance and it takes effect on their next query — no reindex, no stale-permitted content. The filter re-fetches live ACLs every time (and we proved that's necessary).
+- **Source-native semantics.** Each platform's real permission model is preserved (Confluence spaces/pages, Jira issue security, Slack channel membership, GDrive sharing), not flattened into a lossy generic ACL.
+- **Formally verified.** The safety properties are model-checked, not just implemented — the kind of assurance that distinguishes a demo from something a risk committee would actually sign off on.
 
 ## Demo scenarios
 
@@ -104,5 +120,5 @@ Tianquan was built end-to-end using CodeBuddy as the primary development tool. T
 - **GitHub:** [tencent-hackathon](.) — complete source code
 - **Live ADP agent:** [Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — agent name "Tianquan 天权" and welcome message confirmed visible.
 - **Docs:** `docs/` — plan, architecture, current-state, ADRs, demo runbook, dev log
-- **Tests:** 138 passing (`python -m pytest -q`)
+- **Tests:** 217 passing (`python -m pytest -q`)
 - **Formal model:** `formal/` — TLA+ specification with TLC model configs
