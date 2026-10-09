@@ -1,7 +1,19 @@
 ﻿# Demo Runbook — Tianquan 天权
 
-> Step-by-step script for the 5 demo scenarios. All queries and outcomes below
-> are verified against the seed data. Run through this once before presenting.
+> **This file = the mechanical reference** (every scenario, exact inputs,
+> expected outputs, verified against seed data). It is NOT the video script.
+>
+> **For the video, follow [demo-script.md](demo-script.md)** — one ~4-minute
+> narrative using four beats:
+>   1. same question, two people (Demos 1 + 2)
+>   2. live revocation (Demo 3)
+>   3. tamper-evident audit log, edited live (Demo 6)
+>   4. formal proof — break the real logic, TLC catches it (Demo 5)
+>
+> **Repo depth (NOT in the video — mention in one line, keep for judges who dig
+> in):** Demo 4 (audit inquiry — it's the same data as the inspector), Demo 7
+> (upload/ingestion), and the M11–M13 guards (hallucination, freshness,
+> prompt-injection). These are strengths to reference verbally, not screen time.
 
 > **Live ADP agent:** The Tianquan agent is published on Tencent Cloud ADP at
 > [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
