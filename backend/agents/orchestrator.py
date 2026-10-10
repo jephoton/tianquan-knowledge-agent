@@ -107,7 +107,7 @@ class Orchestrator:
 
         engine = PolicyEngine()
         query_id = str(uuid.uuid4())
-        allowed: list[str] = []
+        allowed: list[dict] = []
         denied: list[str] = []
         decisions: list[Decision] = []
 
@@ -123,7 +123,14 @@ class Orchestrator:
             decision = engine.decide(user, resource, Action.EXPORT)
             decisions.append(decision)
             if decision.result == DecisionResult.ALLOW:
-                allowed.append(rid)
+                # Include the content so the client can actually download it —
+                # only ever for resources that passed the EXPORT re-check.
+                allowed.append({
+                    "resource_id": resource.resource_id,
+                    "source": resource.source.value,
+                    "title": resource.title,
+                    "content": resource.content,
+                })
             else:
                 denied.append(rid)
 

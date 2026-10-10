@@ -227,10 +227,13 @@ function renderAnswer(r) {
 
   const cites = $("answer-citations");
   cites.innerHTML = "";
+  $("resource-preview").style.display = "none";  // reset preview per query
   if (!r.citations.length) return;
   r.citations.forEach((c) => {
     const card = document.createElement("div");
     card.className = "citation-card";
+    card.style.cursor = "pointer";
+    card.title = "click to preview the source content";
     // Export button only when the persona holds the export permission.
     const exportBtn = state.canExport
       ? `<button class="export-btn" data-rid="${esc(c.resource_id)}">export</button>`
@@ -243,16 +246,33 @@ function renderAnswer(r) {
       `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
       `</div>` +
       exportBtn;
+    // Click the card → preview the source content.
+    card.onclick = () => previewResource(c.resource_id);
     cites.appendChild(card);
   });
 
-  // Wire export buttons.
+  // Export buttons: don't let the click bubble to the card's preview handler.
   cites.querySelectorAll(".export-btn").forEach((btn) => {
-    btn.onclick = () => exportResource(btn.dataset.rid);
+    btn.onclick = (e) => { e.stopPropagation(); exportResource(btn.dataset.rid); };
   });
 }
 
-// -- export (per-citation) --------------------------------------------
+// -- source preview (click a citation) --------------------------------
+
+async function previewResource(resourceId) {
+  try {
+    const r = await api(`/resource/${encodeURIComponent(resourceId)}?user_id=${encodeURIComponent(state.currentUser)}`);
+    $("preview-id").textContent = r.resource_id;
+    $("preview-title").textContent = `${sourceIcon(r.source)} ${r.title}`;
+    $("preview-content").textContent = r.content;
+    $("resource-preview").style.display = "block";
+    $("resource-preview").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) {
+    toast("preview unavailable: " + e.message, true);
+  }
+}
+
+// -- export (per-citation) — actually downloads the content -----------
 
 async function exportResource(resourceId) {
   try {
@@ -261,7 +281,21 @@ async function exportResource(resourceId) {
       body: JSON.stringify({ resource_ids: [resourceId] }),
     });
     if (r.allowed && r.allowed.length) {
-      toast(`exported ${resourceId}`);
+      const doc = r.allowed[0];
+      // Trigger a real file download of the exported content.
+      const blob = new Blob(
+        [`# ${doc.title}\n# source: ${doc.source}:${doc.resource_id}\n\n${doc.content}\n`],
+        { type: "text/plain" },
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${resourceId.replace(/[:\/]/g, "_")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(`exported ${resourceId} → downloaded`);
     } else {
       toast(`export denied for ${resourceId}`, true);
     }
@@ -402,6 +436,58 @@ async function verifyFile() {
   } catch (e) { toast(e.message, true); }
 }
 
+// -- subject combo (searchable role/user picker) ----------------------
+
+// Options: [{value, kind, label}]. Built once from /users (roles + users).
+let _subjectOptions = [];
+
+function buildSubjectOptions(users) {
+  const roles = new Set();
+  users.forEach((u) => (u.roles || []).forEach((r) => roles.add(r)));
+  const roleOpts = [...roles].sort().map((r) => ({ value: r, kind: "role", label: r }));
+  const userOpts = users.map((u) => ({ value: u.user_id, kind: "user", label: `${u.name} (${u.user_id})` }));
+  _subjectOptions = [...roleOpts, ...userOpts];
+}
+
+function renderSubjectMenu(filter = "") {
+  const menu = $("rev-subject-menu");
+  const f = filter.trim().toLowerCase();
+  const roles = _subjectOptions.filter((o) => o.kind === "role" && o.label.toLowerCase().includes(f));
+  const usrs = _subjectOptions.filter((o) => o.kind === "user" && o.label.toLowerCase().includes(f));
+  let html = "";
+  const section = (label, opts) => {
+    if (!opts.length) return "";
+    let s = `<div class="combo-group-label">${label}</div>`;
+    opts.forEach((o) => {
+      s += `<div class="combo-option" data-value="${esc(o.value)}" data-kind="${o.kind}">` +
+           `<span>${esc(o.label)}</span><span class="kind-tag">${o.kind}</span></div>`;
+    });
+    return s;
+  };
+  html += section("roles", roles);
+  html += section("users", usrs);
+  if (!html) html = `<div class="combo-option" style="color:#8a7f68;cursor:default;">no match</div>`;
+  menu.innerHTML = html;
+  menu.querySelectorAll(".combo-option[data-value]").forEach((el) => {
+    el.onclick = () => {
+      $("rev-subject").value = el.dataset.value;
+      $("rev-kind").value = el.dataset.kind;
+      menu.classList.remove("open");
+    };
+  });
+}
+
+function wireSubjectCombo() {
+  const input = $("rev-subject");
+  const menu = $("rev-subject-menu");
+  if (!input) return;
+  input.addEventListener("focus", () => { renderSubjectMenu(input.value); menu.classList.add("open"); });
+  input.addEventListener("input", () => { renderSubjectMenu(input.value); menu.classList.add("open"); });
+  document.addEventListener("click", (e) => {
+    if (!$("rev-subject-combo").contains(e.target)) menu.classList.remove("open");
+  });
+}
+
 // -- admin: revoke / grant --------------------------------------------
 
 async function adminChange(kind) {
@@ -499,6 +585,8 @@ async function boot() {
       opt.textContent = `${u.name} (${u.user_id})`;
       sel.appendChild(opt);
     });
+    // Build the subject-combo options (roles + users) for access control.
+    buildSubjectOptions(users);
     // loadPersonas selects the first persona, which runs applyAdminGate ->
     // refreshAudit only if that persona is privileged (avoids a boot 403).
     await loadPersonas();
@@ -532,6 +620,8 @@ async function boot() {
   $("grant-btn").onclick = () => adminChange("grant");
   $("upload-btn").onclick = () => uploadDocument();
   $("upload-list-btn").onclick = () => listUploads();
+  $("preview-close").onclick = () => { $("resource-preview").style.display = "none"; };
+  wireSubjectCombo();
 
   // Persona dropdown
   $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };

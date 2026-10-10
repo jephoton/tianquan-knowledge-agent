@@ -394,6 +394,26 @@
   }
   .log-row:last-child { border-bottom: none; }
 
+  /* Searchable combo (subject picker) */
+  .combo { position: relative; }
+  .combo-menu {
+    position: absolute; left: 0; right: 0; top: 100%; margin-top: 2px;
+    background: #141414; border: 1px solid rgba(232,220,200,0.15);
+    border-radius: 2px; max-height: 220px; overflow-y: auto; z-index: 50;
+    display: none;
+  }
+  .combo-menu.open { display: block; }
+  .combo-group-label {
+    padding: 6px 12px 2px; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.1em; color: #8a7f68;
+  }
+  .combo-option {
+    padding: 7px 12px; font-size: 12px; color: #d4c9b0; cursor: pointer;
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .combo-option:hover, .combo-option.active { background: rgba(255,176,0,0.08); color: #ffb000; }
+  .combo-option .kind-tag { font-size: 9px; color: #8a7f68; text-transform: uppercase; }
+
   /* Chain badge large */
   .chain-badge-lg {
     display: inline-flex;
@@ -481,6 +501,16 @@
 
       <!-- Citations -->
       <div id="answer-citations" class="mt-4 flex gap-3 flex-wrap"></div>
+    </div>
+
+    <!-- Resource preview (click a citation to view its content) -->
+    <div id="resource-preview" class="mt-5 pt-5" style="display:none;border-top:1px solid rgba(232,220,200,0.06);">
+      <div class="flex items-center justify-between mb-3">
+        <div class="section-label">source preview — <span id="preview-id" style="color:#ffb000;"></span></div>
+        <button id="preview-close" class="outline-btn" style="padding:2px 10px;font-size:11px;">close</button>
+      </div>
+      <div id="preview-title" style="font-size:13px;color:#f0e6d2;margin-bottom:8px;"></div>
+      <pre id="preview-content" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#cdbfa6;background:#0a0a0a;border:1px solid rgba(232,220,200,0.08);border-radius:2px;padding:12px;max-height:280px;overflow:auto;margin:0;"></pre>
     </div>
   </section>
 
@@ -586,23 +616,18 @@
 
     <!-- REVOCATION CONTROLS -->
     <section class="crt-card p-6 flex flex-col">
-      <div class="section-label mb-4">revocation controls <span style="color:#9a8e78;font-weight:400;">— Demo 3</span></div>
+      <div class="section-label mb-4">access control</div>
       <div class="flex flex-col gap-4 flex-1">
         <div>
           <div class="section-label mb-2">resource_id</div>
           <input id="rev-resource" type="text" class="crt-input" placeholder="confluence:db-migration-plan" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <div class="section-label mb-2">subject</div>
-            <input id="rev-subject" type="text" class="crt-input" placeholder="engineer or alice" />
-          </div>
-          <div>
-            <div class="section-label mb-2">subject kind</div>
-            <select id="rev-kind" class="crt-select">
-              <option value="role">role</option>
-              <option value="user">user</option>
-            </select>
+        <div>
+          <div class="section-label mb-2">subject (role or user)</div>
+          <div class="combo" id="rev-subject-combo">
+            <input id="rev-subject" type="text" class="crt-input" placeholder="search roles and users…" autocomplete="off" />
+            <input id="rev-kind" type="hidden" value="role" />
+            <div class="combo-menu" id="rev-subject-menu"></div>
           </div>
         </div>
         <div class="flex gap-3">
@@ -612,14 +637,14 @@
       </div>
       <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
         <div id="rev-status" style="font-size:12px;color:#9a8e78;">
-          no revocations this session
+          no access changes yet
         </div>
       </div>
     </section>
 
     <!-- UPLOAD CONNECTOR -->
     <section class="crt-card p-6 flex flex-col">
-      <div class="section-label mb-4">document upload <span style="color:#9a8e78;font-weight:400;">— Demo 7, real-time ingestion</span></div>
+      <div class="section-label mb-4">document ingestion</div>
       <div class="flex flex-col gap-4 flex-1">
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -646,7 +671,7 @@
       </div>
       <div class="mt-4 pt-3" style="border-top:1px solid rgba(232,220,200,0.06);">
         <div id="upload-status" style="font-size:12px;color:#9a8e78;">
-          no documents uploaded this session
+          no documents ingested yet
         </div>
         <div id="upload-list" class="mt-3 flex flex-col gap-2"></div>
       </div>
