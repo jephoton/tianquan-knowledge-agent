@@ -224,6 +224,15 @@
 
 ---
 
+### 2026-10-10 — Preview-panel presence model + clear-query-on-switch
+
+- **Tool:** Kiro
+- **Task:** Make the source-preview panel presence-gated (visible-but-empty for export-capable personas, gone for others) rather than only appearing on click; clear the query session when switching accounts. Also clarified for the user that INV8 stripping is NOT gone — only the total-strip placeholder case changed.
+- **Summary:** Reworked the preview into an explicit empty/populated state machine in `frontend/`. The panel (`#resource-preview`) is now shown in an empty "click a cited source above…" ready state whenever `state.canExport`, and hidden entirely otherwise — driven by a new `syncPreviewPanel()` called on every persona switch (was: panel hidden until a citation click). Clicking a citation swaps empty→populated (content + download + close); the close button now resets to the empty state instead of hiding the whole panel; a new query resets to empty too. Added `clearQuery()` (clears input, answer, citations, resets preview) called from `selectPersona` so switching accounts starts a clean session — results belong to the persona that ran them. Added `#preview-empty` placeholder and split the id/title/content into toggle-able populated elements in `index.html`. Confirmed the INV8 grounding checker still strips ungrounded sentences in the normal partial case; only pass-3's total-strip edge case changed. 232 tests pass; no new diagnostics; all frontend-only (served live, no restart).
+- **Screenshot captured:** N — capture the empty-ready preview panel and a populated one for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

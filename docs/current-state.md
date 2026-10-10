@@ -2,6 +2,22 @@
 
 > **Last updated:** 2026-10-10 (NL audit search + preview/tab gating + answer-text expand)
 
+## Preview-panel presence model + query-clear on switch (2026-10-10, pass 4)
+
+- **Source-preview panel is now presence-gated, not click-gated.** The panel is
+  always present (showing an empty "click a cited source…" ready state)
+  whenever the persona holds `export`, and absent entirely otherwise — it no
+  longer only appears after a click. Clicking a citation swaps the empty state
+  for the populated content (+ download + close); close returns it to the empty
+  state (panel stays). `syncPreviewPanel()` runs on every persona switch.
+- **Account switch clears the query session.** `clearQuery()` resets the input,
+  answer, and citations on persona switch (results belong to the persona that
+  ran them) and resets the preview to its empty state.
+- **Note on INV8 stripping (clarification, not a change):** the grounding
+  checker still strips ungrounded sentences in the normal (partial) case — only
+  the *total-strip* edge case was changed in pass 3 to keep the
+  citation-validated text instead of a placeholder. INV8 is fully intact.
+
 ## Grounding-fallback fix + gating/UX polish (2026-10-10, pass 3)
 
 - **Fixed the "Relevant sources found: [1]" / empty-answer regression (root
