@@ -503,17 +503,24 @@
       <div id="answer-citations" class="mt-4 flex gap-3 flex-wrap"></div>
     </div>
 
-    <!-- Resource preview (click a citation to view its content) -->
+    <!-- Resource preview. Present (empty, ready) whenever the persona holds
+         the download permission; absent entirely otherwise. Click a citation
+         to populate it. -->
     <div id="resource-preview" class="mt-5 pt-5" style="display:none;border-top:1px solid rgba(232,220,200,0.06);">
       <div class="flex items-center justify-between mb-3">
-        <div class="section-label">source preview — <span id="preview-id" style="color:#ffb000;"></span></div>
+        <div class="section-label">source preview<span id="preview-id-wrap" style="display:none;"> — <span id="preview-id" style="color:#ffb000;"></span></span></div>
         <div class="flex items-center" style="gap:8px;">
           <button id="preview-export" class="outline-btn" style="display:none;padding:2px 10px;font-size:11px;color:#5fb87f;border-color:rgba(95,184,127,0.4);">download ↓</button>
-          <button id="preview-close" class="outline-btn" style="padding:2px 10px;font-size:11px;">close</button>
+          <button id="preview-close" class="outline-btn" style="display:none;padding:2px 10px;font-size:11px;">close</button>
         </div>
       </div>
-      <div id="preview-title" style="font-size:13px;color:#f0e6d2;margin-bottom:8px;"></div>
-      <pre id="preview-content" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#cdbfa6;background:#0a0a0a;border:1px solid rgba(232,220,200,0.08);border-radius:2px;padding:12px;max-height:280px;overflow:auto;margin:0;"></pre>
+      <!-- Empty/ready state (shown until a citation is clicked). -->
+      <div id="preview-empty" style="font-size:12px;color:#8a7f68;font-style:italic;padding:12px;border:1px dashed rgba(232,220,200,0.1);border-radius:2px;">
+        click a cited source above to view its full content here.
+      </div>
+      <!-- Populated state. -->
+      <div id="preview-title" style="display:none;font-size:13px;color:#f0e6d2;margin-bottom:8px;"></div>
+      <pre id="preview-content" style="display:none;white-space:pre-wrap;font-size:12px;line-height:1.6;color:#cdbfa6;background:#0a0a0a;border:1px solid rgba(232,220,200,0.08);border-radius:2px;padding:12px;max-height:280px;overflow:auto;margin:0;"></pre>
     </div>
   </section>
 

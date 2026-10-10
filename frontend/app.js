@@ -114,13 +114,12 @@ function selectPersona(u) {
   $("current-user").textContent = `${u.name} [${state.currentRole}]`;
   const qp = $("query-persona");
   if (qp) qp.textContent = `${u.name} · ${state.currentRole}`;
-  // The source-preview panel is a download-gated surface. If the new persona
-  // lacks export, close any open preview immediately so switching away hides
-  // it at once; also re-render the current answer's citations so their
-  // click-to-open behavior reflects the new persona's permission.
-  const preview = $("resource-preview");
-  if (preview && !state.canExport) preview.style.display = "none";
-  if (state.lastAnswer) renderAnswer(state.lastAnswer);
+  // Switching persona starts a clean session: clear the previous answer,
+  // input, and citations (results belong to the persona that ran them).
+  clearQuery();
+  // The source-preview panel is download-gated: present (empty, ready) when
+  // the persona can download, absent entirely otherwise.
+  syncPreviewPanel();
   applyAdminGate();
 }
 
@@ -252,7 +251,9 @@ function renderAnswer(r) {
 
   const cites = $("answer-citations");
   cites.innerHTML = "";
-  $("resource-preview").style.display = "none";  // reset preview per query
+  // Reset the preview to its empty state per query (the panel stays present
+  // for export-capable personas; a new query clears any shown source).
+  if (state.canExport) resetPreviewToEmpty();
   if (!r.citations.length) return;
   // The source-preview panel (view full content + download) is a privileged
   // surface: it only renders for personas who hold the download/export
@@ -284,23 +285,66 @@ function renderAnswer(r) {
 
 // -- source preview (click a citation) --------------------------------
 
+// Clear the whole query session: input, answer, citations, and reset the
+// preview to its empty state. Used on persona switch.
+function clearQuery() {
+  state.lastQuery = null;
+  state.lastAnswer = null;
+  const input = $("query-input");
+  if (input) input.value = "";
+  const ans = $("answer-text");
+  if (ans) {
+    ans.className = "phosphor-text answer-processing";
+    ans.innerHTML = "&gt; awaiting query...";
+  }
+  const cites = $("answer-citations");
+  if (cites) cites.innerHTML = "";
+  resetPreviewToEmpty();
+}
+
+// Reset the preview to its empty/ready state (keeps the panel itself; just
+// clears any shown content).
+function resetPreviewToEmpty() {
+  const empty = $("preview-empty");
+  if (empty) empty.style.display = "";
+  $("preview-id-wrap").style.display = "none";
+  $("preview-title").style.display = "none";
+  $("preview-content").style.display = "none";
+  $("preview-export").style.display = "none";
+  $("preview-close").style.display = "none";
+}
+
+// Show/hide the whole preview panel based on download permission. Present
+// (empty, ready) for personas who can download; gone entirely otherwise.
+function syncPreviewPanel() {
+  const panel = $("resource-preview");
+  if (!panel) return;
+  if (state.canExport) {
+    panel.style.display = "block";
+    resetPreviewToEmpty();
+  } else {
+    panel.style.display = "none";
+  }
+}
+
 async function previewResource(resourceId) {
+  // Only reachable for export-capable personas (citation cards are inert
+  // otherwise), but guard anyway.
+  if (!state.canExport) return;
   try {
     const r = await api(`/resource/${encodeURIComponent(resourceId)}?user_id=${encodeURIComponent(state.currentUser)}`);
     $("preview-id").textContent = r.resource_id;
+    $("preview-id-wrap").style.display = "";
     $("preview-title").textContent = `${sourceIcon(r.source)} ${r.title}`;
     $("preview-content").textContent = r.content;
-    // Export lives inside the preview window and renders ONLY when the current
-    // persona holds the export permission. No export perm → the button is not
-    // in the UI at all (view-only access).
+    // Swap from empty state to populated state.
+    $("preview-empty").style.display = "none";
+    $("preview-title").style.display = "";
+    $("preview-content").style.display = "";
     const exp = $("preview-export");
-    if (state.canExport) {
-      exp.style.display = "";
-      exp.onclick = () => exportResource(r.resource_id);
-    } else {
-      exp.style.display = "none";
-      exp.onclick = null;
-    }
+    exp.style.display = "";
+    exp.onclick = () => exportResource(r.resource_id);
+    $("preview-close").style.display = "";
     $("resource-preview").style.display = "block";
     $("resource-preview").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (e) {
@@ -719,7 +763,7 @@ async function boot() {
   $("grant-btn").onclick = () => adminChange("grant");
   $("upload-btn").onclick = () => uploadDocument();
   $("upload-list-btn").onclick = () => listUploads();
-  $("preview-close").onclick = () => { $("resource-preview").style.display = "none"; };
+  $("preview-close").onclick = () => resetPreviewToEmpty();
   wireSubjectCombo();
 
   // Persona dropdown
