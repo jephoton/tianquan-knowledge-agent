@@ -215,6 +215,15 @@
 
 ---
 
+### 2026-10-10 — Grounding-fallback root-cause fix + gating/UX polish
+
+- **Tool:** Kiro
+- **Task:** Fix the recurring "Relevant sources found: [1]" / empty-answer output (user flagged it as an apparent invariant regression); hide tabs completely for non-privileged personas without reflowing the layout; make the source-preview panel re-gate immediately on persona switch; and decide whether the audit NL search should answer in prose or keep the table.
+- **Summary:** **Root-caused the bad output** — it was neither a lazy LLM nor a broken invariant. The orchestrator's grounding-checker (INV8) fallback emitted `"Relevant sources found: {markers}"` (or `""`) whenever every answer sentence got stripped. But the grounding checker is a hallucination guard for *generative* output, while the answer text is already citation-validated (INV6) and the deterministic stub's text is extracted verbatim from authorized context — so a total-strip was nearly always an over-strip (markdown headers breaking sentence splitting), not a hallucination. Fixed by keeping the citation-validated pre-grounding text on total-strip instead of the placeholder; safety unchanged (only authorized/cited content can appear). Verified live: placeholder/empty answers gone; genuine no-access still returns the canonical message or an honest "could not find". **Frontend:** tab bar now `visibility:hidden` (not display:none) for personas lacking admin access so other tabs aren't hinted at and the vertical space is preserved (no reflow); source-preview panel now hides immediately and re-gates citations on persona switch via a remembered `state.lastAnswer` (was only checked at click time); audit NL search gained a deterministic one-line summary ("Found N events (A allowed, D denied)") above the hash-chained table — kept the verifiable event table as the primary artifact (it's the trust anchor) with the NL summary as the approachable entry point, no LLM. 232 tests pass; no new diagnostics.
+- **Screenshot captured:** N — capture the fixed answers, hidden tab bar, and NL audit summary for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

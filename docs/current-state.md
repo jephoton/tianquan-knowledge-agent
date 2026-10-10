@@ -2,6 +2,37 @@
 
 > **Last updated:** 2026-10-10 (NL audit search + preview/tab gating + answer-text expand)
 
+## Grounding-fallback fix + gating/UX polish (2026-10-10, pass 3)
+
+- **Fixed the "Relevant sources found: [1]" / empty-answer regression (root
+  cause).** It was NOT an invariant violation and NOT a lazy LLM. The string
+  came from the orchestrator's grounding-checker fallback: when INV8 stripped
+  *every* sentence, the code emitted a `"Relevant sources found: {markers}"`
+  placeholder (or `""` when there were no markers). The grounding checker is a
+  hallucination guard for a *generative* LLM, but the answer text is already
+  citation-validated (INV6) and the deterministic stub's text is extracted
+  verbatim from authorized context — so "everything stripped" was almost always
+  an over-strip (e.g. markdown headers breaking sentence splitting), not a real
+  hallucination. Fix: on total-strip, keep the citation-validated pre-grounding
+  text instead of the placeholder. Safety intact (text can only contain
+  authorized, cited content). Live-verified: the placeholder/empty answers are
+  gone; weak no-access matches now return an honest "could not find" instead.
+- **Tab bar hidden (not reflowed) for non-privileged personas.** Switched from
+  hiding just the Admin button to `visibility:hidden` on the whole `.tab-bar`
+  when the persona lacks admin access — so other tabs aren't even hinted at,
+  and the reserved vertical space is preserved (content below doesn't jump up).
+- **Source-preview panel re-gates on persona switch.** Switching to a persona
+  without `export` now immediately hides any open preview and re-renders the
+  current answer's citations so their click-to-open behavior tracks the new
+  permission (was: only checked at click time; a stale open preview could
+  linger). `state.lastAnswer` remembered for the re-render.
+- **Audit NL search now shows a deterministic one-line summary** ("…Found N
+  events (A allowed, D denied).") above the hash-chained evidence table —
+  decision: keep the verifiable event table as the primary artifact (it's what
+  makes the trail trustworthy); the NL summary is the approachable entry point,
+  computed from counts with no LLM. Reinforces the tamper-evidence thesis
+  rather than replacing it with prose.
+
 ## NL audit search + permission-gating polish (2026-10-10, pass 2)
 
 Built on the auditability realignment below. 232 tests pass (added 15 NL-parser
