@@ -76,6 +76,14 @@ class AuditQueryResponseModel(BaseModel):
     events: list[AuditEventModel]
 
 
+class AuditSearchResponseModel(AuditQueryResponseModel):
+    """Audit query result plus how the natural-language question was parsed."""
+
+    interpretation: str = ""
+    matched: bool = False
+    parts: list[str] = Field(default_factory=list)
+
+
 # -- /admin ------------------------------------------------------------
 
 class RevokeGrantRequest(BaseModel):

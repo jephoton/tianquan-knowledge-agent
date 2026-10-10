@@ -10,8 +10,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from backend.api.deps import require_permission
-from backend.api.schemas import AuditEventModel, AuditQueryResponseModel
+from backend.api.schemas import (
+    AuditEventModel,
+    AuditQueryResponseModel,
+    AuditSearchResponseModel,
+)
 from backend.audit.audit_query import AuditQuery
+from backend.audit import nl_query
 
 
 # All audit routes require audit_query (compliance_officer, security_team,
@@ -72,6 +77,37 @@ def query_audit(
         chain_valid=result.verification.valid,
         chain_status=result.verification.reason,
         events=[_event_model(e) for e in result.events],
+    )
+
+
+@router.get("/search", response_model=AuditSearchResponseModel)
+def search_audit(request: Request, q: str = "") -> AuditSearchResponseModel:
+    """Natural-language audit search.
+
+    Parse a plain-English compliance question ("what did alice access last
+    week?") into a structured query and run it. The parse is deterministic
+    (no LLM dependency), so it works offline and returns the same result
+    every time — and the `interpretation` is sent back so the inspector can
+    see exactly what the system understood.
+    """
+    state = request.app.state.tianquan
+    users = state.identity.all_users()
+    user_ids = list(users.keys())
+    names = {uid: u.name for uid, u in users.items()}
+
+    parsed = nl_query.parse(q, user_ids=user_ids, names=names)
+    result = state.audit_query.run(parsed.query)
+
+    return AuditSearchResponseModel(
+        count=result.count,
+        allow_count=result.allow_count,
+        deny_count=result.deny_count,
+        chain_valid=result.verification.valid,
+        chain_status=result.verification.reason,
+        events=[_event_model(e) for e in result.events],
+        interpretation=parsed.interpretation,
+        matched=parsed.matched,
+        parts=parsed.parts,
     )
 
 
