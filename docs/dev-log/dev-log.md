@@ -206,6 +206,15 @@
 
 ---
 
+### 2026-10-10 — NL audit search + preview/tab permission-gating + answer-text expand
+
+- **Tool:** Kiro
+- **Task:** Follow-ups from the auditability pass: (B) let a compliance officer type a plain-English question into the audit explorer; gate the whole source-preview panel on download permission; hide the Admin tab entirely for non-privileged personas; add an expand/collapse to the full answer text in the inspector; rename the export button to "download"; and answer the "LLM with deterministic fallback" question for both the audit search and the main query box.
+- **Summary:** Built `backend/audit/nl_query.py` — a deterministic NL→AuditQuery parser (user by id/display-name, time windows today/yesterday/last N days|weeks|months/last week|month, allow/deny keywords, quoted resource substring), conservative (unparseable → unset filter, not a guess). New `GET /audit/search?q=` endpoint (gated by `audit_query`, 403 for bob verified) returns the structured result plus the parse `interpretation`/`parts` for transparency. UI gained an "ask the audit trail" box above the filters. Deliberately **no LLM dependency** — deterministic is the right default for an audit tool (offline, reproducible); an LLM can be layered on later with this as the fallback. Clarified that the main query box ALREADY implements "LLM with deterministic fallback": the orchestrator tries the live ADP LLM and degrades to the StubLLMClient extractive summarizer on any failure, with safety unaffected (both only see filtered context). Frontend: gated the entire source-preview panel on `export` (view raw content ⇒ can copy out ⇒ treat as export; without it, citation cards are non-interactive metadata); hid the Admin tab button entirely for personas lacking audit+manage (with fallback to the query tab if they were on it); replaced the 90-char answer-text truncation with a per-row expand/collapse toggle; renamed "export ↓" → "download ↓". Live-verified NL search (alice last week = 12 allow / 6 deny; name-resolution John→jdoe; gibberish → full-log warning). 232 tests pass (+15 NL-parser tests); no new diagnostics.
+- **Screenshot captured:** N — capture the NL audit search (question + interpretation) and the gated preview for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

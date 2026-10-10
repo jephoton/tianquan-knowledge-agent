@@ -1,5 +1,43 @@
 ﻿# Current State — Tianquan 天权
 
+> **Last updated:** 2026-10-10 (NL audit search + preview/tab gating + answer-text expand)
+
+## NL audit search + permission-gating polish (2026-10-10, pass 2)
+
+Built on the auditability realignment below. 232 tests pass (added 15 NL-parser
+tests). Live-verified.
+
+- **Natural-language audit search (Option B).** New `backend/audit/nl_query.py`
+  deterministically parses a plain-English compliance question — "what did
+  alice access last week?" — into a structured `AuditQuery` (user by id or
+  display name, time window: today/yesterday/last N days|weeks|months/last
+  week|month, decision allow|deny, quoted resource substring). New endpoint
+  `GET /audit/search?q=` (gated by `audit_query`) runs it and returns the
+  parse `interpretation` + `parts` for transparency. UI: an "ask the audit
+  trail" box above the structured filters; shows what it understood. **No LLM
+  dependency** — deterministic, offline, same answer every time (the right
+  default for an audit tool). An LLM can be layered on top later as an optional
+  enhancement; the deterministic parser stays the fallback.
+- **On "LLM with deterministic fallback":** this is already the pattern for the
+  main query box — the orchestrator calls the live ADP LLM and, on any failure
+  (e.g. the TLS-intercepted network), degrades at runtime to the deterministic
+  `StubLLMClient` extractive summarizer. Safety is unaffected either way
+  because both only ever see permission-filtered context. The NL audit search
+  now mirrors that philosophy (deterministic core, LLM optional).
+- **Source-preview panel gated on download/export permission.** The whole
+  preview surface (view raw content + download) now renders only for personas
+  with `export`; without it, citation cards are non-interactive metadata (you
+  can read the blended cited answer but not open/copy the raw source). Rationale
+  the user raised: once you can read raw content you can copy it out, so viewing
+  the source IS effectively exporting — gate them together.
+- **Admin tab hidden entirely** for personas with no admin access (was: visible
+  tab with a "locked" card). If a persona loses access while on the admin tab,
+  the UI falls back to the query tab.
+- **Answer text in the inspector** now has a per-row **expand/collapse** toggle
+  (was: 90-char truncation with hover tooltip) so compliance can read the full
+  captured answer inline.
+- **Button label** "export ↓" → "download ↓" in the preview.
+
 > **Last updated:** 2026-10-10 (auditability realignment: answer capture, time-window query, export-in-preview)
 
 ## Auditability realignment (2026-10-10)
