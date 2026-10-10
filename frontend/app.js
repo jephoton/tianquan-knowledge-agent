@@ -125,9 +125,22 @@ function applyAdminGate() {
   const content = $("admin-content");
   if (!locked || !content) return;
 
-  if (!state.canAudit && !state.canManage) {
+  // Hide the Admin tab button entirely for personas with no admin access —
+  // a non-privileged user shouldn't even see that an admin console exists.
+  const hasAdmin = state.canAudit || state.canManage;
+  const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+  if (adminTabBtn) adminTabBtn.style.display = hasAdmin ? "" : "none";
+
+  // If the admin tab was active and this persona lost access, fall back to
+  // the query tab so we don't leave them staring at a hidden panel.
+  if (!hasAdmin) {
+    const adminPanel = $("tab-admin");
+    if (adminPanel && adminPanel.classList.contains("active")) {
+      const queryBtn = document.querySelector('.tab-btn[data-tab="query"]');
+      switchTab("query", queryBtn);
+    }
     content.style.display = "none";
-    locked.style.display = "flex";
+    locked.style.display = "none";  // tab is hidden; no need for a locked card
     return;
   }
 
@@ -230,11 +243,23 @@ function renderAnswer(r) {
   cites.innerHTML = "";
   $("resource-preview").style.display = "none";  // reset preview per query
   if (!r.citations.length) return;
+  // The source-preview panel (view full content + download) is a privileged
+  // surface: it only renders for personas who hold the download/export
+  // permission. The rationale — once you can read the raw source content you
+  // can copy it out, so viewing the source IS effectively exporting. Personas
+  // without that permission still see the blended cited answer and the
+  // citation metadata, just not the raw source or the download.
+  const canOpenSource = state.canExport;
   r.citations.forEach((c) => {
     const card = document.createElement("div");
     card.className = "citation-card";
-    card.style.cursor = "pointer";
-    card.title = "click to view the source content";
+    if (canOpenSource) {
+      card.style.cursor = "pointer";
+      card.title = "click to view the source content";
+      card.onclick = () => previewResource(c.resource_id);
+    } else {
+      card.title = "answer is cited from this source";
+    }
     card.innerHTML =
       `<div class="citation-marker">${esc(c.marker)}</div>` +
       `<div class="citation-body">` +
@@ -242,8 +267,6 @@ function renderAnswer(r) {
       `<div class="citation-title">${esc(c.title)}</div>` +
       `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
       `</div>`;
-    // Click the card → open the source content in the preview window.
-    card.onclick = () => previewResource(c.resource_id);
     cites.appendChild(card);
   });
 }
@@ -335,6 +358,32 @@ async function refreshAudit() {
   setChainBadge(r.chain_valid, r.chain_status);
 }
 
+// Natural-language audit search: type a question, the server parses it
+// deterministically into filters, runs it, and reports its interpretation.
+async function nlSearchAudit() {
+  const q = $("audit-nl").value.trim();
+  const interp = $("audit-nl-interp");
+  if (!q) { interp.textContent = ""; return; }
+  try {
+    const r = await api("/audit/search?q=" + encodeURIComponent(q));
+    state.lastAuditEvents = r.events.slice().reverse();
+    state.auditPage = 0;
+    renderAudit();
+    renderStats(r);
+    setChainBadge(r.chain_valid, r.chain_status);
+    interp.textContent = r.interpretation || "";
+    interp.style.color = r.matched ? "#5fb87f" : "#c47a7a";
+    // Reflect the parse into the structured filters so the inspector sees
+    // which filters the question mapped to (transparency).
+    if (r.parts && r.parts.length) {
+      interp.textContent += "  (" + r.parts.join(" · ") + ")";
+    }
+  } catch (e) {
+    interp.textContent = e.message;
+    interp.style.color = "#c47a7a";
+  }
+}
+
 function renderAudit() {
   const body = $("audit-body");
   const events = state.lastAuditEvents;
@@ -353,13 +402,25 @@ function renderAudit() {
     const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
     const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
     // Resource column: the resource id, or — for an answer event (no resource)
-    // — the captured answer text, so the trail shows WHAT the AI said.
-    let mid;
+    // — the captured answer text. Long answer text is truncated with an
+    // EXPAND toggle so compliance can read the full statement on demand
+    // without blowing up the row height for everyone.
+    let mid, midStyle = "";
     if (e.resource_id) {
       mid = esc(e.resource_id);
     } else if (e.detail) {
-      const d = e.detail.length > 90 ? e.detail.slice(0, 90) + "…" : e.detail;
-      mid = `<span style="color:#b8ad98;font-style:italic;" title="${esc(e.detail)}">“${esc(d)}”</span>`;
+      const full = esc(e.detail);
+      if (e.detail.length > 90) {
+        const short = esc(e.detail.slice(0, 90)) + "…";
+        mid =
+          `<span class="answer-detail" style="color:#b8ad98;font-style:italic;">` +
+          `<span class="ad-short">“${short}”</span>` +
+          `<span class="ad-full" style="display:none;">“${full}”</span></span> ` +
+          `<button class="ad-expand outline-btn" style="padding:1px 7px;font-size:9px;">expand</button>`;
+      } else {
+        mid = `<span style="color:#b8ad98;font-style:italic;">“${full}”</span>`;
+      }
+      midStyle = "white-space:normal;min-width:260px;max-width:460px;";
     } else {
       mid = "—";
     }
@@ -367,9 +428,22 @@ function renderAudit() {
       `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
       `<td>${esc(e.user_id)}</td>` +
       `<td>${esc((e.action || "").toUpperCase())}</td>` +
-      `<td>${mid}</td>` +
+      `<td style="${midStyle}">${mid}</td>` +
       `<td>${pill(e.decision)}</td>` +
       `<td style="font-size:11px;">${esc(hash)}</td>`;
+    // Wire the EXPAND toggle (if present) to swap short/full and flip the label.
+    const btn = tr.querySelector(".ad-expand");
+    if (btn) {
+      btn.onclick = () => {
+        const wrap = tr.querySelector(".answer-detail");
+        const shortEl = wrap.querySelector(".ad-short");
+        const fullEl = wrap.querySelector(".ad-full");
+        const expanded = fullEl.style.display !== "none";
+        fullEl.style.display = expanded ? "none" : "";
+        shortEl.style.display = expanded ? "" : "none";
+        btn.textContent = expanded ? "expand" : "collapse";
+      };
+    }
     body.appendChild(tr);
   });
   const end = Math.min(start + size, events.length);
@@ -615,6 +689,10 @@ async function boot() {
       $("query-input").value = q;
       runQuery(q);
     };
+  });
+  $("audit-nl-go").onclick = () => nlSearchAudit();
+  $("audit-nl").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") nlSearchAudit();
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
   $("audit-verify-file").onclick = verifyFile;

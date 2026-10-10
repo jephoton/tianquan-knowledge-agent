@@ -508,7 +508,7 @@
       <div class="flex items-center justify-between mb-3">
         <div class="section-label">source preview — <span id="preview-id" style="color:#ffb000;"></span></div>
         <div class="flex items-center" style="gap:8px;">
-          <button id="preview-export" class="outline-btn" style="display:none;padding:2px 10px;font-size:11px;color:#5fb87f;border-color:rgba(95,184,127,0.4);">export ↓</button>
+          <button id="preview-export" class="outline-btn" style="display:none;padding:2px 10px;font-size:11px;color:#5fb87f;border-color:rgba(95,184,127,0.4);">download ↓</button>
           <button id="preview-close" class="outline-btn" style="padding:2px 10px;font-size:11px;">close</button>
         </div>
       </div>
@@ -556,6 +556,19 @@
         <button id="audit-verify-file" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify integrity</button>
         <button id="audit-refresh" class="outline-btn" style="padding:4px 12px;font-size:11px;">refresh</button>
       </div>
+    </div>
+
+    <!-- Natural-language search -->
+    <div class="mb-4">
+      <div class="section-label mb-2">ask the audit trail</div>
+      <div class="flex gap-3 items-start">
+        <div class="flex-1 relative">
+          <input id="audit-nl" type="text" class="crt-input"
+                 placeholder='e.g. "what did alice access last week?"' />
+        </div>
+        <button id="audit-nl-go" class="outline-btn" style="padding:8px 18px;">search</button>
+      </div>
+      <div id="audit-nl-interp" style="font-size:11px;color:#9a8e78;margin-top:6px;min-height:14px;"></div>
     </div>
 
     <!-- Filters -->
