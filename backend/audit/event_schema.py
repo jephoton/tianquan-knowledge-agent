@@ -39,6 +39,7 @@ _PAYLOAD_FIELDS = (
     "action",
     "decision",
     "reason",
+    "detail",
     "acl_version",
     "policy_version",
     "previous_hash",
@@ -52,6 +53,10 @@ class AuditEvent:
     Attributes mirror architecture.md §4. `event_hash` is filled in by the
     hash chain when the event is appended; `previous_hash` links to the
     prior event's hash (or the genesis constant for the first event).
+
+    `detail` is free text for context that doesn't fit the structured fields —
+    notably the generated answer text on an answer event, so the full record
+    of "what the AI told the user" is captured in the tamper-evident log.
     """
 
     event_id: str
@@ -63,6 +68,7 @@ class AuditEvent:
     acl_version: int
     policy_version: int
     resource_id: str | None = None
+    detail: str = ""
     timestamp: datetime = field(default_factory=utc_now)
     previous_hash: str = ""
     event_hash: str = ""
@@ -115,6 +121,7 @@ def event_from_dict(d: dict[str, Any]) -> AuditEvent:
         acl_version=d.get("acl_version", 0),
         policy_version=d.get("policy_version", 0),
         resource_id=d.get("resource_id"),
+        detail=d.get("detail", ""),
         timestamp=ts or utc_now(),
         previous_hash=d.get("previous_hash", ""),
         event_hash=d.get("event_hash", ""),
@@ -125,11 +132,13 @@ def event_from_decision(
     decision: Decision,
     query_id: str,
     event_id: str,
+    detail: str = "",
 ) -> AuditEvent:
     """Build an (unchained) AuditEvent from a policy Decision.
 
     The returned event has no previous_hash/event_hash yet — those are
-    assigned when it is appended to the hash chain.
+    assigned when it is appended to the hash chain. `detail` carries optional
+    free text (e.g. the answer text on an answer event).
     """
     action = decision.action.value if isinstance(decision.action, Action) else str(decision.action)
     result = (
@@ -147,5 +156,6 @@ def event_from_decision(
         reason=decision.reason,
         acl_version=decision.acl_version,
         policy_version=decision.policy_version,
+        detail=detail,
         timestamp=decision.timestamp,
     )

@@ -84,10 +84,16 @@ class HashChain:
             self.save(self._persist_path)
         return event
 
-    def append_decision(self, decision: Decision, query_id: str) -> AuditEvent:
-        """Convenience: build an AuditEvent from a Decision and append it."""
+    def append_decision(
+        self, decision: Decision, query_id: str, detail: str = "",
+    ) -> AuditEvent:
+        """Convenience: build an AuditEvent from a Decision and append it.
+
+        `detail` carries optional free text (e.g. the answer text captured on
+        an answer event) into the tamper-evident record.
+        """
         event = event_from_decision(
-            decision, query_id=query_id, event_id=str(uuid.uuid4()),
+            decision, query_id=query_id, event_id=str(uuid.uuid4()), detail=detail,
         )
         return self.append(event)
 

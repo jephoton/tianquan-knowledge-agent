@@ -7,7 +7,7 @@ integrity for the tamper-evidence demo.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from backend.api.deps import require_permission
 from backend.api.schemas import AuditEventModel, AuditQueryResponseModel
@@ -33,7 +33,26 @@ def query_audit(
     query_id: str | None = None,
     decision: str | None = None,
     action: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
 ) -> AuditQueryResponseModel:
+    """Query the audit trail. `since`/`until` are ISO-8601 timestamps (or a
+    plain date like 2026-10-01) bounding the event time — this is what lets a
+    compliance officer ask 'what did alice access last week?'.
+    """
+    from datetime import datetime, timezone
+
+    def _parse(ts: str | None):
+        if not ts:
+            return None
+        try:
+            dt = datetime.fromisoformat(ts)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"bad timestamp: {ts}")
+        # Normalize naive timestamps to UTC so comparison with stored
+        # (tz-aware) event timestamps works.
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
     state = request.app.state.tianquan
     result = state.audit_query.run(
         AuditQuery(
@@ -42,6 +61,8 @@ def query_audit(
             query_id=query_id,
             decision=decision,
             action=action,
+            since=_parse(since),
+            until=_parse(until),
         )
     )
     return AuditQueryResponseModel(

@@ -216,7 +216,10 @@ class Orchestrator:
             acl_version=0,
             policy_version=0,
         )
-        self._audit.append_decision(answer_decision, query_id)
+        # Capture the exact answer text served to the user in the tamper-evident
+        # log — so a compliance officer can later see WHAT the AI said, not just
+        # that it answered. (The no-access canonical message is captured too.)
+        self._audit.append_decision(answer_decision, query_id, detail=answer.text)
 
         return QueryResponse(
             query_id=query_id,
