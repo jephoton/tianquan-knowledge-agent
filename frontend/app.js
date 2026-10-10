@@ -234,27 +234,17 @@ function renderAnswer(r) {
     const card = document.createElement("div");
     card.className = "citation-card";
     card.style.cursor = "pointer";
-    card.title = "click to preview the source content";
-    // Export button only when the persona holds the export permission.
-    const exportBtn = state.canExport
-      ? `<button class="export-btn" data-rid="${esc(c.resource_id)}">export</button>`
-      : "";
+    card.title = "click to view the source content";
     card.innerHTML =
       `<div class="citation-marker">${esc(c.marker)}</div>` +
       `<div class="citation-body">` +
       `<div class="citation-source">${sourceIcon(c.source)} ${esc(c.source)} · ${esc(c.resource_id)}</div>` +
       `<div class="citation-title">${esc(c.title)}</div>` +
       `<div class="citation-fresh">${freshnessBadge(c.updated_at)}</div>` +
-      `</div>` +
-      exportBtn;
-    // Click the card → preview the source content.
+      `</div>`;
+    // Click the card → open the source content in the preview window.
     card.onclick = () => previewResource(c.resource_id);
     cites.appendChild(card);
-  });
-
-  // Export buttons: don't let the click bubble to the card's preview handler.
-  cites.querySelectorAll(".export-btn").forEach((btn) => {
-    btn.onclick = (e) => { e.stopPropagation(); exportResource(btn.dataset.rid); };
   });
 }
 
@@ -266,6 +256,17 @@ async function previewResource(resourceId) {
     $("preview-id").textContent = r.resource_id;
     $("preview-title").textContent = `${sourceIcon(r.source)} ${r.title}`;
     $("preview-content").textContent = r.content;
+    // Export lives inside the preview window and renders ONLY when the current
+    // persona holds the export permission. No export perm → the button is not
+    // in the UI at all (view-only access).
+    const exp = $("preview-export");
+    if (state.canExport) {
+      exp.style.display = "";
+      exp.onclick = () => exportResource(r.resource_id);
+    } else {
+      exp.style.display = "none";
+      exp.onclick = null;
+    }
     $("resource-preview").style.display = "block";
     $("resource-preview").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (e) {
@@ -314,9 +315,15 @@ async function refreshAudit() {
   const u = $("f-user").value.trim();
   const dec = $("f-decision").value.trim();
   const rc = $("f-resource").value.trim();
+  const since = $("f-since") ? $("f-since").value.trim() : "";
+  const until = $("f-until") ? $("f-until").value.trim() : "";
   if (u) params.set("user_id", u);
   if (dec) params.set("decision", dec);
   if (rc) params.set("resource_contains", rc);
+  if (since) params.set("since", since);
+  // 'until' as a plain date means start-of-day; bump to end-of-day so the
+  // whole 'to' day is included.
+  if (until) params.set("until", until + "T23:59:59");
   const qs = params.toString();
 
   const r = await api("/audit" + (qs ? "?" + qs : ""));
@@ -345,11 +352,22 @@ function renderAudit() {
     const tr = document.createElement("tr");
     const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
     const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
+    // Resource column: the resource id, or — for an answer event (no resource)
+    // — the captured answer text, so the trail shows WHAT the AI said.
+    let mid;
+    if (e.resource_id) {
+      mid = esc(e.resource_id);
+    } else if (e.detail) {
+      const d = e.detail.length > 90 ? e.detail.slice(0, 90) + "…" : e.detail;
+      mid = `<span style="color:#b8ad98;font-style:italic;" title="${esc(e.detail)}">“${esc(d)}”</span>`;
+    } else {
+      mid = "—";
+    }
     tr.innerHTML =
       `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
       `<td>${esc(e.user_id)}</td>` +
       `<td>${esc((e.action || "").toUpperCase())}</td>` +
-      `<td>${esc(e.resource_id || "—")}</td>` +
+      `<td>${mid}</td>` +
       `<td>${pill(e.decision)}</td>` +
       `<td style="font-size:11px;">${esc(hash)}</td>`;
     body.appendChild(tr);
@@ -618,10 +636,23 @@ async function boot() {
   });
 
   // Audit filter auto-refresh
-  ["f-user", "f-decision", "f-resource"].forEach((id) => {
-    $(id).addEventListener("change", () => refreshAudit().catch(() => {}));
-    $(id).addEventListener("input", () => refreshAudit().catch(() => {}));
+  ["f-user", "f-decision", "f-resource", "f-since", "f-until"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener("change", () => refreshAudit().catch(() => {}));
+    el.addEventListener("input", () => refreshAudit().catch(() => {}));
   });
+  // "Last 7 days" quick filter.
+  $("f-last7").onclick = () => {
+    const d = new Date(Date.now() - 7 * 86400000);
+    $("f-since").value = d.toISOString().slice(0, 10);
+    $("f-until").value = "";
+    refreshAudit().catch((e) => toast(e.message, true));
+  };
+  $("f-clear").onclick = () => {
+    ["f-user", "f-decision", "f-resource", "f-since", "f-until"].forEach((id) => { $(id).value = ""; });
+    refreshAudit().catch((e) => toast(e.message, true));
+  };
 
   // Tab switching
   document.querySelectorAll(".tab-btn").forEach((btn) => {
