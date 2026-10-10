@@ -214,10 +214,11 @@ function freshnessBadge(updatedAt) {
   const then = new Date(updatedAt).getTime();
   const ageHours = (now - then) / 36e5;
   let color, label;
-  if (ageHours < 24) { color = "#3a8a5a"; label = "fresh"; }
-  else if (ageHours < 168) { color = "#ffb000"; label = Math.round(ageHours / 24) + "d"; }
-  else { color = "#c47a7a"; label = Math.round(ageHours / 168) + "w"; }
-  return ` <span style="color:${color};font-size:10px;">[${label}]</span>`;
+  if (ageHours < 24) { color = "#3a8a5a"; label = "updated today"; }
+  else if (ageHours < 168) { color = "#ffb000"; label = `updated ${Math.round(ageHours / 24)}d ago`; }
+  else { color = "#c47a7a"; label = `updated ${Math.round(ageHours / 168)}w ago`; }
+  // Small dot + explicit label — subtle, but self-explanatory.
+  return `<span style="color:${color};font-size:10px;">● ${label}</span>`;
 }
 
 function renderAnswer(r) {
@@ -387,14 +388,9 @@ function setAuditPageSize(n) {
 }
 
 function renderStats(r) {
-  const total = r.count, allowed = r.allow_count, denied = r.deny_count;
-  const chainOk = r.chain_valid ? "100%" : "FAIL";
-  const chainColor = r.chain_valid ? "#3a8a5a" : "#c47a7a";
-  $("stat-total").textContent = total;
-  $("stat-allowed").textContent = allowed;
-  $("stat-denied").textContent = denied;
-  $("stat-chain").textContent = chainOk;
-  $("stat-chain").style.color = chainColor;
+  $("stat-total").textContent = r.count;
+  $("stat-allowed").textContent = r.allow_count;
+  $("stat-denied").textContent = r.deny_count;
 }
 
 function setChainBadge(valid, status) {
@@ -411,14 +407,6 @@ function setChainBadge(valid, status) {
     b.style.textShadow = "none";
   }
   b.title = status || "";
-}
-
-async function verifyChain() {
-  try {
-    const v = await api("/audit/verify");
-    setChainBadge(v.valid, v.reason);
-    toast(v.valid ? `in-memory chain verified (${v.length} blocks)` : `TAMPERED at #${v.broken_at_index}: ${v.reason}`, !v.valid);
-  } catch (e) { toast(e.message, true); }
 }
 
 // Re-reads the on-disk audit_log.json and verifies it from scratch. This is
@@ -611,7 +599,6 @@ async function boot() {
     };
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
-  $("audit-verify").onclick = verifyChain;
   $("audit-verify-file").onclick = verifyFile;
   $("audit-prev").onclick = auditPrev;
   $("audit-next").onclick = auditNext;

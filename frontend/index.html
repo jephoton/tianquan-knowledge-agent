@@ -529,7 +529,7 @@
   <div id="admin-content" class="flex flex-col gap-8">
 
   <!-- STATS ROW (gated: audit_query) -->
-  <div id="stats-section" class="grid grid-cols-4 gap-4">
+  <div id="stats-section" class="grid grid-cols-3 gap-4">
     <div class="crt-card p-5 text-center">
       <div class="section-label mb-2">audit events</div>
       <div id="stat-total" style="font-size:32px;font-weight:700;color:#ffb000;" class="phosphor-glow">0</div>
@@ -542,10 +542,6 @@
       <div class="section-label mb-2">denied</div>
       <div id="stat-denied" style="font-size:32px;font-weight:700;color:#c47a7a;" class="phosphor-glow">0</div>
     </div>
-    <div class="crt-card p-5 text-center">
-      <div class="section-label mb-2">audit integrity</div>
-      <div id="stat-chain" style="font-size:32px;font-weight:700;color:#3a8a5a;" class="phosphor-glow">--</div>
-    </div>
   </div>
 
   <!-- AUDIT EXPLORER (gated: audit_query; includes merged policy decisions) -->
@@ -554,8 +550,7 @@
       <div class="section-label">audit explorer</div>
       <div class="flex items-center gap-3">
         <span id="chain-badge" class="chain-badge-lg" style="color:#b8ad98;background:rgba(20,20,20,0.6);">[--]</span>
-        <button id="audit-verify-file" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify log file</button>
-        <button id="audit-verify" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify (memory)</button>
+        <button id="audit-verify-file" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify integrity</button>
         <button id="audit-refresh" class="outline-btn" style="padding:4px 12px;font-size:11px;">refresh</button>
       </div>
     </div>
