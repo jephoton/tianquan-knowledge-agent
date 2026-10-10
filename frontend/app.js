@@ -64,6 +64,7 @@ const state = {
   canManage: false,
   canExport: false,
   lastQuery: null,
+  lastAnswer: null,
   lastDecisions: [],
   auditPage: 0,
   auditPageSize: 10,
@@ -113,6 +114,13 @@ function selectPersona(u) {
   $("current-user").textContent = `${u.name} [${state.currentRole}]`;
   const qp = $("query-persona");
   if (qp) qp.textContent = `${u.name} · ${state.currentRole}`;
+  // The source-preview panel is a download-gated surface. If the new persona
+  // lacks export, close any open preview immediately so switching away hides
+  // it at once; also re-render the current answer's citations so their
+  // click-to-open behavior reflects the new persona's permission.
+  const preview = $("resource-preview");
+  if (preview && !state.canExport) preview.style.display = "none";
+  if (state.lastAnswer) renderAnswer(state.lastAnswer);
   applyAdminGate();
 }
 
@@ -125,11 +133,13 @@ function applyAdminGate() {
   const content = $("admin-content");
   if (!locked || !content) return;
 
-  // Hide the Admin tab button entirely for personas with no admin access —
-  // a non-privileged user shouldn't even see that an admin console exists.
+  // Hide the tab bar entirely for personas with no admin access — a
+  // non-privileged user shouldn't even see that other tabs exist. Use
+  // `visibility:hidden` on the BAR (not display:none) so its vertical space
+  // is preserved and the content below doesn't jump up to fill the gap.
   const hasAdmin = state.canAudit || state.canManage;
-  const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
-  if (adminTabBtn) adminTabBtn.style.display = hasAdmin ? "" : "none";
+  const tabBar = document.querySelector(".tab-bar");
+  if (tabBar) tabBar.style.visibility = hasAdmin ? "visible" : "hidden";
 
   // If the admin tab was active and this persona lost access, fall back to
   // the query tab so we don't leave them staring at a hidden panel.
@@ -235,6 +245,7 @@ function freshnessBadge(updatedAt) {
 }
 
 function renderAnswer(r) {
+  state.lastAnswer = r;  // remembered so a persona switch can re-gate citations
   const ans = $("answer-text");
   ans.className = "phosphor-text answer-complete";
   ans.textContent = r.answer;
@@ -371,13 +382,18 @@ async function nlSearchAudit() {
     renderAudit();
     renderStats(r);
     setChainBadge(r.chain_valid, r.chain_status);
-    interp.textContent = r.interpretation || "";
-    interp.style.color = r.matched ? "#5fb87f" : "#c47a7a";
-    // Reflect the parse into the structured filters so the inspector sees
-    // which filters the question mapped to (transparency).
-    if (r.parts && r.parts.length) {
-      interp.textContent += "  (" + r.parts.join(" · ") + ")";
+    // Natural-language summary (deterministic, computed from the result —
+    // no LLM) sitting ABOVE the verifiable hash-chained evidence table. The
+    // table stays the primary artifact: an auditor needs to see the actual
+    // tamper-evident events, not just prose about them.
+    let summary = r.interpretation || "";
+    if (r.matched) {
+      summary += ` Found ${r.count} event${r.count === 1 ? "" : "s"}` +
+        ` (${r.allow_count} allowed, ${r.deny_count} denied).`;
+      if (r.parts && r.parts.length) summary += `  [${r.parts.join(" · ")}]`;
     }
+    interp.textContent = summary;
+    interp.style.color = r.matched ? "#5fb87f" : "#c47a7a";
   } catch (e) {
     interp.textContent = e.message;
     interp.style.color = "#c47a7a";
