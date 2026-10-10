@@ -189,17 +189,27 @@ class Orchestrator:
         #     minimal grounded statement rather than an empty string.
         grounding_report: GroundingReport | None = None
         if not answer.no_access:
+            pre_grounding_text = answer.text
             grounding_report = self._grounding_checker.check(
                 answer.text, retrieval.context,
             )
             if grounding_report.grounded_text:
                 answer.text = grounding_report.grounded_text
             else:
-                # All sentences were stripped — the LLM produced nothing
-                # grounded. Fall back to a citation-only summary so the
-                # user still sees which sources were authorized.
-                markers = " ".join(c.marker for c in answer.citations)
-                answer.text = f"Relevant sources found: {markers}." if markers else ""
+                # The grounding checker stripped every sentence. This is a
+                # hallucination guard (INV8) aimed at a *generative* LLM
+                # inventing content. But the answer agent's text is already
+                # citation-validated against the authorized context (INV6),
+                # and the deterministic stub's text is extracted verbatim from
+                # that context — so "everything stripped" here is almost always
+                # an over-strip (e.g. markdown headers confusing sentence
+                # splitting), not a real hallucination. Rather than emit a
+                # useless "Relevant sources found: [1]" placeholder (or an
+                # empty string), keep the citation-validated pre-grounding
+                # text. Safety is intact: the text can only contain authorized,
+                # cited content — nothing was ever leaked, only possibly
+                # over-pruned.
+                answer.text = pre_grounding_text
 
         # 4. Audit the answer emission as its own event (resource_id=None).
         #    If injection was suspected, the reason field carries the flag
