@@ -197,6 +197,15 @@
 
 ---
 
+### 2026-10-10 — Auditability realignment (answer capture, time-window query, export-in-preview)
+
+- **Tool:** Kiro
+- **Task:** Closed three auditability/UX gaps surfaced while pressure-testing the "inspectable AI" story: (1) answer text wasn't in the audit trail, (2) the audit trail wasn't time-queryable, (3) a view-only persona could preview content but the export button lived on the citation card.
+- **Summary:** Gap 1 — added a hashed `detail` field to `AuditEvent` (added to `_PAYLOAD_FIELDS`, so tamper-evident) threaded through `event_schema`, `hash_chain.append_decision`, the orchestrator's answer-event append (`detail=answer.text`), and the `AuditEventModel` wire schema; UI audit table now shows the AI's answer text (italic/quoted, 90-char truncation + full tooltip) in the detail column. `detail` defaults to `""` so existing chains/hash tests are unaffected (verified chain stays valid post-query). Gap 2 — `/audit` now accepts `since`/`until` (ISO or plain date, naive→UTC, `until` bumped to end-of-day client-side); UI gained a second filter row with date inputs + "last 7 days" + "clear"; inspectors can now answer "what did alice access last week?" Gap 3 — removed the per-citation export button (cards are click-to-preview only); the green `export ↓` button now lives inside the source-preview window and renders ONLY when the persona holds `export`. Live-verified: answer text captured in `detail`; `since=2099`→0 / `since=2000`→all / `user_id` scoping; `can_export` flags match (alice/bob none; charlie/diana/jdoe/erin/frank yes). 217 tests pass; no new diagnostics.
+- **Screenshot captured:** N — capture the audit explorer (detail column + time filters) and the preview export button for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

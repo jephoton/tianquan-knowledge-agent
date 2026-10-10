@@ -1,5 +1,34 @@
 ﻿# Current State — Tianquan 天权
 
+> **Last updated:** 2026-10-10 (auditability realignment: answer capture, time-window query, export-in-preview)
+
+## Auditability realignment (2026-10-10)
+
+Closed three gaps surfaced while pressure-testing the "inspectable AI" story.
+All backend-verified live and 217 tests still pass.
+
+- **Answer text captured in the trail (Gap 1).** The audit record is now the
+  full record of *what the AI said*, not just that it answered. Added a hashed
+  `detail` field to `AuditEvent` (in `_PAYLOAD_FIELDS`, so it's tamper-evident);
+  the orchestrator's answer-event append passes `detail=answer.text`. Threaded
+  through `event_from_dict`/`event_from_decision`, `HashChain.append_decision`,
+  and the `AuditEventModel` wire schema. UI audit table shows the answer text
+  (italic, quoted, truncated 90 chars + full tooltip) in the resource/detail
+  column for answer events. `detail` defaults to `""`, so existing chains and
+  hash tests are unaffected (verified: chain stays valid after a query).
+- **Time-window audit query (Gap 2).** `/audit` now accepts `since`/`until`
+  (ISO or plain date; naive→UTC normalized, `until` plain-date bumped to
+  end-of-day on the client). Inspectors can now answer "what did alice access
+  last week?" — verified: `since=2099`→0 events, `since=2000`→all, `user_id`
+  filter scopes correctly. UI gained a second filter row (since/until date
+  inputs, "last 7 days", "clear").
+- **Export moved into the source preview (Gap 3).** Removed the per-citation
+  export button; citation cards are now click-to-preview only. The green
+  `export ↓` button lives inside the preview window and renders **only** when
+  the persona holds `export` (view-only personas alice/bob never see it;
+  charlie/diana/jdoe/erin/frank do). Closes the "can view but the export button
+  is elsewhere" inconsistency.
+
 > **Last updated:** 2026-10-09 (demo-hardening pass: TOCTOU formal demo, file-based audit tamper, FinTech narrative)
 
 ## Demo-hardening pass (2026-10-09)

@@ -16,8 +16,7 @@
 > answers from a document they were never allowed to see. In most industries
 > that's a bug. In regulated finance it's a reportable breach. The AI wasn't
 > hacked — the access control was just never there. That's the problem
-> Tianquan solves, and it's the thing blocking every FinTech from deploying
-> internal AI today."
+> Tianquan solves."
 
 Transition: *"The core idea is one sentence —"* → show the tagline.
 
