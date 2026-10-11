@@ -12,7 +12,7 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 - [Plan & Roadmap](docs/plan.md) — source of truth, scope, milestones
 - [Architecture](docs/architecture.md) — diagram ([PNG](docs/architecture.png)), trust boundaries, module map
 - [Current State](docs/current-state.md) — what exists now, what's next
-- [Demo Runbook](docs/demo-runbook.md) — step-by-step demo scenarios · [Demo Script](docs/demo-script.md) — the narrated ~4-minute version
+- [Demo Runbook](docs/demo-runbook.md) — step-by-step demo scenarios · [Demo Script](docs/demo-script.md) — concise demo pointers with optional extensions
 - [Decisions](docs/decisions/) — architecture decision records (ADRs)
 
 ## What this is

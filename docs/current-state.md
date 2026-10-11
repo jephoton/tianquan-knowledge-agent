@@ -7,7 +7,9 @@
 <!-- Generated continuation handoff. -->
 - Removed popup toasts without adding replacement messages, per user preference. Existing query errors, ACL success status, inspector lookup errors, integrity badge and offline footer remain.
 - Permissions inspector has a manual refresh button that reloads resource options and the selected lookup, and disables during requests. Its header button reuses the audit explorer’s `outline-btn` styling and dimensions.
+- Demo script is now bullet pointers. Export and clean mode stay in the core demo per user preference. Live TLC mutation and the connector extension remain optional. All five required scenarios remain in the core flow. Setup now lists the three TLA+ model/harness/config files and prepared TLC output to have open.
 - Verification: `uv run --with-requirements requirements.txt python -m pytest -q` → 289 passed (one dependency deprecation warning); `node --check frontend/app.js` passed. Targeted Node checks verified inspector refresh after revocation, updated resource options and failure recovery. Full browser rehearsal remains pending.
+- Prior audit/policy/docs commits are present on main and origin/main. Remaining submission tasks below still require capture, rehearsal and final deliverable review.
 
 ## Append-only audit log, fail-closed connectors, export/connector beats (2026-10-11, pass 4)
 
