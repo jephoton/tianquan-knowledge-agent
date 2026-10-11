@@ -649,7 +649,7 @@ function auditEventRow(e, ctx = { hasAnswer: false, byMarker: new Map(), byResou
     mid = esc(e.resource_id);
     // In a query group, mark which allowed documents the answer actually cited.
     const marker = ctx.byResource.get(e.resource_id);
-    if (marker) mid += ` <span class="cite-badge">${esc(marker)} cited</span>`;
+    if (marker) mid += ` <span class="cite-badge">citation ${esc(marker)}</span>`;
     else if (ctx.hasAnswer && e.decision === "allow") mid += ` <span class="cite-badge muted">not cited</span>`;
   } else if (e.detail) {
     const full = chipCitations(esc(e.detail), ctx);

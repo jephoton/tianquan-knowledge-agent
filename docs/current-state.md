@@ -8,7 +8,7 @@
   carries a hashed `citations` field (`[{"marker": "[1]", "resource_id": …}]`,
   only citations that passed INV6), so editing which document was cited is
   detected. The audit explorer shows a `cited:` key under the answer
-  (hover a chip for its document) and marks each allowed row `[n] cited` or
+  (hover a chip for its document) and marks each allowed row `citation [n]` or
   `not cited` — what the model was given vs what it used. 275 tests pass.
 - **Tencent tools credited** in the project description, README and a video
   reflection section in the demo script: CodeBuddy (planning + core build),
