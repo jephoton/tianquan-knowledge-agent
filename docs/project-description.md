@@ -51,14 +51,14 @@ Denied documents are never passed to the LLM. The user receives the same generic
 
 | Layer | Technology | Role |
 |-------|-----------|------|
-| Frontend | Static HTML/JS (Miora-generated) | Query console, policy inspector, audit explorer, persona switcher, revocation controls |
+| Frontend | Static HTML/JS (Miora-generated) | Query console with cited answers, source preview, audit explorer, persona switcher, revocation controls, permissions inspector |
 | API | Python / FastAPI | Thin REST adapter over the orchestrator |
 | Orchestrator | Python | Wires retrieval → audit → answer → audit |
 | Retrieval | Python | Keyword candidate search → live-ACL permission filter → context assembler |
 | Policy Engine | Python | Source-specific permission mapping + sensitivity clearance + action permissions → Decision |
 | Formal Model | TLA+ / TLC | Model-checked safety invariants (7 invariants, safe + broken variants) |
-| Audit | Python | Hash-chained JSON event log with tamper detection |
-| LLM | Tencent Cloud LLM (via interface) | Swappable; stub for dev, live provider for demo |
+| Audit | Python | Hash-chained JSON event log (question, decisions, answer) with tamper detection and plain-English search |
+| LLM | Tencent Cloud ADP (via interface) | Live agent, fresh conversation per query; offline extractive fallback |
 | Dev Tool | CodeBuddy | Required proof of usage |
 
 ### Trust boundaries
@@ -71,7 +71,7 @@ Denied documents are never passed to the LLM. The user receives the same generic
 
 ### How prompts drive AI generation
 
-The user's natural-language question drives the candidate search (keyword/token-overlap scoring). The retrieved candidates are then filtered through the policy engine — **no AI is involved in the authorization decision**. The LLM only enters the pipeline after filtering, receiving a context window containing exclusively authorized content with citation markers. The answer agent generates a grounded response and strips any citation not backed by the context (INV6: NoUnauthorizedCitation).
+The user's natural-language question drives the candidate search (TF-IDF scoring across all four sources). The retrieved candidates are then filtered through the policy engine — **no AI is involved in the authorization decision**. The LLM only enters the pipeline after filtering, receiving a context window containing exclusively authorized content with citation markers. The answer agent generates a grounded response and strips any citation not backed by the context (INV6: NoUnauthorizedCitation); the grounding checker then removes any sentence the cited context does not support (INV8) and tells the user how many were removed.
 
 ### Formal verification
 
@@ -105,7 +105,7 @@ The thing blocking every bank and FinTech from rolling out an internal LLM today
 
 ## Demo scenarios
 
-1. **Allowed answer (multi-source)** — Alice gets an answer spanning 4 sources with 8 citations; 2 security docs are denied and filtered.
+1. **Allowed answer (multi-source)** — Alice gets a cited answer drawn from Jira, Slack and Confluence; of the 10 matching documents, 8 are allowed and 2 security docs are denied before the LLM (visible in the compliance view, never to Alice).
 2. **Negative case, no metadata leak** — Bob (contractor) gets the same "could not find" message as a nonexistent topic; denial is recorded in audit but never surfaced.
 3. **Live revocation** — Revoke Alice's engineer role from a Confluence page; ACL version bumps v1→v2; next query excludes it with no reindex.
 4. **Audit inquiry** — Compliance officer queries the trail by user, resource, or decision; chain verification badge confirms tamper-evidence.
@@ -120,5 +120,5 @@ Tianquan was built end-to-end using CodeBuddy as the primary development tool. T
 - **GitHub:** [tencent-hackathon](.) — complete source code
 - **Live ADP agent:** [Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — agent name "Tianquan 天权" and welcome message confirmed visible.
 - **Docs:** `docs/` — plan, architecture, current-state, ADRs, demo runbook, dev log
-- **Tests:** 217 passing (`python -m pytest -q`)
+- **Tests:** 273 passing (`python -m pytest -q`)
 - **Formal model:** `formal/` — TLA+ specification with TLC model configs

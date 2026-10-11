@@ -1,6 +1,68 @@
 ﻿# Current State — Tianquan 天权
 
-> **Last updated:** 2026-10-10 (NL audit search + preview/tab gating + answer-text expand)
+> **Last updated:** 2026-10-11 (independent review fixes: cross-platform search, preview audit, grounding, ADP isolation, audit question + grouping, accessibility, vendored assets, architecture diagram)
+
+## Independent review fixes (2026-10-11)
+
+An end-to-end review against the handbook found demo-breaking bugs; all fixed
+with regression tests. **273 tests pass.** Live-verified against ADP.
+
+- **Cross-platform search restored (ADR-0006).** Naming a platform ("…raised
+  in Slack?") used to restrict search to that one source, so the demo question
+  returned one Slack thread, no Jira/Confluence and no denials. Now a named
+  platform is a 2× ranking boost. Demo question: **8 allow / 2 deny**
+  (`confluence:q3-breach-report`, `SEC-101`) across 4 sources.
+- **ADP calls are stateless (ADR-0007).** The shared ADP client reused one
+  `ConversationId`, so the model remembered other users' prompts (an INV2
+  break, caught only by the grounding checker). Each call now opens a fresh
+  conversation. Also: the SSE stream is decoded as UTF-8 (em dashes and
+  Chinese were garbled).
+- **Source preview is a proper boundary.** `GET /resource/{id}` took the user
+  from a `?user_id=` query param (any caller could read as anyone), wrote no
+  audit event, and returned 403 vs 404 (an existence oracle). Now: identity
+  from `X-User-Id`, requires `export` (server-side, matching the UI), every
+  view audited (`detail="source_preview"`), denied ≡ not found (same 404).
+- **Grounding over-strip fixed.** Sentence-opening words ("Based", "There",
+  "Both") were treated as named entities, so correct ADP sentences were cut.
+  Phrases and hyphenated terms are now checked word by word; month names match
+  ISO dates; "9 AM" matches "9AM"; `[n]` digits aren't numbers. 0 removals
+  across 6 live samples. `/query` returns `grounding_removed`, shown in the UI.
+- **Question captured in the audit trail.** New hashed `question` field on
+  every event of a query (the handbook requires "query + retrieved doc IDs +
+  final answer"). Editing it in the file is detected.
+- **Plain-English audit search resolves resources.** Phrases like "the q3
+  breach report", "the ENG confluence space", "the SEC project", "in jira"
+  resolve against the live catalog (`resource_ids` filter); words it can't map
+  are reported in `unparsed` and shown in amber. The handbook example's
+  nonexistent `payment-gateway` space is reported, with a fallback to
+  Confluence pages about it.
+- **UI:** inline `[n]` markers jump to (and, with `export`, open) the cited
+  source; the preview shows the source's origin URL; the audit table groups
+  events under one header row per query (question, UTC time, allow/deny
+  counts) and paginates by query.
+- **Accessibility:** clean-mode toggle (no CRT effects, larger sans-serif,
+  remembered per browser); visible focus; keyboard persona listbox; ARIA tabs;
+  `aria-live` answers/toasts; labelled fields; min 11px text; two text colours
+  raised to WCAG AA; `prefers-reduced-motion` respected; page `<title>`.
+- **Vendored assets:** Tailwind browser 4.3.3 pinned in `frontend/vendor/`;
+  Font Awesome and Lucide removed (two inline SVG icons). The UI renders with
+  no internet access.
+- **Docs:** architecture diagram (`docs/architecture.svg` + `.png`),
+  architecture.md rewritten, ADR-0006/0007, demo runbook/script, READMEs,
+  project description, ADP plan (no knowledge base), `openapi.json` re-exported.
+
+### Open items (need you)
+
+- **ADP agent knowledge base:** make sure the published agent has **no**
+  knowledge base attached — it bypasses the permission filter on the public
+  link and on backend calls.
+- **Cover image is Required** (16:9, ~380×216) — not optional.
+- **Demo video** (5–8 min, optional but how preliminary judges see the demo);
+  the demo script is ~4 min, and the video should include a short reflection
+  on building with CodeBuddy.
+- Revoke form's resource field is still free text (the permissions inspector
+  covers before/after lookups).
+
 
 ## Removed upload UI, added permissions inspector (2026-10-10, pass 5)
 
@@ -308,7 +370,7 @@ Panel → permission mapping:
 ### M10 — complete
 
 All 5 demo scenarios verified end-to-end via the API:
-- Demo 1 (alice): 8 allow / 2 deny, 8 citations across 4 sources.
+- Demo 1 (alice): 8 allow / 2 deny across 4 sources (re-verified 2026-10-11 after the search fix).
 - Demo 2 (bob): canonical no-leak message, 0 citations, `no_access=true`.
 - Demo 3: ACL v1→v2 on revoke, citation drops on re-query.
 - Demo 4: 23 audit events for alice, chain verified.
@@ -323,8 +385,9 @@ Project description written (`docs/project-description.md`).
 - **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M15 #4, min 3)
   and the working UI running the demos. Several dev-log entries are still marked
   "capture pending".
-- **Optional cover image** via Miora (M15 #5, 16:9).
-- **Optional demo video** (M15 #6, 5–8 min).
+- **Cover image — Required** (M15 #5, 16:9, ~380×216), e.g. via Miora.
+- **Demo video** (M15 #6, 5–8 min) — optional, but it is how preliminary
+  judges see the demo.
 
 ### Then
 
@@ -350,13 +413,19 @@ Project description written (`docs/project-description.md`).
 
 ## Access control (frontend ↔ API)
 
-The admin and audit surfaces are **server-enforced**, not cosmetic:
-`/admin/*`, `/audit/*`, `/upload` require a privileged acting persona
-(`admin` or `compliance_officer`, via `X-User-Id`) → 401 without identity,
-403 otherwise. `/query` strips DENY details for non-privileged askers (no
-metadata leak at the wire) and returns `viewer_privileged`. The frontend
-reflects this: the Admin tab shows a locked state for non-privileged personas.
-Privileged seed users: **diana** (compliance_officer), **frank** (admin).
+The admin, audit and raw-source surfaces are **server-enforced**, not
+cosmetic (acting persona via `X-User-Id`; 401 without identity, 403 without
+the permission):
+
+| Routes | Permission | Seed personas |
+|---|---|---|
+| `/audit/*` | `audit_query` | charlie (security_team), diana (compliance_officer), frank (admin) |
+| `/admin/*`, `/upload` | `manage_permissions` | frank |
+| `/resource/{id}`, `/export` | `export` | charlie, diana, jdoe, erin, frank |
+
+`/query` strips DENY details for callers without `audit_query` (no metadata
+leak at the wire). The frontend hides the tab bar entirely for personas with
+no admin access and renders each panel only with its permission.
 
 ## Key decisions made
 

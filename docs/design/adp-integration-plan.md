@@ -36,12 +36,11 @@ Reference: ADP guide §3 (pages 4-5).
    - Name: "Tianquan 天权"
    - Welcome message: "Tianquan (天权) ready. Ask about your enterprise knowledge."
    - Model: DeepSeek (included in free allowance)
-3. **Upload the seed knowledge base** (optional — Tianquan sends its own
-   filtered context with each query, but uploading seed docs gives the ADP
-   agent background for the "no access" case where context is empty):
-   - `backend/seed/` — the 20 mock resources as plain text
-   - This is a "nice to have" — the primary knowledge path is Tianquan's
-     own permission-filtered context, not the ADP knowledge base
+3. **Do NOT attach a knowledge base.** (Revised 2026-10-11.) Tianquan sends
+   its own permission-filtered context with every query. Anything uploaded to
+   the agent's knowledge base bypasses the permission filter: the public
+   experience link would answer anyone from it, and the model could draw on it
+   during backend calls too (breaking INV2). Keep the agent context-only.
 4. **Test the agent in the debug panel** — verify it can answer a simple
    question from the uploaded knowledge.
 5. **Publish the application** — publishing creates the AppKey.
@@ -87,7 +86,7 @@ documentation" for the full event schema.
 After getting a real AppKey, make a test call and verify:
 - The SSE event format matches our parser
 - The text extraction captures the full answer
-- Multi-turn conversations work (ConversationId reuse)
+- ~~Multi-turn conversations work (ConversationId reuse)~~ — superseded: every call uses a fresh ConversationId so no user's context carries into another's answer (ADR-0007)
 
 If the format differs, update `adp_client.py` lines 88-110 to match the real
 event schema. The rest of the system is unaffected because the adapter

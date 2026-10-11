@@ -11,15 +11,16 @@
 >   4. formal proof — break the real logic, TLC catches it (Demo 5)
 >
 > **Repo depth (NOT in the video — mention in one line, keep for judges who dig
-> in):** Demo 4 (audit inquiry — it's the same data as the inspector), Demo 7
-> (upload/ingestion), and the M11–M13 guards (hallucination, freshness,
-> prompt-injection). These are strengths to reference verbally, not screen time.
+> in):** Demo 4 (plain-English audit inquiry), the permissions inspector, and the
+> M11–M13 guards (hallucination, freshness, prompt-injection). These are
+> strengths to reference verbally, not screen time.
 
 > **Live ADP agent:** The Tianquan agent is published on Tencent Cloud ADP at
 > [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
-> Agent name "Tianquan 天权" and welcome message are confirmed visible. Use this
-> for the hackathon submission deliverable; the local UI below is for the
-> permission-aware demo scenarios.
+> The backend calls it with each query's permission-filtered context. The agent
+> must have **no knowledge base attached**: anything in its knowledge base
+> bypasses Tianquan's permission filter, both on the public link and on backend
+> calls.
 
 ## Setup (before the demo)
 
@@ -35,16 +36,23 @@
    python -m http.server 5500
    ```
 
-3. Open **http://localhost:5500/** in the browser. Footer should read
-   `api: connected`.
+3. Open **http://127.0.0.1:5500/** in the browser. Footer should read
+   `api: connected`. The page needs no internet access (Tailwind is vendored);
+   the live LLM does — without it, answers fall back to the offline extractive
+   summarizer.
+
+4. **Two windows make the denials visible.** A non-privileged persona never
+   sees what was denied (that would leak existence). Open a second window as
+   **diana** (compliance) on the **Admin** tab: her audit explorer shows each
+   query as one group — the question, then every allow/deny decision.
 
 > **Important:** the backend holds state in memory (audit chain + ACL changes).
 > If you ran Demo 3 (revocation) already, **restart the backend** for a clean
 > slate before presenting, so `alice` sees the migration plan again.
 
-The 5 seed personas (top bar): `alice` (engineer), `bob` (contractor),
-`charlie` (security_team), `diana` (compliance_officer), plus `jdoe`, `erin`,
-`frank`.
+The 7 seed personas (top bar): `alice` (engineer), `bob` (contractor),
+`charlie` (security_team), `diana` (compliance_officer), `jdoe`
+(senior_engineer), `erin` (finance_analyst), `frank` (admin).
 
 ---
 
@@ -56,12 +64,14 @@ while still denying what the asker can't see.
 1. Select persona **alice**.
 2. Ask: *"What is the status of the database migration and were there blockers
    raised in Slack?"*
-3. **Expected:** a grounded answer with **8 citations** spanning Confluence,
-   Jira, Slack, and GDrive — including `confluence:db-migration-plan`,
-   `MIG-231`, `MIG-232`, `slack:db-migration-thread-992`.
-4. **Policy inspector:** 8 ALLOW, **2 DENY** — note `confluence:q3-breach-report`
-   and `SEC-101` are denied even though they matched the search (alice lacks
-   security scope). The LLM never received them.
+3. **Expected:** a grounded answer citing `slack:db-migration-thread-992`,
+   `confluence:db-migration-plan`, `MIG-231` and `MIG-232` (the live LLM
+   usually cites four; the offline fallback cites every allowed source). Click
+   an inline `[n]` marker to jump to its citation card.
+4. **In diana's window** (audit explorer): the group *alice asked "What is the
+   status…"* shows **8 allow / 2 deny** — `confluence:q3-breach-report` and
+   `SEC-101` matched the search but were denied (alice lacks security scope).
+   The LLM never received them.
 
 **Talking point:** "The answer draws from four systems, but two matching
 documents were filtered out before the model saw them."
@@ -77,10 +87,9 @@ documents were filtered out before the model saw them."
 3. **Expected:** the answer is exactly
    *"I could not find accessible information matching your request."*
    with **no citations**.
-4. **Policy inspector:** shows the DENYs (e.g. `confluence:q3-breach-report` →
-   `confluence_named_page_no_access:SEC`) — visible to *you* as the operator,
-   but never surfaced to the asker.
-5. **Audit explorer:** filter `user_id = bob` → the denied attempt is recorded.
+4. **In diana's window:** the group *bob asked "Show me the Q3…"* shows every
+   decision as DENY — visible to compliance, never surfaced to the asker.
+   Or ask the audit trail: *"show denied events for bob"*.
 
 **Talking point:** "Bob gets the same message he'd get for a topic that doesn't
 exist. He can't tell 'denied' from 'not found' — no side-channel leak. But
@@ -95,14 +104,18 @@ stale-permitted content.
 
 1. Select persona **alice**. Ask: *"database migration plan"*.
    **Expected:** citations include `confluence:db-migration-plan`.
-2. In **Revocation Controls**, set:
+2. Switch to **frank** (admin) → **Admin** tab → **access control**:
    - `resource_id`: `confluence:db-migration-plan`
-   - `subject`: `engineer`
-   - `subject_kind`: `role`
-3. Click **REVOKE**.
-4. **Expected:** a toast reads **"ACL v1 → v2"**, and the query auto-re-runs.
-   `confluence:db-migration-plan` is now **gone** from the citations.
-5. (Optional) Click **GRANT** with the same fields to restore it.
+   - `subject`: pick `engineer` (role) from the list
+3. Click **REVOKE**. **Expected:** toast *"revoke role:engineer on
+   confluence:db-migration-plan — ACL v1 -> v2"*. (Optional: look up the
+   resource in the **permissions inspector** — alice is no longer an effective
+   reader.)
+4. Switch back to **alice** and ask the same question again. There is no
+   auto re-run: an admin change and a user's query are separate actions.
+   **Expected:** `confluence:db-migration-plan` is now **gone** from the
+   citations.
+5. (Optional) **GRANT** with the same fields restores it.
 
 **Talking point:** "No reindex. The policy filter re-fetches the live ACL on
 every query, so the version bump from v1 to v2 takes effect on the very next
@@ -115,12 +128,20 @@ question."
 **Point:** every decision — allow and deny — is in a tamper-evident trail.
 
 1. Run a few queries as different personas (Demos 1–2 populate the trail).
-2. Select persona **diana** (compliance officer) for framing.
-3. In the **Audit Explorer**:
-   - Filter `resource = payment` (substring) to see all payment-related access.
-   - Filter `decision = deny` to see every denial.
-4. Click **verify chain** → badge shows **[CHAIN VERIFIED]** with the block
-   count.
+2. Select persona **diana** (compliance officer) → **Admin** tab.
+3. In **ask the audit trail**, try:
+   - *"who retrieved the q3 breach report"* → resolves to
+     `confluence:q3-breach-report`.
+   - *"what did alice access in the ENG confluence space"*.
+   - The handbook's example, *"Show me everything user jdoe accessed related to
+     the payment-gateway Confluence space in the last 30 days"* — the seed data
+     has no `payment-gateway` space, and the search **says so** and falls back
+     to Confluence pages about it (`confluence:payment-runbook`).
+
+   The line under the box shows exactly what was understood; anything it could
+   not map is listed in amber rather than silently ignored.
+4. The structured filters (user, decision, resource substring, date range) and
+   **verify integrity** (badge **[VERIFIED]**) work alongside it.
 
 **Talking point:** "Every retrieval and denial is hash-chained. Change one past
 event and verification fails — the audit trail is tamper-evident."
@@ -220,15 +241,16 @@ don't trust memory, we re-hash the file itself.
 root as it happens. Run a couple of queries first (Demos 1–2 populate it).
 
 1. As **frank** (admin) or **diana** (compliance), in the **Audit Explorer**
-   click **verify log file**.
-   **Expected:** badge **[CHAIN VERIFIED]**, toast "log file verified — chain
+   click **verify integrity**.
+   **Expected:** badge **[VERIFIED]**, toast "log file verified — chain
    intact".
 2. **The attack — do it live:** open `audit_log.json` in your editor. Find a
    `"decision": "deny"` event and change it to `"allow"` (an insider hiding
    that they were denied access). Save the file.
-3. Click **verify log file** again.
-   **Expected:** badge turns red **[CHAIN TAMPERED]**, toast "LOG FILE TAMPERED
-   at event #N: tampered_event_at_N:hash_mismatch".
+3. Click **verify integrity** again.
+   **Expected:** badge turns red **[TAMPERED]**, toast "LOG FILE TAMPERED
+   at event #N: tampered_event_at_N:hash_mismatch". The question and answer
+   text are hashed too, so editing what someone asked is caught the same way.
 
 **Talking point:** "Every decision is written to disk, and each event's hash
 includes the previous event's hash — a blockchain over the audit log. Watch: I'll
@@ -240,53 +262,21 @@ this legally defensible for a regulator."
 > This re-reads and re-hashes the actual file (`/audit/verify-file`), so the
 > edit is caught no matter how it was made. **Reset:** restart the backend (or
 > delete `audit_log.json`) to start a fresh clean log.
->
-> There is also an in-memory **verify (memory)** button for a quick check that
-> doesn't involve the file.
+
 
 ---
 
-## Demo 7 — Real-time data ingestion (upload connector)
+## Source preview and download (export-capable personas)
 
-**Point:** the organiser noted that real (non-mock) data would be better. This
-demo shows the system ingesting a document at runtime — no code changes, no
-seed file. The document is immediately searchable and permission-filtered.
+**Point:** reading a raw source is treated as exporting it.
 
-1. In the **Admin tab**, scroll to **Document Upload**.
-2. Fill in:
-   - `resource_id`: `upload:q4-incident`
-   - `title`: `Q4 Production Incident Report`
-   - `content`: *(paste any text — e.g. a real incident report, meeting notes,
-     or a log summary)*
-   - `allowed_roles`: *(leave blank for default, or restrict e.g.
-     `admin,security_team`)*
-3. Click **[UPLOAD & INDEX]**.
-   **Expected:** toast reads "uploaded: Q4 Production Incident Report — N
-   indexed resources."
-4. Switch to **Query tab**, select persona **alice**.
-5. Ask: *"What happened in the Q4 production incident?"*
-   **Expected:** the uploaded document appears in the citations with source
-   `upload`, and the answer draws from it.
-6. Switch to persona **bob** (contractor).
-7. Ask the same question.
-   **Expected:** if you restricted roles to `admin,security_team`, bob gets
-   *"could not find accessible information"* — the upload connector honours
-   the permission model just like Confluence/Jira/Slack.
-
-**Talking point:** "This isn't mock data — I just pasted that document in
-during the demo. The system ingested it, indexed it, and the permission filter
-applied the same ACL checks as it does for Confluence or Jira. In production,
-this connector would be replaced by real OAuth integrations to Google Drive,
-Slack, Jira — same architecture, same permission boundary."
-
-**How this maps to real integrations:**
-- The `UploadConnector` implements the same `BaseConnector` interface as
-  `ConfluenceConnector`, `JiraConnector`, etc.
-- A real integration would swap `list_resources()` to call the Google Drive
-  API, Slack API, etc., and `check_membership()` to query the source's native
-  permission model.
-- The permission filter, audit chain, and LLM answer agent are unchanged —
-  they work against the interface, not the implementation.
+1. As **charlie** (security_team) ask *"What happened in the payment outage and
+   how was it fixed?"*, then click a citation card or an inline `[n]` marker.
+2. **Expected:** the source preview shows the full content and its origin link;
+   **download ↓** saves it. alice and bob (no `export`) see citation cards but
+   no preview.
+3. In the audit explorer the view appears as *charlie opened a source preview*.
+   A denied or nonexistent resource returns the same 404 and is audited too.
 
 ---
 

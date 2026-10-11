@@ -30,11 +30,15 @@ Transition: *"The core idea is one sentence —"* → show the tagline.
 **As Alice (engineer):** ask *"What's the status of the database migration and
 were there blockers raised in Slack?"*
 
-> "Alice gets a real answer, drawn from four systems — Jira, Slack, Confluence,
-> Drive — with citations. But look at the policy inspector: two documents that
+> "Alice gets a real answer, drawn from Jira, Slack and Confluence, with
+> citations — click any [n] to see its source. Now the compliance view in the
+> other window: the same query, logged with every decision. Two documents that
 > *matched* her question were **denied** — the confidential Q3 breach report
 > and a security ticket. The model never received them. It can't leak what it
 > never got."
+
+(Setup: a second browser window as **diana** on the Admin tab. Alice's own
+screen never shows denials — that would leak that they exist.)
 
 **Switch to Bob (contractor):** ask *"Show me the Q3 security incident report
 from the breach."*
@@ -63,14 +67,14 @@ Transition: *"Permissions aren't static, though —"*
 
 ## 3. The audit log is tamper-evident — for real (Demo 6) — 45s
 
-> As compliance (**diana**/**frank**), click **verify log file** → green,
+> As compliance (**diana**/**frank**), click **verify integrity** → green,
 > intact.
 
 > "Every decision is written to a real file on disk, hash-chained — each entry
 > commits to the hash of the one before it. Watch me play a malicious admin."
 
 **Open `audit_log.json` in the editor, change a `deny` to `allow`, save.** Click
-**verify log file** again → red, **tampered at event #N**.
+**verify integrity** again → red, **tampered at event #N**.
 
 > "I edited the log directly to hide that someone was denied. Re-verify — caught
 > at the exact event, because the recomputed hash no longer matches. You cannot

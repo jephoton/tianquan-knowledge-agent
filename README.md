@@ -10,9 +10,9 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 
 - **Live ADP agent:** [Try Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — the agent name and welcome message are confirmed visible.
 - [Plan & Roadmap](docs/plan.md) — source of truth, scope, milestones
-- [Architecture](docs/architecture.md) — system design, trust boundaries, module map
+- [Architecture](docs/architecture.md) — diagram ([PNG](docs/architecture.png)), trust boundaries, module map
 - [Current State](docs/current-state.md) — what exists now, what's next
-- [Demo Runbook](docs/demo-runbook.md) — step-by-step script for the 5 demos
+- [Demo Runbook](docs/demo-runbook.md) — step-by-step demo scenarios · [Demo Script](docs/demo-script.md) — the narrated ~4-minute version
 - [Decisions](docs/decisions/) — architecture decision records (ADRs)
 
 ## What this is
@@ -31,30 +31,31 @@ Most "AI over your data" demos retrieve documents into LLM context with no regar
 
 > **The LLM cannot leak what it never receives.**
 
-Every authorization decision is checked against a formally specified RBAC + delegation model, and every decision is auditable.
+Every authorization decision is checked against a formally specified access-control model, and every decision is auditable.
 
 ## Tech stack
 
 | Layer        | Technology            |
 |--------------|----------------------|
 | Backend      | Python / FastAPI      |
-| Frontend     | Static HTML/JS (Miora-generated) |
+| Frontend     | Static HTML/JS (Miora-generated), vendored Tailwind |
 | Formal model | TLA+                  |
 | Audit log    | Hash-chained JSON     |
-| LLM          | Tencent Cloud LLM via WorkBuddy / ADP |
+| LLM          | Tencent Cloud ADP (offline extractive fallback) |
 
 ## Repository structure
 
 ```
-frontend/          # Miora-generated static UI (no build step)
+frontend/          # Miora-generated static UI (no build step); vendor/ = pinned Tailwind
 backend/
     api/           # FastAPI routes
-    connectors/    # Mock Confluence/Jira/Slack/GDrive
-    auth/          # Identity, roles, sessions
-    policy/        # Policy engine, permission mapping, delegation
+    connectors/    # Mock Confluence/Jira/Slack/GDrive (+ runtime upload connector)
+    auth/          # Identity, roles
+    policy/        # Policy engine, permission mapping, revoke/grant, permissions inspector
     retrieval/     # Indexer, candidate search, permission filter, context assembler
-    agents/        # Orchestrator, answer agent, optional action agent
-    audit/         # Event schema, hash chain, audit query
+    agents/        # Orchestrator, ADP client, answer agent, grounding checker, injection scanner
+    audit/         # Event schema, hash chain, audit query, plain-English audit search
+    seed/          # Seed documents
 formal/            # TLA+ specification and config
 tests/             # Integration and property tests
 docs/              # Handoff layer: plan, architecture, current-state, decisions
@@ -71,7 +72,7 @@ want to run the TLA+ model checker.
    pip install -r requirements.txt
    ```
 
-2. Run the tests (138 tests):
+2. Run the tests (273 tests):
 
    ```powershell
    python -m pytest -q
@@ -91,7 +92,9 @@ want to run the TLA+ model checker.
    python -m http.server 5500
    ```
 
-   Open `http://localhost:5500/`.
+   Open `http://127.0.0.1:5500/`. The UI needs no internet access; set
+   `ADP_APP_KEY` in `.env` to answer with the live Tencent Cloud ADP agent
+   (without it, or offline, answers come from the extractive fallback).
 
 To walk through the demo scenarios, follow the
 [demo runbook](docs/demo-runbook.md).
