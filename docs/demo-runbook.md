@@ -140,7 +140,11 @@ question."
 
    The line under the box shows exactly what was understood; anything it could
    not map is listed in amber rather than silently ignored.
-4. The structured filters (user, decision, resource substring, date range) and
+4. Each query group shows which allowed documents the answer **cited**
+   (`[2] cited`) and which it was given but did **not cite**; the logged answer
+   has a `cited:` key mapping every `[n]` to its document (hover a chip to see
+   it). The map is hashed with the event, so it is evidence, not a UI guess.
+5. The structured filters (user, decision, resource substring, date range) and
    **verify integrity** (badge **[VERIFIED]**) work alongside it.
 
 **Talking point:** "Every retrieval and denial is hash-chained. Change one past

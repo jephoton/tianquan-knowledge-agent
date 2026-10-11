@@ -2,6 +2,21 @@
 
 > **Last updated:** 2026-10-11 (independent review fixes: cross-platform search, preview audit, grounding, ADP isolation, audit question + grouping, accessibility, vendored assets, architecture diagram)
 
+## Citation map in the audit trail + tool credits (2026-10-11, pass 2)
+
+- **The logged answer's [n] markers are now traceable.** The answer event
+  carries a hashed `citations` field (`[{"marker": "[1]", "resource_id": …}]`,
+  only citations that passed INV6), so editing which document was cited is
+  detected. The audit explorer shows a `cited:` key under the answer
+  (hover a chip for its document) and marks each allowed row `[n] cited` or
+  `not cited` — what the model was given vs what it used. 275 tests pass.
+- **Tencent tools credited** in the project description, README and a video
+  reflection section in the demo script: CodeBuddy (planning + core build),
+  ADP (every LLM answer, filtered context only, no knowledge base), Miora (UI
+  design + cover image).
+- ADP knowledge base removed by the owner (2026-10-11). Cover image produced
+  with Miora; final 16:9 sizing handled by the owner.
+
 ## Independent review fixes (2026-10-11)
 
 An end-to-end review against the handbook found demo-breaking bugs; all fixed
@@ -53,10 +68,9 @@ with regression tests. **273 tests pass.** Live-verified against ADP.
 
 ### Open items (need you)
 
-- **ADP agent knowledge base:** make sure the published agent has **no**
-  knowledge base attached — it bypasses the permission filter on the public
-  link and on backend calls.
-- **Cover image is Required** (16:9, ~380×216) — not optional.
+- ~~ADP agent knowledge base~~ — removed (2026-10-11).
+- **Cover image is Required** (16:9, ~380×216) — made with Miora; owner is
+  resizing to 16:9.
 - **Demo video** (5–8 min, optional but how preliminary judges see the demo);
   the demo script is ~4 min, and the video should include a short reflection
   on building with CodeBuddy.

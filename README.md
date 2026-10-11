@@ -42,6 +42,13 @@ Every authorization decision is checked against a formally specified access-cont
 | Formal model | TLA+                  |
 | Audit log    | Hash-chained JSON     |
 | LLM          | Tencent Cloud ADP (offline extractive fallback) |
+| UI design    | Miora (dashboard design, cover image) |
+| Dev tool     | CodeBuddy (planning and core build) |
+
+Built with **Tencent Cloud**: CodeBuddy for development, **ADP** for every
+LLM answer (called with only the permission-filtered context), and **Miora**
+for the UI design and cover image — see
+[project-description.md](docs/project-description.md#tencent-cloud-tools-used).
 
 ## Repository structure
 
@@ -72,7 +79,7 @@ want to run the TLA+ model checker.
    pip install -r requirements.txt
    ```
 
-2. Run the tests (273 tests):
+2. Run the tests (275 tests):
 
    ```powershell
    python -m pytest -q

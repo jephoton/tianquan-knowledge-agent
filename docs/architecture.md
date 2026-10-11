@@ -142,6 +142,8 @@ requests. Routes are thin adapters over the layers below.
 and pinned in `frontend/vendor/` so the demo never depends on a CDN. Panels
 render by permission: the source preview only for `export`, the audit explorer
 for `audit_query`, revoke/grant and the inspector for `manage_permissions`.
+In the audit explorer each query's logged answer shows which document every
+`[n]` cites, and each allowed document is marked "cited" or "not cited".
 A **clean mode** toggle removes the CRT effects for readability; the UI is
 keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
 
@@ -197,6 +199,7 @@ keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
     "reason": str,
     "question": str,                  # the user's question, on every event of a query
     "detail": str,                    # answer text on the answer event; "source_preview" on previews
+    "citations": [{"marker": "[1]", "resource_id": str}],  # answer event: what each [n] cites
     "acl_version": int,
     "policy_version": int,
     "previous_hash": str,
@@ -216,7 +219,7 @@ keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
    e. Assemble allowed content into a cited context window.
    f. ADP drafts the answer (fresh conversation); stub fallback on failure.
    g. Strip citations not in the context (INV6); remove unsupported sentences (INV8).
-   h. Audit the answer event (question + answer text).
+   h. Audit the answer event (question + answer text + marker -> resource map).
 3. Return {answer, citations, decisions*, grounding_removed, audit_chain_head}.
    * deny details only for callers with audit_query.
 ```
@@ -244,7 +247,7 @@ decide → retrieve → answer → audit — with revocation able to fire at any
 up to retrieval. TLC checks INV1–INV4, INV6, and INV7 over every reachable
 state; the naive variant (trusting the decide-time snapshot) leaks under a
 revoke-after-decide race. The spec is an abstract model; the implementation is
-tested against the same properties (273 tests).
+tested against the same properties (275 tests).
 
 ## 9. Technology choices
 

@@ -114,6 +114,25 @@ Transition: *"Permissions aren't static, though —"*
 
 ---
 
+## Video reflection (≈45–60s — for the 5–8 min submission video)
+
+The handbook asks the video for "a short reflection on your build approach and
+any development tool tips with reference to CodeBuddy/WorkBuddy".
+
+- **CodeBuddy** — "We started by having CodeBuddy read the challenge from the
+  handbook and compare our idea against it. It drafted the architecture, the
+  decision records and the milestone plan, then built the core with us: the
+  policy engine, permission-aware retrieval, the TLA+ model and the audit
+  chain." Show one dev-log screenshot.
+- **ADP** — "The answers come from our agent on Tencent Cloud ADP. The pattern
+  that made it safe: Tianquan filters first and sends ADP only what this user
+  may see — no knowledge base on the agent, a fresh conversation every call."
+- **Miora** — "Miora designed the dashboard and the cover image."
+- **Tip** — e.g. "Keep a handoff doc (architecture, current state, decisions)
+  in the repo so every AI session starts from the same context."
+
+---
+
 ## Timing / fallbacks
 
 - Total ≈ 4 min. If cut to 2: do sections 1, 3, 4 (skip revocation + close short).
