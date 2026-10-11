@@ -1,5 +1,7 @@
 ﻿# Tianquan 天权
 
+![Tianquan 天权 — Enterprise Knowledge Agent](docs/cover_image.png)
+
 > **Auditable AI answers that never overstep access rights.**
 
 Tianquan (天权 — "heaven's authority") is a permission-aware enterprise knowledge demo across mock Confluence, Jira, Slack and Google Drive sources. Its access-control design is specified and model-checked in TLA+.
@@ -13,11 +15,6 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 - **Live ADP agent:** [Try Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — direct model chat; it does not run the full application's permission/audit pipeline.
 - [Plan & Roadmap](docs/plan.md) — scope, milestones and submission checklist
 - [Architecture](docs/architecture.md) — diagram ([PNG](docs/architecture.png)), trust boundaries, module map
-- [Current State](docs/current-state.md) — what exists now, what's next
-- [Demo Runbook](docs/demo-runbook.md) — step-by-step demo scenarios · [Demo Script](docs/demo-script.md) — concise demo pointers with optional extensions
-- [Deployment plan](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md) — Vercel frontend + Render backend (deployed 2026-10-11)
-- [Project description](docs/project-description.md) — blurb, overview, scenario insights, solution design, business value
-- [Decisions](docs/decisions/) — architecture decision records (ADRs)
 
 ## What this is
 
