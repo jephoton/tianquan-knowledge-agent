@@ -1,8 +1,39 @@
 ﻿# Development Log — Tianquan 天权
 
-> **Purpose:** Track CodeBuddy / WorkBuddy / Miora usage throughout development. This is a **required submission deliverable** — the handbook requires a minimum of 3 screenshots or screen recordings of chat logs from CodeBuddy or WorkBuddy during the development process.
->
-> **Rule:** Take a screenshot at the end of any significant CodeBuddy/WorkBuddy session. Don't wait until M13 — conversation history cannot be reconstructed retroactively.
+<!-- Generated section (2026-10-11): CodeBuddy evidence summary. Session entries below are the original authored log. -->
+
+## CodeBuddy usage evidence
+
+**CodeBuddy was the primary development tool for Tianquan.** In CodeBuddy I read the hackathon handbook, checked my idea against the Aspire track, set the architecture, decision records and 13-milestone plan, and built the core system with it: the policy engine, permission-aware retrieval, the TLA+ formal model, the hash-chained audit trail, the REST API, the answer agent and the hallucination (grounding) checker — milestones **M0–M13** below. The other Tencent Cloud tools: **ADP** generates every live answer, and **Miora** designed the dashboard and the cover image.
+
+Screenshots of CodeBuddy chat sessions (the handbook requires at least 3):
+
+| # | Date | What the CodeBuddy session shows |
+|---|---|---|
+| 1 | 2026-09-28 | CodeBuddy reading the hackathon handbook PDF and comparing my original idea against the Aspire "Internal Brain" challenge (M0 planning) |
+| 2 | 2026-09-28 | CodeBuddy defining the V1 scope — formally specified, permission-aware enterprise RAG with source-specific RBAC, live revocation and a tamper-evident audit trail |
+| 3 | 2026-09-29 | CodeBuddy reporting M10 complete: all five demo scenarios verified end-to-end through the API |
+| 4 | 2026-09-29 | CodeBuddy designing the hallucination-detection layer (M11) from the handbook's LLM-safety requirement |
+| 5 | 2026-09-29 | CodeBuddy planning the switch from the offline stub to the live LLM client and the grounding-checker tests |
+
+**1 — Reading the handbook and scoping the idea**
+![CodeBuddy session 1](Screenshot%202026-09-28%20100832.png)
+
+**2 — Defining the V1 scope**
+![CodeBuddy session 2](Screenshot%202026-09-28%20100923.png)
+
+**3 — End-to-end integration complete (M10)**
+![CodeBuddy session 3](Screenshot%202026-09-29%20125831.png)
+
+**4 — Designing the hallucination-detection layer (M11)**
+![CodeBuddy session 4](Screenshot%202026-09-29%20131618.png)
+
+**5 — Planning the live-LLM switch**
+![CodeBuddy session 5](Screenshot%202026-09-29%20132835.png)
+
+After CodeBuddy's credits ran out near the end of the build, final polish and review were done with other AI coding assistants; those sessions are recorded in the later entries.
+
+---
 
 ## Entries
 
@@ -11,7 +42,7 @@
 - **Tool:** CodeBuddy
 - **Task:** Read Track 4 (Aspire FinTech) challenge from handbook PDF. Analyzed the challenge requirements. Designed the Tianquan project concept. Wrote formal plan, architecture, and ADRs. Scaffolded repo structure.
 - **Summary:** Initial project planning session. Read the Aspire "Internal Brain" challenge. Compared user's original idea (formally constrained enterprise agents) against the track requirements. Refined scope to focus on permission-aware retrieval as the core, with formal methods as the differentiator. Created the handoff layer (`docs/`), roadmap with 13 milestones, 3 ADRs, and repo skeleton.
-- **Screenshot captured:** Y — [Screenshot 2026-09-27 215926.png](Screenshot%202026-09-27%20215926.png)
+- **Screenshot captured:** Y (not retained in the repo — see the evidence screenshots above)
 
 ---
 
