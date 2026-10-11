@@ -242,6 +242,24 @@
 
 ---
 
+### 2026-10-11 — Independent review against the handbook + fixes
+
+- **Tool:** AI coding assistant (CodeBuddy credits exhausted)
+- **Task:** Independent end-to-end review of the project against the Aspire challenge and the handbook's submission requirements, then fix everything it found.
+- **Summary:** The review found the demo question collapsed to one Slack thread (naming a platform filtered out the other three) — now a ranking boost, restoring 8 allow / 2 deny across 4 sources (ADR-0006). Found the shared ADP client reused one conversation, giving the model memory of other users' context — every call is now a fresh conversation (ADR-0007); also fixed UTF-8 decoding of the ADP stream. Secured the source-preview endpoint (header identity, `export` required, every view audited, denied ≡ not found). Fixed the grounding checker over-stripping correct live answers and surfaced the removed-sentence count. Recorded the question on every audit event; plain-English audit search now resolves resource/space/project phrases and reports what it didn't understand. UI: clickable [n] citations, query-grouped audit table, accessibility pass with clean mode, vendored Tailwind (no CDNs). New architecture diagram; stale docs refreshed. 273 tests.
+- **Screenshot captured:** N
+
+---
+
+### 2026-10-11 — Audit citation map, tool credits, demo script, polish
+
+- **Tool:** AI coding assistant (CodeBuddy credits exhausted)
+- **Task:** Make the logged answer's [1]/[2] traceable in the audit explorer; credit ADP and Miora; rewrite the demo script against the five required scenarios; final polish.
+- **Summary:** The answer audit event now stores a hashed marker → resource citation map; the audit explorer shows a `cited:` key under each answer and marks every allowed document "citation [n]" or "not cited". Project description and README credit each Tencent tool (CodeBuddy for planning and the core build, ADP for every LLM answer, Miora for the UI design and cover image). Demo script rewritten (~5½ min + reflection) to name the track, cover all five scenarios, and show the architecture; the diagram gained a "verifies" link from the TLA+ model to the pipeline. Cover image finalised (Miora, 16:9). Removed hard-coded user paths. 275 tests.
+- **Screenshot captured:** N
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora
