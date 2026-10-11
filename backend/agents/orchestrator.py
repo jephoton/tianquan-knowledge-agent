@@ -213,7 +213,9 @@ class Orchestrator:
         retrieval = self._pipeline.run(user, query, k=k, action=action)
 
         # 2. Audit every decision (allow and deny) under this query.
-        self._audit.append_decisions(retrieval.outcome.decisions, query_id)
+        self._audit.append_decisions(
+            retrieval.outcome.decisions, query_id, question=query,
+        )
 
         # 3. Answer from the authorized context (citation-validated, no-leak).
         #    If the live LLM client fails at runtime (e.g. network/TLS error
@@ -278,7 +280,9 @@ class Orchestrator:
         # Capture the exact answer text served to the user in the tamper-evident
         # log — so a compliance officer can later see WHAT the AI said, not just
         # that it answered. (The no-access canonical message is captured too.)
-        self._audit.append_decision(answer_decision, query_id, detail=answer.text)
+        self._audit.append_decision(
+            answer_decision, query_id, detail=answer.text, question=query,
+        )
 
         return QueryResponse(
             query_id=query_id,

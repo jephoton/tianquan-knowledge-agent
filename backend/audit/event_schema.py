@@ -39,6 +39,7 @@ _PAYLOAD_FIELDS = (
     "action",
     "decision",
     "reason",
+    "question",
     "detail",
     "acl_version",
     "policy_version",
@@ -54,6 +55,10 @@ class AuditEvent:
     hash chain when the event is appended; `previous_hash` links to the
     prior event's hash (or the genesis constant for the first event).
 
+    `question` is the natural-language question the user asked; every event
+    of a query carries it, so the trail records what was asked, what was
+    retrieved, and (on the answer event) what was answered.
+
     `detail` is free text for context that doesn't fit the structured fields —
     notably the generated answer text on an answer event, so the full record
     of "what the AI told the user" is captured in the tamper-evident log.
@@ -68,6 +73,7 @@ class AuditEvent:
     acl_version: int
     policy_version: int
     resource_id: str | None = None
+    question: str = ""
     detail: str = ""
     timestamp: datetime = field(default_factory=utc_now)
     previous_hash: str = ""
@@ -121,6 +127,7 @@ def event_from_dict(d: dict[str, Any]) -> AuditEvent:
         acl_version=d.get("acl_version", 0),
         policy_version=d.get("policy_version", 0),
         resource_id=d.get("resource_id"),
+        question=d.get("question", ""),
         detail=d.get("detail", ""),
         timestamp=ts or utc_now(),
         previous_hash=d.get("previous_hash", ""),
@@ -133,12 +140,14 @@ def event_from_decision(
     query_id: str,
     event_id: str,
     detail: str = "",
+    question: str = "",
 ) -> AuditEvent:
     """Build an (unchained) AuditEvent from a policy Decision.
 
     The returned event has no previous_hash/event_hash yet — those are
     assigned when it is appended to the hash chain. `detail` carries optional
-    free text (e.g. the answer text on an answer event).
+    free text (e.g. the answer text on an answer event); `question` is the
+    user's question for query events.
     """
     action = decision.action.value if isinstance(decision.action, Action) else str(decision.action)
     result = (
@@ -156,6 +165,7 @@ def event_from_decision(
         reason=decision.reason,
         acl_version=decision.acl_version,
         policy_version=decision.policy_version,
+        question=question,
         detail=detail,
         timestamp=decision.timestamp,
     )

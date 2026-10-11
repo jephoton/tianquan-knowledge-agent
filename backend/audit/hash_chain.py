@@ -86,22 +86,28 @@ class HashChain:
 
     def append_decision(
         self, decision: Decision, query_id: str, detail: str = "",
+        question: str = "",
     ) -> AuditEvent:
         """Convenience: build an AuditEvent from a Decision and append it.
 
         `detail` carries optional free text (e.g. the answer text captured on
-        an answer event) into the tamper-evident record.
+        an answer event) into the tamper-evident record; `question` is the
+        user's question for events produced by a query.
         """
         event = event_from_decision(
-            decision, query_id=query_id, event_id=str(uuid.uuid4()), detail=detail,
+            decision, query_id=query_id, event_id=str(uuid.uuid4()),
+            detail=detail, question=question,
         )
         return self.append(event)
 
     def append_decisions(
-        self, decisions: list[Decision], query_id: str,
+        self, decisions: list[Decision], query_id: str, question: str = "",
     ) -> list[AuditEvent]:
         """Append many decisions under one query_id, preserving order."""
-        return [self.append_decision(d, query_id) for d in decisions]
+        return [
+            self.append_decision(d, query_id, question=question)
+            for d in decisions
+        ]
 
     # -- Access ---------------------------------------------------------
 

@@ -295,3 +295,31 @@ def test_verify_file_no_path():
     result = chain.verify_file()
     assert result.valid is False
     assert "no_persist_path" in result.reason
+
+
+# -- The question is part of the tamper-evident record ---------------------
+#
+# The challenge requires the trail to capture "who, what (query + retrieved
+# doc IDs + final answer), when". Every event of a query carries the question.
+
+def test_question_recorded_on_every_event_of_a_query():
+    from backend.agents.orchestrator import Orchestrator
+    orch = Orchestrator(_connectors())
+    alice = IdentityStore().get_user("alice")
+    q = "What is the status of the database migration?"
+    resp = orch.handle(alice, q, k=20)
+    events = [e for e in orch.audit.events() if e.query_id == resp.query_id]
+    assert len(events) >= 2  # decisions + the answer event
+    assert all(e.question == q for e in events)
+
+
+def test_question_is_hashed_so_editing_it_is_detected(tmp_path):
+    import json
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(_decn(rid="r1"), "q1", question="db migration status?")
+    data = json.load(open(log, encoding="utf-8"))
+    assert data[0]["question"] == "db migration status?"
+    data[0]["question"] = "something innocuous"
+    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+    assert chain.verify_file().valid is False

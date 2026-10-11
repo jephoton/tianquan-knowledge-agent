@@ -63,6 +63,7 @@ class AuditEventModel(BaseModel):
     action: str
     decision: str
     reason: str
+    question: str = ""
     detail: str = ""
     acl_version: int
     policy_version: int
