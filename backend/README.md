@@ -18,6 +18,16 @@ Alternatively install `requirements.txt` in a virtual environment and run `pytho
 - `TIANQUAN_AUDIT_LOG`: writable JSONL path, default `audit_log.jsonl` in the working directory.
 - `/health` reports configuration, not confirmation that every response used ADP.
 
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `ADP_APP_KEY` | Tencent Cloud ADP key (backend only; `.env` locally, secret env in the cloud). Without it answers use the offline extractive fallback. |
+| `TIANQUAN_AUDIT_LOG` | Path of the append-only audit log (default `audit_log.jsonl`). |
+| `TIANQUAN_ALLOWED_ORIGINS` | Comma-separated exact browser origins allowed by CORS (default `http://127.0.0.1:5500,http://localhost:5500`). A browser restriction only — not identity verification. |
+
+Cloud hosting: `render.yaml` (one free-tier instance, `--workers 1`); see the [deployment plan](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+
 ## Structure
 
 | Directory | Responsibility |

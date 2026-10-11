@@ -1,0 +1,24 @@
+# Render Blueprint for the Tianquan backend (single instance, free tier).
+# Contains no secrets: ADP_APP_KEY and the allowed frontend origin are entered
+# in the Render dashboard (sync: false). See ADR-0009 and the deployment plan.
+services:
+  - type: web
+    name: tianquan-api
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    # Exactly one worker: demo state (ACLs, uploads, audit chain) lives in
+    # this process. Restart/spin-down resets it — accepted for the demo.
+    startCommand: python -m uvicorn backend.api.app:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: TIANQUAN_AUDIT_LOG
+        value: /tmp/tianquan-audit.jsonl
+      - key: TIANQUAN_ALLOWED_ORIGINS
+        sync: false
+      - key: ADP_APP_KEY
+        sync: false
