@@ -44,7 +44,8 @@ function esc(s) {
 }
 
 function pill(result) {
-  const cls = result === "allow" ? "allow-pill" : "deny-pill";
+  const cls = result === "allow" ? "allow-pill"
+    : result === "change" ? "change-pill" : "deny-pill";
   return `<span class="${cls}">${result.toUpperCase()}</span>`;
 }
 
@@ -514,34 +515,36 @@ async function refreshAudit() {
   renderAudit();
   renderStats(r);
   setChainBadge(r.chain_valid, r.chain_status);
+  return r;
 }
 
 // Natural-language audit search: type a question, the server parses it
-// deterministically into filters, runs it, and reports its interpretation.
+// deterministically into filters and reports its interpretation. The filters
+// are written into the filter fields and the table is loaded from them, so
+// what you see is always exactly what the fields say.
 async function nlSearchAudit() {
   const q = $("audit-nl").value.trim();
   const interp = $("audit-nl-interp");
   if (!q) { interp.textContent = ""; return; }
   try {
-    const r = await api("/audit/search?q=" + encodeURIComponent(q));
-    state.lastAuditEvents = r.events.slice().reverse();
-    state.auditPage = 0;
-    renderAudit();
-    renderStats(r);
-    setChainBadge(r.chain_valid, r.chain_status);
-    // Natural-language summary (deterministic, computed from the result —
-    // no LLM) sitting ABOVE the verifiable hash-chained evidence table. The
-    // table stays the primary artifact: an auditor needs to see the actual
-    // tamper-evident events, not just prose about them.
-    let summary = r.interpretation || "";
-    if (r.matched) {
+    const s = await api("/audit/search?q=" + encodeURIComponent(q));
+    const f = s.filters || {};
+    $("f-user").value = f.user_id || "";
+    $("f-decision").value = f.decision || "";
+    $("f-resource").value = f.resource || "";
+    $("f-since").value = f.since || "";
+    $("f-until").value = f.until || "";
+    const r = await refreshAudit();
+    // One-line summary (deterministic, no LLM). The filled fields show the
+    // parameters; this only adds what they can't: notes and ignored words.
+    let summary = s.interpretation || "";
+    if (s.matched) {
       summary += ` Found ${r.count} event${r.count === 1 ? "" : "s"}` +
         ` (${r.allow_count} allowed, ${r.deny_count} denied).`;
-      if (r.parts && r.parts.length) summary += `  [${r.parts.join(" · ")}]`;
     }
     interp.textContent = summary;
-    const partial = r.unparsed && r.unparsed.length;
-    interp.style.color = !r.matched ? "#c47a7a" : partial ? "#ffb000" : "#5fb87f";
+    const partial = s.unparsed && s.unparsed.length;
+    interp.style.color = !s.matched ? "#c47a7a" : partial ? "#ffb000" : "#5fb87f";
   } catch (e) {
     interp.textContent = e.message;
     interp.style.color = "#c47a7a";
@@ -577,13 +580,22 @@ function groupHeaderRow(g) {
   if (q) what = `asked <span class="group-q">“${esc(q)}”</span>`;
   else if (g.events.every((e) => e.detail === "source_preview")) what = "opened a source preview";
   else if (g.events.every((e) => e.action === "export")) what = "exported";
+  else if (first.action === "acl_revoke" || first.action === "acl_grant") {
+    const verb = first.action === "acl_revoke" ? "revoked" : "granted";
+    const change = (first.detail || "").replace(/^(revoke|grant) /, "");  // "role:engineer · ACL v1 -> v2"
+    what = `${verb} <span class="group-q">${esc(change)}</span> on ${esc(first.resource_id)}`;
+  }
   else what = esc((first.action || "").toLowerCase());
   const allow = g.events.filter((e) => e.decision === "allow").length;
-  const deny = g.events.length - allow;
+  const deny = g.events.filter((e) => e.decision === "deny").length;
+  // The query scanner flags injection attempts on the answer event's reason
+  // (it never blocks — the permission filter is the guard). Surface it here.
+  const inj = g.events.map((e) => /injection_suspected:(\w+)/.exec(e.reason || "")).find(Boolean);
+  const injBadge = inj ? ` <span class="inject-badge">⚠ prompt injection suspected (${esc(inj[1])})</span>` : "";
   const tr = document.createElement("tr");
   tr.className = "group-row";
   tr.innerHTML =
-    `<td colspan="6"><span style="color:#cdbfa6;">${esc(first.user_id)}</span> ${what}` +
+    `<td colspan="6"><span style="color:#cdbfa6;">${esc(first.user_id)}</span> ${what}${injBadge}` +
     `<span class="group-meta">${esc(utcStamp(first.timestamp))} · ${g.events.length} event${g.events.length === 1 ? "" : "s"}` +
     ` (${allow} allow / ${deny} deny) · query ${esc((g.query_id || "").slice(0, 8))}</span></td>`;
   return tr;
@@ -730,15 +742,23 @@ function renderStats(r) {
   $("stat-denied").textContent = r.deny_count;
 }
 
+// Integrity is re-checked by the server on every audit refresh (on-disk log
+// included), so this badge is always current — no verify button.
 function setChainBadge(valid, status) {
   const b = $("chain-badge");
+  if (!valid && state.chainValid !== false) {
+    const m = /_at_(\d+)/.exec(status || "");
+    toast(`audit log integrity check FAILED${m ? ` at event #${m[1]}` : ""} — the log was modified`, true);
+  }
+  state.chainValid = !!valid;
   if (valid) {
     b.textContent = "[VERIFIED]";
     b.style.color = "#4fb87a";
     b.style.background = "rgba(58,138,90,0.1)";
     b.style.textShadow = "0 0 4px #4fb87a";
   } else {
-    b.textContent = "[TAMPERED]";
+    const m = /_at_(\d+)/.exec(status || "");
+    b.textContent = m ? `[TAMPERED · event #${m[1]}]` : "[TAMPERED]";
     b.style.color = "#c47a7a";
     b.style.background = "rgba(138,58,58,0.1)";
     b.style.textShadow = "none";
@@ -746,20 +766,6 @@ function setChainBadge(valid, status) {
   b.title = status || "";
 }
 
-// Re-reads the on-disk audit_log.json and verifies it from scratch. This is
-// the realistic tamper check — hand-edit the file and this catches it.
-async function verifyFile() {
-  try {
-    const v = await api("/audit/verify-file");
-    setChainBadge(v.valid, v.reason);
-    if (v.valid) {
-      toast(`log file verified — chain intact (${v.path})`);
-    } else {
-      const where = v.broken_at_index != null ? ` at event #${v.broken_at_index}` : "";
-      toast(`LOG FILE TAMPERED${where}: ${v.reason}`, true);
-    }
-  } catch (e) { toast(e.message, true); }
-}
 
 // -- subject combo (searchable role/user picker) ----------------------
 
@@ -1010,7 +1016,6 @@ async function boot() {
     if (e.key === "Enter") nlSearchAudit();
   });
   $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
-  $("audit-verify-file").onclick = verifyFile;
   $("audit-prev").onclick = auditPrev;
   $("audit-next").onclick = auditNext;
   $("audit-pagesize").addEventListener("change", (e) => setAuditPageSize(e.target.value));
@@ -1044,8 +1049,18 @@ async function boot() {
   ["f-user", "f-decision", "f-resource", "f-since", "f-until"].forEach((id) => {
     const el = $(id);
     if (!el) return;
-    el.addEventListener("change", () => refreshAudit().catch(() => {}));
-    el.addEventListener("input", () => refreshAudit().catch(() => {}));
+    // A manual edit makes the plain-English summary stale, so clear it.
+    const manual = () => { $("audit-nl-interp").textContent = ""; refreshAudit().catch(() => {}); };
+    el.addEventListener("change", manual);
+    el.addEventListener("input", manual);
+  });
+
+  // Re-check (and re-load) the audit trail whenever the window regains focus
+  // while the audit explorer is open — e.g. after editing the log file.
+  window.addEventListener("focus", () => {
+    if (state.canAudit && $("tab-admin").classList.contains("active")) {
+      refreshAudit().catch(() => {});
+    }
   });
   // "Last 7 days" quick filter.
   $("f-last7").onclick = () => {
@@ -1055,6 +1070,7 @@ async function boot() {
     refreshAudit().catch((e) => toast(e.message, true));
   };
   $("f-clear").onclick = () => {
+    $("audit-nl-interp").textContent = "";
     ["f-user", "f-decision", "f-resource", "f-since", "f-until"].forEach((id) => { $(id).value = ""; });
     refreshAudit().catch((e) => toast(e.message, true));
   };

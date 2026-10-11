@@ -102,6 +102,11 @@
     font-size: 11px;
     font-family: 'SF Mono','Menlo','Consolas',monospace;
   }
+  .change-pill {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    border-radius: 9999px; background: rgba(255,176,0,0.12); color: #ffb000;
+    font-size: 11px; font-family: 'SF Mono','Menlo','Consolas',monospace;
+  }
   .deny-pill::before {
     content: '';
     display: inline-block;
@@ -472,6 +477,10 @@
     background: rgba(255,176,0,0.12); color: #ffb000;
   }
   .cite-badge.muted { background: transparent; color: #9a8e78; border: 1px solid rgba(232,220,200,0.12); }
+  .inject-badge {
+    margin-left: 8px; padding: 1px 6px; border-radius: 2px; font-size: 11px;
+    background: rgba(196,122,122,0.15); color: #e09a9a; border: 1px solid rgba(196,122,122,0.4);
+  }
   .cited-line { margin-top: 4px; font-size: 11px; color: #9a8e78; font-style: normal; }
 
   /* Chain badge large */
@@ -628,8 +637,7 @@
     <div class="flex items-center justify-between mb-4">
       <div class="section-label">audit explorer</div>
       <div class="flex items-center gap-3">
-        <span id="chain-badge" class="chain-badge-lg" style="color:#b8ad98;background:rgba(20,20,20,0.6);">[--]</span>
-        <button id="audit-verify-file" class="outline-btn" style="padding:4px 12px;font-size:11px;">verify integrity</button>
+        <span id="chain-badge" class="chain-badge-lg" role="status" aria-live="polite" title="Re-checked on every refresh" style="color:#b8ad98;background:rgba(20,20,20,0.6);">[--]</span>
         <button id="audit-refresh" class="outline-btn" style="padding:4px 12px;font-size:11px;">refresh</button>
       </div>
     </div>
@@ -665,7 +673,7 @@
       </div>
       <div>
         <label for="f-resource" class="section-label mb-2 block">resource</label>
-        <input id="f-resource" type="text" class="crt-input" placeholder="substring match" />
+        <input id="f-resource" type="text" class="crt-input" placeholder="substring, or ids separated by commas" />
       </div>
     </div>
     <div class="grid grid-cols-3 gap-4 mb-4 items-end">
