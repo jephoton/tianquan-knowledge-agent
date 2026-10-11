@@ -58,7 +58,24 @@ def check_source_specific(user: User, resource: Resource) -> tuple[bool, str]:
         return _check_slack(user, resource, sp)
     if resource.source == Source.GDRIVE:
         return _check_gdrive(user, resource, sp)
-    return True, "unknown_source_default_allow"
+    # Any other connector (e.g. runtime upload) gets the generic ACL check —
+    # fail-closed: no explicit grant means no access.
+    return _check_generic_acl(user, resource)
+
+
+def _check_generic_acl(user: User, resource: Resource) -> tuple[bool, str]:
+    """Plain ACL semantics for connectors without a native permission model:
+    the deny-list wins, then an explicit user grant, then a role grant;
+    otherwise deny."""
+    acl = resource.acl
+    src = resource.source.value
+    if user.user_id in acl.denied_users:
+        return False, f"{src}_user_denied"
+    if user.user_id in acl.allowed_users:
+        return True, f"{src}_explicit_user"
+    if any(role in acl.allowed_roles for role in user.roles):
+        return True, f"{src}_role"
+    return False, f"{src}_no_grant"
 
 
 def check_sensitivity_clearance(user: User, resource: Resource) -> tuple[bool, str]:
