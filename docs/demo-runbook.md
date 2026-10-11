@@ -245,23 +245,24 @@ and 'proven safe'. Then I revert — and it's green again."
 disk. An insider editing that file to cover their tracks is detectable — the
 check doesn't trust memory, it re-hashes the file itself on every refresh.
 
-**Setup:** the backend writes every decision to `audit_log.json` in the repo
-root as it happens. Run a couple of queries first (Demos 1–2 populate it).
+**Setup:** the backend appends every decision to `audit_log.jsonl` in the repo
+root as it happens (one JSON event per line; earlier lines are never
+rewritten). Run a couple of queries first (Demos 1–2 populate it).
 
 1. As **frank** (admin) or **diana** (compliance), open the **Audit Explorer**.
    **Expected:** badge **[VERIFIED]** — integrity is re-checked automatically
    on every refresh (filter change, new query, refresh button, or returning to
    the browser window).
-2. **The attack — do it live:** open `audit_log.json` in your editor. Find a
+2. **The attack — do it live:** open `audit_log.jsonl` in your editor. Find a
    `"decision": "deny"` event and change it to `"allow"` (an insider hiding
    that they were denied access). Save the file.
 3. Switch back to the browser (or click **refresh** / change any filter).
    **Expected:** badge turns red **[TAMPERED · event #N]** and a toast warns
    "audit log integrity check FAILED at event #N". It stays red whatever the
-   filters. The question, answer text and citation map are hashed too, so
-   editing any of them is caught the same way. **Don't run a new query between
-   the edit and the check** — the next logged event rewrites the file from
-   memory.
+   filters **and** after new queries — the log is append-only, so the edit is
+   never written over. The question, answer text and citation map are hashed
+   too, so editing any of them is caught the same way; deleting the newest
+   lines is caught as a truncated log.
 
 **Talking point:** "Every decision is written to disk, and each event's hash
 includes the previous event's hash — a blockchain over the audit log. Watch: I'll
@@ -272,7 +273,7 @@ this legally defensible for a regulator."
 
 > This re-reads and re-hashes the actual file (`/audit/verify-file`), so the
 > edit is caught no matter how it was made. **Reset:** restart the backend (or
-> delete `audit_log.json`) to start a fresh clean log.
+> delete `audit_log.jsonl`) to start a fresh clean log.
 
 
 ---
@@ -288,6 +289,22 @@ this legally defensible for a regulator."
    no preview.
 3. In the audit explorer the view appears as *charlie opened a source preview*.
    A denied or nonexistent resource returns the same 404 and is audited too.
+
+---
+
+## Plugging in a new source (upload connector)
+
+**Point:** a new data source is one connector behind the same interface, and
+it inherits the permission filter, grounding check and audit trail — fail-closed.
+
+1. Open `http://127.0.0.1:8000/docs` → **POST /upload** → *Try it out*,
+   `X-User-Id: frank`, body with `"allowed_roles": ["security_team", "admin"]`
+   (full example in the demo script §8) → *Execute*.
+2. Ask *"What happened in the Q4 production incident?"* as **charlie** → the
+   upload is cited; as **alice** or **bob** → not shown.
+3. The interface is `backend/connectors/base.py` (list, fetch, ACL, membership,
+   ACL update). A connector without its own permission rules gets the generic
+   ACL check: deny-list, explicit user grant, role grant — otherwise denied.
 
 ---
 

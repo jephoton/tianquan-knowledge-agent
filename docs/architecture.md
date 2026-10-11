@@ -35,7 +35,7 @@ One request path, enforced in a fixed order:
 | TB2 | **Policy engine is authoritative** | Every candidate is re-decided against its **live** ACL at query time. Search results are suggestions, never access. |
 | TB3 | **Only authorized content passes** | The context assembler only ever receives allowed resources. |
 | TB4 | **LLM sees filtered context only** | ADP receives the assembled authorized context and nothing else. Each call opens a **fresh ADP conversation**, so the model has no memory of another user's prompt. |
-| TB5 | **Every decision is logged** | Allow and deny decisions, the question, and the served answer are appended to a SHA-256 hash chain persisted to `audit_log.json`. |
+| TB5 | **Every decision is logged** | Allow and deny decisions, the question, and the served answer are appended to a SHA-256 hash chain, appended to `audit_log.jsonl` (append-only: earlier lines are never rewritten, so a hand-edit stays detectable). |
 
 The critical invariant across all boundaries:
 
@@ -58,7 +58,10 @@ Mock source-system connectors behind one `BaseConnector` interface
 | Google Drive | file / folder sharing (view · comment · edit) | shared drives |
 
 `upload.py` is a fifth, runtime-ingestion connector. It is kept on the backend
-(`/upload`) to show connector extensibility but is not surfaced in the UI.
+(`/upload`, usable from the API docs page) to show connector extensibility but
+is not surfaced in the UI. Connectors without their own permission rules get
+the generic fail-closed ACL check (deny-list → user grant → role grant →
+deny).
 
 ### `backend/auth/`
 
@@ -111,7 +114,10 @@ Mock source-system connectors behind one `BaseConnector` interface
 
 - `event_schema.py` — canonical `AuditEvent`; deterministic JSON payload.
 - `hash_chain.py` — `event_hash = SHA256(prev_hash + canonical_json(event))`;
-  persists to disk on every append; `verify_file()` re-hashes the file.
+  appends each event as one JSON line (never rewriting earlier lines);
+  `verify_file()` re-hashes the file and compares its length and head with
+  the in-memory chain, so edits, corrupt lines and deleted tail events are
+  all caught. Every audit query runs this check.
 - `audit_query.py` — filters by user, resource (substring or id set), query,
   decision, action, time window.
 - `nl_query.py` — deterministic plain-English audit search. Resolves users,

@@ -2,6 +2,22 @@
 
 > **Last updated:** 2026-10-11 (independent review fixes: cross-platform search, preview audit, grounding, ADP isolation, audit question + grouping, accessibility, vendored assets, architecture diagram)
 
+## Append-only audit log, fail-closed connectors, export/connector beats (2026-10-11, pass 4)
+
+- **The audit log is append-only JSON Lines (`audit_log.jsonl`).** It used to
+  rewrite the whole file from memory on every append, which silently "healed"
+  a hand-edit on the next query. Now each event is one appended line; earlier
+  lines are never rewritten, so tampering stays detectable after later
+  queries. `verify_file()` also compares the file with the in-memory chain, so
+  deleting the newest lines is caught as a truncated log.
+- **Fixed a fail-open permission bug:** sources without their own rules (the
+  upload connector) hit `unknown_source_default_allow` and skipped the ACL —
+  an upload restricted to `security_team` was shown to alice. They now get a
+  generic fail-closed ACL check (deny-list → user grant → role grant → deny).
+- Demo script: new §5 (reading vs exporting) and optional §8 (plugging in a
+  new source live via `/docs` → POST /upload); ≈7 min + reflection.
+  289 tests pass.
+
 ## Audit explorer UX from demo run-through (2026-10-11, pass 3)
 
 - **Permission changes are audited.** Revoke/grant append an `acl_revoke` /
@@ -12,8 +28,7 @@
   deleted file) shows on the next refresh whatever the filters; the "verify
   integrity" button is gone. The UI also refreshes when the window regains
   focus and toasts once when tampering is first detected. An empty trail (no
-  file yet) reads as verified. Note: the next appended event rewrites the file
-  from memory, so check before running another query.
+  file yet) reads as verified.
 - **Plain-English search fills the filter fields** (`filters` in the
   response: user_id, decision, resource, since, until); the table is loaded
   from those fields so it always matches them. The bracketed parameter echo is

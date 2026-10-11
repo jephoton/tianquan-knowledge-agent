@@ -1,4 +1,4 @@
-# Demo Script — Tianquan 天权 (≈6 min + ≈1 min reflection)
+# Demo Script — Tianquan 天权 (≈7 min + ≈1 min reflection)
 
 > The *narration* for the demo video and live demo — what to say and show, in
 > order. For click-by-click steps and exact inputs, see
@@ -15,7 +15,7 @@ open; a terminal in `formal/`.
 
 Coverage of the five required scenarios: **①** unified query (§2) · **②** data
 freshness (§2) · **③** negative case (§3) · **④** live revocation (§4) ·
-**⑤** audit inquiry (§5).
+**⑤** audit inquiry (§6).
 
 ---
 
@@ -119,7 +119,22 @@ changed it, when, and the ACL version v1 → v2.)*
 
 ---
 
-## 5. An audit trail a regulator can query — and trust (⑤) — 60s
+## 5. Reading is not exporting — 30s
+
+**Switch to Charlie (security) → Query:** ask *"What happened in the payment
+outage and how was it fixed?"*, click a citation → the **source preview**
+opens with the full document and its origin link → **download ↓** saves it.
+
+> "Reading an answer and taking the raw document out are different rights.
+> Charlie holds export; Alice doesn't — her citation cards don't even open.
+> And opening or downloading a source is logged like everything else."
+
+*(In Diana's audit trail: "charlie opened a source preview", "charlie
+exported".)*
+
+---
+
+## 6. An audit trail a regulator can query — and trust (⑤) — 60s
 
 **Switch to Diana → Admin → ask the audit trail:** *"Show me everything user jdoe
 accessed related to the payment-gateway Confluence space in the last 30
@@ -138,17 +153,18 @@ Open a query group:
 > when."
 
 Point at the badge: **[VERIFIED]**, re-checked automatically on every
-refresh. Open `audit_log.json` in the editor, change one `"deny"` to
-`"allow"`, save, and switch back to the browser → the badge turns red,
-**[TAMPERED · event #N]**, with a warning; changing filters keeps it red.
-(Don't run a new query in between — the next logged event rewrites the file.)
+refresh. Open `audit_log.jsonl` in the editor (one event per line), change one
+`"deny"` to `"allow"`, save, and switch back to the browser → the badge turns
+red, **[TAMPERED · event #N]**, with a warning. It stays red when you change
+filters **and** after new queries — the log is append-only, so nothing ever
+writes over the edit.
 
 > "Each entry commits to the hash of the one before it. I just played a
 > malicious admin hiding a denial — caught at the exact event."
 
 ---
 
-## 6. The payoff: the race no test would find — 60s
+## 7. The payoff: the race no test would find — 60s
 
 **Terminal** (in `formal/`; find the TLA+ tools jar once, then run TLC):
 
@@ -180,9 +196,35 @@ re-run the same `java` command → **invariant violated**.
 
 ---
 
-## 7. Close (20s)
+## 8. Plugging in a new source (optional) — 40s
 
-> "Tianquan answers from four systems, respects each one's native
+Open **`http://127.0.0.1:8000/docs`** (the API's built-in page) → **POST
+/upload** → *Try it out* → `X-User-Id: frank`, body:
+
+```json
+{"resource_id": "upload:q4-incident",
+ "title": "Q4 Production Incident Report",
+ "content": "On 2026-10-05 the card-issuing service failed over to the DR region after an expired TLS certificate on the issuer gateway.",
+ "allowed_roles": ["security_team", "admin"]}
+```
+
+→ *Execute* → "uploaded and indexed". Ask *"What happened in the Q4 production
+incident?"* as **Charlie** (cited) and as **Alice** (not shown).
+
+> "That was a fifth data source, live. Every platform is one connector behind
+> the same five-method interface — list, fetch, read the ACL, check
+> membership, update the ACL. Plug one in and the permission filter, the
+> grounding check and the audit trail apply to it automatically — and it's
+> fail-closed: no grant on the document, no access."
+
+*(Optional: flash `backend/connectors/base.py` — the whole interface fits on
+one screen.)*
+
+---
+
+## 9. Close (20s)
+
+> "Tianquan answers from four systems — and any new one you plug in — respects each one's native
 > permissions, removes what it can't support, and logs every decision so a
 > regulator can verify it. It's built for real people, too —" *(toggle **clean
 > mode**)* "— a high-readability mode, full keyboard support, screen-reader
@@ -207,16 +249,19 @@ re-run the same `java` command → **invariant violated**.
 - **Miora** — "Miora designed the dashboard and the cover image."
 - **Tip** — e.g. "Keep a handoff doc (architecture, current state, decisions)
   in the repo so every AI session starts from the same context."
+  "Also, make sure to keep iterating, that's super important especially when approaching submission/deployment,
+  because there can be so many things you may want to change about your solution. So make sure you thoroughly test all your features by hand and keep iterating on them."
 
 ---
 
 ## Timing / fallbacks
 
-- ≈6 min + reflection ≈ 7 min (video limit 5–8). For a 3-minute live slot:
-  §0, §2, §3, §5 (tamper only), §6.
+- ≈7 min + reflection ≈ 8 min — right at the video limit (5–8). To make room,
+  drop §8 (new source) or §5 (export) first. For a 3-minute live slot: §0, §2,
+  §3, §6 (tamper only), §7.
 - **TLA+ fallback:** pre-record both TLC runs or show the counterexample trace
   as a slide.
 - **Live LLM fallback:** without network, answers come from the offline
   extractive summarizer — the permission and audit story is identical.
-- **Reset between runs:** restart the backend (clears the audit log and ACL
-  changes); `git checkout formal/access_control.tla`.
+- **Reset between runs:** restart the backend (starts a fresh audit log and
+  undoes ACL changes and uploads); `git checkout formal/access_control.tla`.
