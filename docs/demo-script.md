@@ -2,7 +2,7 @@
 
 <!-- Maintained demo outline: restored opening narration, followed by actions and talking points. -->
 
-**Pitch:** Auditable AI answers that never overstep access rights.
+**Pitch:** Permission-safe, auditable AI answers backed by a TLA+ model-checked access-control design.
 
 Aim for about 6–7 minutes of core demo plus 45–60 seconds of reflection.
 Timings are rehearsal targets, not measured recording times. Exact inputs,
@@ -19,10 +19,12 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 - Start on the dashboard and toggle **clean mode** before the introduction.
 - Briefly point out readability, keyboard navigation and screen-reader support.
 
-## 1. Track + hook (30s, no screen)
+## 1. Track + hook (≈60s, no screen)
 
 > "This is Tianquan, which roughly translates to "Heavenly Authority".
-> This was made for the FinTech track —
+> It combines permission-safe AI retrieval with formal verification: I
+> model-check the access-control design in TLA+ to catch races between queries
+> and permission revocations. This was made for the FinTech track —
 > Aspire's *Internal Brain* challenge."
 
 > "Employees lose an estimated 30% of their week searching across Confluence,
@@ -93,14 +95,19 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 - Re-run: invariant violation gives the failing sequence.
 - Restore only that edit and re-run; prepare a recorded counterexample as fallback.
 
-## 9. Close (20s)
+## 9. Close — spoken recap (≈40s)
 
-> "Tianquan answers from four systems — and any new one you plug in — respects each one's native
-> permissions, removes what it can't support, and logs every decision so a
-> regulator can verify it. It's built for real people, too —
-> a high-readability mode, full keyboard support, screen-reader
-> friendly. The LLM cannot leak what it never receives. That's what makes AI
-> deployable in finance."
+> "Tianquan brings Confluence, Jira, Slack and Drive into one cited answer,
+> using current source content and permissions. Documents you cannot access
+> stay out of the model, and revoked access takes effect on the next query.
+> Unsupported claims are removed; raw-source viewing and export require their
+> own permission checks. Every decision, answer and permission change goes
+> into a tamper-evident audit trail you can query in plain English.
+
+> The access-control design is model-checked in TLA+, with tests covering the
+> corresponding implementation rules. Clean mode and keyboard support make
+> the interface easier to use. The LLM cannot leak what it never receives —
+> that's the foundation for using AI safely in finance."
 
 ---
 
