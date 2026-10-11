@@ -1,0 +1,228 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Tianquan 天权 — architecture and trust boundaries</title>
+  <defs>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ffb000"/></marker>
+    <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4fb87a"/></marker>
+    <marker id="a-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d98585"/></marker>
+    <marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b8ad98"/></marker>
+    <style>
+      .bg { fill: #0c0c0c; }
+      .card { fill: #161616; stroke: #3a352c; stroke-width: 1.2; }
+      .card-hi { fill: #1a1712; stroke: #ffb000; stroke-width: 1.6; }
+      .zone { fill: #111111; stroke: #2c2822; stroke-width: 1.2; }
+      .h1 { fill: #f0e6d2; font-size: 30px; font-weight: 600; }
+      .sub { fill: #b8ad98; font-size: 16px; }
+      .h { fill: #f0e6d2; font-size: 16px; font-weight: 600; }
+      .t { fill: #cdbfa6; font-size: 13.5px; }
+      .m { fill: #9a8e78; font-size: 12.5px; }
+      .zl { fill: #c2b79f; font-size: 13px; letter-spacing: 1.5px; font-family: Consolas, Menlo, monospace; }
+      .num { fill: #ffb000; font-size: 16px; font-weight: 700; font-family: Consolas, Menlo, monospace; }
+      .tb { stroke: #ffb000; stroke-width: 1.6; stroke-dasharray: 7 5; fill: none; }
+      .tbl { fill: #ffb000; font-size: 12.5px; font-weight: 600; font-family: Consolas, Menlo, monospace; }
+      .flow { stroke: #ffb000; stroke-width: 2; fill: none; }
+      .ok { stroke: #4fb87a; stroke-width: 2; fill: none; }
+      .deny { stroke: #d98585; stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
+      .ctl { stroke: #b8ad98; stroke-width: 1.6; fill: none; }
+      .dt { fill: #d98585; font-size: 12.5px; }
+      .ct { fill: #b8ad98; font-size: 12.5px; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="1000"/>
+
+  <!-- Title -->
+  <text class="h1" x="40" y="52">Tianquan 天权 — architecture &amp; trust boundaries</text>
+  <text class="sub" x="40" y="80">The LLM cannot leak what it never receives: permissions are enforced before the model sees anything, and every decision is hash-chained to an audit log.</text>
+
+  <!-- ============ LEFT: people + UI ============ -->
+  <rect class="card" x="40" y="115" width="250" height="150" rx="4"/>
+  <text class="h" x="58" y="142">People</text>
+  <text class="t" x="58" y="168">Engineer · contractor</text>
+  <text class="t" x="58" y="190">Security · finance</text>
+  <text class="t" x="58" y="212">Compliance officer · admin</text>
+  <text class="m" x="58" y="244">7 demo personas, 7 roles</text>
+
+  <rect class="card" x="40" y="290" width="250" height="250" rx="4"/>
+  <text class="h" x="58" y="317">Web UI</text>
+  <text class="m" x="58" y="337">static HTML/JS, no build step</text>
+  <text class="t" x="58" y="366">Query console</text>
+  <text class="t" x="58" y="388">Cited answer + [n] links</text>
+  <text class="t" x="58" y="410">Source preview (export only)</text>
+  <text class="t" x="58" y="432">Audit explorer + NL search</text>
+  <text class="t" x="58" y="454">Revoke / grant</text>
+  <text class="t" x="58" y="476">Permissions inspector</text>
+  <text class="m" x="58" y="514">panels gated by permission</text>
+  <path class="flow" d="M165,265 L165,288" marker-end="url(#a-amber)"/>
+
+  <!-- TB1 -->
+  <line class="tb" x1="315" y1="110" x2="315" y2="560"/>
+  <text class="tbl" transform="translate(308,372) rotate(-90)">TB1 · identity at the API</text>
+
+  <!-- API -->
+  <rect class="card" x="340" y="115" width="190" height="425" rx="4"/>
+  <text class="h" x="356" y="142">FastAPI</text>
+  <text class="m" x="356" y="162">thin REST adapter</text>
+  <text class="t" x="356" y="194">Acting user from</text>
+  <text class="t" x="356" y="214">X-User-Id header</text>
+  <text class="t" x="356" y="250">Server-side gates:</text>
+  <text class="m" x="356" y="272">export → preview,</text>
+  <text class="m" x="356" y="290">  download</text>
+  <text class="m" x="356" y="312">audit_query → /audit/*</text>
+  <text class="m" x="356" y="334">manage_permissions</text>
+  <text class="m" x="356" y="352">  → /admin/*</text>
+  <text class="t" x="356" y="390">Non-auditors never</text>
+  <text class="t" x="356" y="410">receive deny details</text>
+  <text class="m" x="356" y="446">denied ≡ not found</text>
+  <text class="m" x="356" y="464">(no existence oracle)</text>
+  <path class="flow" d="M290,400 L338,400" marker-end="url(#a-amber)"/>
+  <path class="ok" d="M338,430 L292,430" marker-end="url(#a-green)"/>
+
+  <!-- ============ ORCHESTRATOR ============ -->
+  <rect class="zone" x="560" y="105" width="1000" height="455" rx="6"/>
+  <text class="zl" x="580" y="130">ORCHESTRATOR · EVERY QUERY</text>
+
+  <!-- Top row (answer path, right to left) -->
+  <rect class="card" x="585" y="165" width="215" height="110" rx="4"/>
+  <text class="h" x="600" y="191">Response</text>
+  <text class="t" x="600" y="217">Answer + citations</text>
+  <text class="t" x="600" y="237">+ grounding note</text>
+  <text class="m" x="600" y="261">or the canonical "not found"</text>
+
+  <rect class="tb" x="818" y="140" width="239" height="145" rx="6"/>
+  <text class="tbl" x="828" y="157">TB5 every decision logged</text>
+  <rect class="card" x="830" y="165" width="215" height="110" rx="4"/>
+  <text class="num" x="845" y="191">7</text><text class="h" x="865" y="191">Audit log</text>
+  <text class="t" x="845" y="217">SHA-256 hash chain on disk</text>
+  <text class="m" x="845" y="241">who · question · each doc</text>
+  <text class="m" x="845" y="259">allow/deny · answer text</text>
+
+  <rect class="card" x="1075" y="165" width="215" height="110" rx="4"/>
+  <text class="num" x="1090" y="191">6</text><text class="h" x="1110" y="191">Answer checks</text>
+  <text class="t" x="1090" y="217">Citations must be in</text>
+  <text class="t" x="1090" y="237">context (INV6)</text>
+  <text class="m" x="1090" y="261">unsupported sentences cut (INV8)</text>
+
+  <rect class="tb" x="1308" y="140" width="242" height="145" rx="6"/>
+  <text class="tbl" x="1318" y="157">TB4 LLM sees filtered context</text>
+  <rect class="card" x="1320" y="165" width="215" height="110" rx="4"/>
+  <text class="num" x="1335" y="191">5</text><text class="h" x="1355" y="191">Tencent Cloud ADP</text>
+  <text class="t" x="1335" y="217">Drafts the cited answer</text>
+  <text class="t" x="1335" y="237">Fresh conversation per query</text>
+  <text class="m" x="1335" y="261">offline: extractive fallback</text>
+
+  <path class="ok" d="M1320,220 L1292,220" marker-end="url(#a-green)"/>
+  <path class="ok" d="M1075,220 L1047,220" marker-end="url(#a-green)"/>
+  <path class="ok" d="M830,220 L802,220" marker-end="url(#a-green)"/>
+  <path class="ok" d="M585,220 L532,220" marker-end="url(#a-green)"/>
+
+  <!-- Bottom row (retrieval path, left to right) -->
+  <rect class="card" x="585" y="400" width="215" height="125" rx="4"/>
+  <text class="num" x="600" y="427">1</text><text class="h" x="620" y="427">Injection scan</text>
+  <text class="t" x="600" y="453">Flags override / exfil</text>
+  <text class="t" x="600" y="473">patterns in the audit log</text>
+  <text class="m" x="600" y="504">never trusted to block</text>
+
+  <rect class="card" x="830" y="400" width="215" height="125" rx="4"/>
+  <text class="num" x="845" y="427">2</text><text class="h" x="865" y="427">Candidate search</text>
+  <text class="t" x="845" y="453">TF-IDF over all sources</text>
+  <text class="t" x="845" y="473">Over-fetches on purpose</text>
+  <text class="m" x="845" y="504">named platform = boost</text>
+
+  <rect class="card-hi" x="1075" y="400" width="215" height="125" rx="4"/>
+  <text class="num" x="1090" y="427">3</text><text class="h" x="1110" y="427">Permission filter</text>
+  <text class="t" x="1090" y="453">Re-fetches the LIVE ACL</text>
+  <text class="t" x="1090" y="473">per candidate · PolicyEngine</text>
+  <text class="m" x="1090" y="504">fail-closed, source-native</text>
+
+  <rect class="card" x="1320" y="400" width="215" height="125" rx="4"/>
+  <text class="num" x="1335" y="427">4</text><text class="h" x="1355" y="427">Context assembler</text>
+  <text class="t" x="1335" y="453">Authorized docs only,</text>
+  <text class="t" x="1335" y="473">citation-marked [1]…[n]</text>
+  <text class="m" x="1335" y="504">bounded context window</text>
+
+  <path class="flow" d="M530,462 L583,462" marker-end="url(#a-amber)"/>
+  <path class="flow" d="M800,462 L828,462" marker-end="url(#a-amber)"/>
+  <path class="flow" d="M1045,462 L1073,462" marker-end="url(#a-amber)"/>
+  <path class="ok" d="M1290,462 L1318,462" marker-end="url(#a-green)"/>
+  <path class="ok" d="M1427,400 L1427,288" marker-end="url(#a-green)"/>
+
+  <!-- TB2 / TB3 -->
+  <line class="tb" x1="1060" y1="390" x2="1060" y2="540"/>
+  <text class="tbl" x="1053" y="384" text-anchor="end">TB2 policy engine</text>
+  <line class="tb" x1="1305" y1="390" x2="1305" y2="540"/>
+  <text class="tbl" x="1298" y="384" text-anchor="end">TB3 authorized only</text>
+
+  <!-- denied path -->
+  <path class="deny" d="M1100,400 L1100,335 L960,335 L960,288" marker-end="url(#a-red)"/>
+  <text class="dt" x="970" y="326">denied docs → audit only · never the LLM, never the user</text>
+
+  <!-- ============ CONNECTORS ============ -->
+  <rect class="zone" x="560" y="600" width="1000" height="215" rx="6"/>
+  <text class="zl" x="580" y="625">SOURCE CONNECTORS · NATIVE PERMISSION MODELS PRESERVED</text>
+
+  <rect class="card" x="585" y="642" width="225" height="150" rx="4"/>
+  <text class="h" x="601" y="668">Confluence</text>
+  <text class="t" x="601" y="694">Space visibility +</text>
+  <text class="t" x="601" y="714">page restrictions</text>
+  <text class="m" x="601" y="746">ENG · SEC · FIN spaces</text>
+
+  <rect class="card" x="830" y="642" width="225" height="150" rx="4"/>
+  <text class="h" x="846" y="668">Jira</text>
+  <text class="t" x="846" y="694">Project roles +</text>
+  <text class="t" x="846" y="714">issue-level security</text>
+  <text class="m" x="846" y="746">MIG · PAY · SEC · HELP</text>
+
+  <rect class="card" x="1075" y="642" width="225" height="150" rx="4"/>
+  <text class="h" x="1091" y="668">Slack</text>
+  <text class="t" x="1091" y="694">Channel membership</text>
+  <text class="t" x="1091" y="714">(public / private)</text>
+  <text class="m" x="1091" y="746">threads as resources</text>
+
+  <rect class="card" x="1320" y="642" width="215" height="150" rx="4"/>
+  <text class="h" x="1336" y="668">Google Drive</text>
+  <text class="t" x="1336" y="694">File / folder sharing</text>
+  <text class="t" x="1336" y="714">(view · comment · edit)</text>
+  <text class="m" x="1336" y="746">shared drives</text>
+
+  <text class="m" x="585" y="808">Mock connectors behind one BaseConnector interface; each resource carries an ACL version, bumped on every change.</text>
+
+  <path class="ctl" d="M937,600 L937,527" marker-end="url(#a-muted)"/>
+  <text class="ct" x="945" y="580">content + metadata</text>
+  <path class="ctl" d="M1182,600 L1182,527" marker-end="url(#a-muted)"/>
+  <text class="ct" x="1190" y="580">live ACL, re-fetched every query</text>
+
+  <!-- ============ CONTROL PLANE ============ -->
+  <rect class="zone" x="40" y="600" width="490" height="215" rx="6"/>
+  <text class="zl" x="60" y="625">CONTROL PLANE</text>
+  <rect class="card" x="60" y="642" width="215" height="150" rx="4"/>
+  <text class="h" x="76" y="668">Admin</text>
+  <text class="t" x="76" y="694">Revoke / grant bumps</text>
+  <text class="t" x="76" y="714">the ACL version</text>
+  <text class="m" x="76" y="746">next query reflects it,</text>
+  <text class="m" x="76" y="764">no reindex</text>
+  <rect class="card" x="295" y="642" width="215" height="150" rx="4"/>
+  <text class="h" x="311" y="668">Compliance</text>
+  <text class="t" x="311" y="694">Filter or ask the trail</text>
+  <text class="t" x="311" y="714">in plain English</text>
+  <text class="m" x="311" y="746">verify-file re-hashes the</text>
+  <text class="m" x="311" y="764">log: edits are caught</text>
+
+  <path class="ctl" d="M168,792 L168,840 L700,840 L700,817" marker-end="url(#a-muted)"/>
+  <text class="ct" x="190" y="858">ACL change → connectors</text>
+  <path class="ctl" d="M402,642 L402,580 L545,580 L545,305 L900,305 L900,288" marker-end="url(#a-muted)"/>
+  <text class="ct" x="600" y="298">compliance: query + verify the log</text>
+
+  <!-- ============ FORMAL + LEGEND ============ -->
+  <rect class="card" x="40" y="872" width="1100" height="108" rx="4"/>
+  <text class="h" x="58" y="898">Formal model (TLA+ / TLC)</text>
+  <text class="t" x="58" y="922">Query lifecycle with revocation interleaved; TLC checks every reachable state. The naive variant leaks under a revoke-after-decide race.</text>
+  <text class="t" x="58" y="944">INV1 RetrievedOnlyIfAuthorized · INV2 LLMSeesOnlyRetrievedContent · INV3 RevokedAccessNotReusable</text>
+  <text class="t" x="58" y="966">INV4 EveryDecisionAudited · INV6 NoUnauthorizedCitation · INV7 NoMetadataLeakOnDeny</text>
+
+  <rect class="card" x="1160" y="872" width="400" height="108" rx="4"/>
+  <line class="flow" x1="1178" y1="898" x2="1218" y2="898"/><text class="t" x="1228" y="903">request flow</text>
+  <line class="ok" x1="1380" y1="898" x2="1420" y2="898"/><text class="t" x="1430" y="903">authorized data</text>
+  <line class="deny" x1="1178" y1="930" x2="1218" y2="930"/><text class="t" x="1228" y="935">denied path</text>
+  <line class="tb" x1="1380" y1="930" x2="1420" y2="930"/><text class="t" x="1430" y="935">trust boundary</text>
+  <line class="ctl" x1="1178" y1="961" x2="1218" y2="961"/><text class="t" x="1228" y="966">data / control feed</text>
+</svg>
