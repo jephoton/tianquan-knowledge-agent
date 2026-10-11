@@ -115,3 +115,18 @@ def test_adp_client_generate_sends_official_payload():
     assert payload["Contents"][0]["Type"] == "text"
     assert payload["Contents"][0]["Text"] == "test prompt"
     assert payload["Stream"] == "enable"
+
+
+def test_each_generate_call_uses_a_fresh_conversation():
+    """One ADPClient serves every user's query in the API process. Reusing an
+    ADP ConversationId would give the model memory of earlier prompts — i.e.
+    a previous user's authorized context — breaking INV2 (the model sees only
+    the current asker's filtered context). Every call must be stateless."""
+    client = ADPClient(app_key="fake-key")
+    ok = 'data: {"Type": "text.delta", "Text": "x"}'
+    with patch.object(client._session, "post",
+                      side_effect=lambda *a, **k: _FakeSSEResponse([ok])) as mock_post:
+        client.generate("alice's authorized context")
+        client.generate("charlie's authorized context")
+    ids = [c.kwargs["json"]["ConversationId"] for c in mock_post.call_args_list]
+    assert len(ids) == 2 and ids[0] != ids[1]

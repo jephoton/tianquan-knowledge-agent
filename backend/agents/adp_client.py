@@ -95,7 +95,6 @@ class ADPClient:
         self._app_key = app_key or os.environ.get("ADP_APP_KEY", "")
         self._timeout = timeout
         self._visitor_id = visitor_id
-        self._conversation_id = _uuid()
         self._session = _build_session()
 
         if not self._app_key:
@@ -115,7 +114,10 @@ class ADPClient:
         }
         payload = {
             "RequestId": _uuid(),
-            "ConversationId": self._conversation_id,
+            # A fresh conversation per call: this client is shared by every
+            # user's query, and a reused ConversationId would give the model
+            # memory of earlier prompts (another user's authorized context).
+            "ConversationId": _uuid(),
             "AppKey": self._app_key,
             "VisitorId": self._visitor_id,
             "UserId": self._visitor_id,
