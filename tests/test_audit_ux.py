@@ -22,7 +22,7 @@ PLAN = "confluence:db-migration-plan"
 
 @pytest.fixture()
 def log_path(tmp_path):
-    return tmp_path / "audit_log.json"
+    return tmp_path / "audit_log.jsonl"
 
 
 @pytest.fixture()
@@ -74,9 +74,9 @@ def test_hand_edit_shows_on_next_refresh_and_stays_red(client, log_path):
     _query(client)
     assert client.get("/audit", headers=DIANA).json()["chain_valid"] is True
 
-    data = json.loads(log_path.read_text(encoding="utf-8"))
+    data = [json.loads(l) for l in log_path.read_text(encoding="utf-8").splitlines() if l.strip()]
     data[0]["decision"] = "deny" if data[0]["decision"] == "allow" else "allow"
-    log_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    log_path.write_text("".join(json.dumps(e) + "\n" for e in data), encoding="utf-8")
 
     # No verify button: any audit query reports it, whatever the filters.
     r1 = client.get("/audit", headers=DIANA).json()

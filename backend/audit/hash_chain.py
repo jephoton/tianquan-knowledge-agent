@@ -59,15 +59,20 @@ class VerificationResult:
 class HashChain:
     """An append-only, tamper-evident chain of audit events.
 
-    If `persist_path` is set, the full chain is written to that JSON file on
-    every append. That file is the on-disk source of truth: `verify_file()`
-    re-reads and re-hashes it, so a hand-edit of the file (e.g. an insider
-    flipping a DENY to ALLOW to cover their tracks) is detected.
+    If `persist_path` is set, the log is written **append-only** as JSON
+    Lines: each event is appended as one line and earlier lines are never
+    rewritten. `verify_file()` re-reads and re-hashes the file, so a hand-edit
+    (e.g. an insider flipping a DENY to ALLOW) is detected — and stays
+    detected after later appends, because nothing ever rewrites the edited
+    line, and the next event still links to the original event's true hash.
     """
 
     def __init__(self, persist_path: str | None = None) -> None:
         self._events: list[AuditEvent] = []
         self._persist_path = persist_path
+        if persist_path:
+            # Each process starts a fresh log (the chain lives in memory).
+            open(persist_path, "w", encoding="utf-8").close()
 
     # -- Append ---------------------------------------------------------
 
@@ -75,13 +80,14 @@ class HashChain:
         """Append an event, linking and hashing it. Returns the event.
 
         Mutates the event's `previous_hash` and `event_hash` to place it at
-        the head of the chain, then persists the chain if configured.
+        the head of the chain, then appends it to the log file if configured.
         """
         event.previous_hash = self.head_hash()
         event.event_hash = compute_hash(event.previous_hash, event)
         self._events.append(event)
         if self._persist_path:
-            self.save(self._persist_path)
+            with open(self._persist_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(event.to_dict()) + "\n")
         return event
 
     def append_decision(
@@ -156,9 +162,10 @@ class HashChain:
         return json.dumps([e.to_dict() for e in self._events], indent=2)
 
     def save(self, path: str) -> None:
-        """Persist the chain to a JSON file."""
+        """Export the whole chain to a JSON Lines file (one event per line)."""
         with open(path, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+            for e in self._events:
+                f.write(json.dumps(e.to_dict()) + "\n")
 
     @property
     def persist_path(self) -> str | None:
@@ -197,13 +204,28 @@ class HashChain:
                 valid=False, reason="no_persist_path_configured")
         try:
             with open(p, "r", encoding="utf-8") as f:
-                raw = json.load(f)
+                lines = [line for line in f if line.strip()]
         except FileNotFoundError:
             return VerificationResult(valid=False, reason="log_file_not_found")
-        except json.JSONDecodeError as e:
-            # A hand-edit that breaks JSON structure is itself tamper evidence.
-            return VerificationResult(
-                valid=False, broken_at_index=None,
-                reason=f"log_file_corrupt_json:{e.msg}")
+        raw = []
+        for i, line in enumerate(lines):
+            try:
+                raw.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                # A hand-edit that breaks a line's JSON is itself tamper evidence.
+                return VerificationResult(
+                    valid=False, broken_at_index=i,
+                    reason=f"log_file_corrupt_json_at_{i}:{e.msg}")
         events = [event_from_dict(d) for d in raw]
-        return self.verify_events(events)
+        result = self.verify_events(events)
+        if result.valid and p == self._persist_path:
+            # A self-consistent file can still be a truncated one (newest
+            # events deleted). Compare it with the chain this process holds.
+            if len(events) != len(self._events) or (
+                events and events[-1].event_hash != self.head_hash()
+            ):
+                return VerificationResult(
+                    valid=False, broken_at_index=len(events),
+                    reason=f"log_file_truncated_or_diverged:"
+                           f"{len(events)}_of_{len(self._events)}_events")
+        return result

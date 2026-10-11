@@ -32,6 +32,7 @@ formal/states/
 
 # ── Runtime audit log (hash-chained; regenerated per run) ──
 audit_log.json
+audit_log.jsonl
 
 # ── Misc ────────────────────────────────────────
 *.log

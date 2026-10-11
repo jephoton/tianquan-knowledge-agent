@@ -19,7 +19,7 @@ from backend.api.app import create_app
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("TIANQUAN_AUDIT_LOG", str(tmp_path / "audit_log.json"))
+    monkeypatch.setenv("TIANQUAN_AUDIT_LOG", str(tmp_path / "audit_log.jsonl"))
     return TestClient(create_app())
 
 

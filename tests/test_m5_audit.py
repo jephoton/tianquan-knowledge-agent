@@ -241,18 +241,18 @@ def _decn(uid="alice", rid="r1", result=DecisionResult.ALLOW, reason="ok"):
 
 
 def test_persist_on_append_writes_file(tmp_path):
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     chain.append_decision(_decn(rid="r1"), "q1")
     chain.append_decision(_decn(rid="r2"), "q1")
     assert os.path.exists(log)
     import json
-    data = json.load(open(log, encoding="utf-8"))
+    data = _read_log(log)
     assert len(data) == 2
 
 
 def test_verify_file_clean(tmp_path):
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     for i in range(3):
         chain.append_decision(_decn(rid=f"r{i}"), "q1")
@@ -263,15 +263,15 @@ def test_verify_file_clean(tmp_path):
 def test_verify_file_detects_hand_edit(tmp_path):
     """Simulate an insider editing the log file to flip a DENY to ALLOW."""
     import json
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     chain.append_decision(_decn(rid="r1", result=DecisionResult.DENY, reason="no_access"), "q1")
     chain.append_decision(_decn(rid="r2"), "q1")
 
     # Edit the file out-of-band: flip event 0's decision deny -> allow.
-    data = json.load(open(log, encoding="utf-8"))
+    data = _read_log(log)
     data[0]["decision"] = "allow"
-    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+    _write_log(log, data)
 
     # In-memory chain still "verifies" (it wasn't touched) — but the FILE does not.
     result = chain.verify_file()
@@ -281,7 +281,7 @@ def test_verify_file_detects_hand_edit(tmp_path):
 
 
 def test_verify_file_detects_corrupt_json(tmp_path):
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     chain.append_decision(_decn(), "q1")
     open(log, "w", encoding="utf-8").write("{ this is not valid json ]")
@@ -315,13 +315,13 @@ def test_question_recorded_on_every_event_of_a_query():
 
 def test_question_is_hashed_so_editing_it_is_detected(tmp_path):
     import json
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     chain.append_decision(_decn(rid="r1"), "q1", question="db migration status?")
-    data = json.load(open(log, encoding="utf-8"))
+    data = _read_log(log)
     assert data[0]["question"] == "db migration status?"
     data[0]["question"] = "something innocuous"
-    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+    _write_log(log, data)
     assert chain.verify_file().valid is False
 
 
@@ -345,14 +345,70 @@ def test_answer_event_records_citation_map():
 
 def test_citation_map_is_hashed_so_editing_it_is_detected(tmp_path):
     import json
-    log = str(tmp_path / "audit_log.json")
+    log = str(tmp_path / "audit_log.jsonl")
     chain = HashChain(persist_path=log)
     chain.append_decision(
         _decn(rid=None), "q1", detail="Phase 3 is next [1].",
         citations=[{"marker": "[1]", "resource_id": "MIG-231"}],
     )
-    data = json.load(open(log, encoding="utf-8"))
+    data = _read_log(log)
     assert data[0]["citations"] == [{"marker": "[1]", "resource_id": "MIG-231"}]
     data[0]["citations"][0]["resource_id"] = "confluence:q3-breach-report"
-    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+    _write_log(log, data)
     assert chain.verify_file().valid is False
+
+
+# The log is append-only JSON Lines: one event per line.
+def _read_log(path):
+    import json
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def _write_log(path, events):
+    import json
+    with open(path, "w", encoding="utf-8") as f:
+        for e in events:
+            f.write(json.dumps(e) + "\n")
+
+
+# -- Append-only persistence: tampering is never "healed" -----------------
+
+def test_tamper_survives_later_appends(tmp_path):
+    """A hand-edit must stay detectable after new events are logged. (The old
+    full-file rewrite on every append silently restored the original.)"""
+    log = str(tmp_path / "audit_log.jsonl")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(_decn(rid="r1", result=DecisionResult.DENY, reason="no"), "q1")
+    data = _read_log(log)
+    data[0]["decision"] = "allow"
+    _write_log(log, data)
+    chain.append_decision(_decn(rid="r2"), "q2")
+    chain.append_decision(_decn(rid="r3"), "q3")
+    result = chain.verify_file()
+    assert result.valid is False
+    assert result.broken_at_index == 0
+    assert _read_log(log)[0]["decision"] == "allow"  # the edit is still there
+
+
+def test_appends_never_rewrite_earlier_lines(tmp_path):
+    log = tmp_path / "audit_log.jsonl"
+    chain = HashChain(persist_path=str(log))
+    chain.append_decision(_decn(rid="r1"), "q1")
+    first = log.read_bytes()
+    chain.append_decision(_decn(rid="r2"), "q2")
+    assert log.read_bytes().startswith(first)
+    assert len(_read_log(str(log))) == 2
+
+
+def test_deleting_the_newest_events_is_detected(tmp_path):
+    """Dropping lines from the end leaves a self-consistent prefix; it is
+    caught by comparing the file with the chain the server holds."""
+    log = str(tmp_path / "audit_log.jsonl")
+    chain = HashChain(persist_path=log)
+    for i in range(3):
+        chain.append_decision(_decn(rid=f"r{i}"), "q")
+    _write_log(log, _read_log(log)[:2])
+    result = chain.verify_file()
+    assert result.valid is False
+    assert "truncated" in result.reason

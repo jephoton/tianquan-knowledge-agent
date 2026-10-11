@@ -64,11 +64,12 @@ class AppState:
             GDriveConnector(),
             upload,
         ]
-        # Persist the audit log to a real file on disk. This is what makes the
-        # tamper demo authentic: the file can be hand-edited and the
-        # verify-file endpoint will catch it. Path is overridable via env.
+        # Persist the audit log to a real, append-only file on disk (JSON
+        # Lines). This is what makes the tamper demo authentic: the file can
+        # be hand-edited and every audit query catches it — and keeps catching
+        # it after later appends. Path is overridable via env.
         from backend.audit.hash_chain import HashChain
-        log_path = os.environ.get("TIANQUAN_AUDIT_LOG", "audit_log.json")
+        log_path = os.environ.get("TIANQUAN_AUDIT_LOG", "audit_log.jsonl")
         audit_chain = HashChain(persist_path=log_path)
         orchestrator = Orchestrator(connectors, llm=_build_llm(), audit_chain=audit_chain)
         return cls(
