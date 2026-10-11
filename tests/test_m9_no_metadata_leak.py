@@ -139,3 +139,26 @@ def test_security_team_still_sees_breach_content():
     resp = o.handle(charlie, "Q3 security incident report data breach", k=20)
     assert resp.no_access is False
     assert BREACH_RESOURCE_ID in [c.resource_id for c in resp.citations]
+
+
+def test_privileged_missing_report_matches_contractors_denied_report():
+    """Q5 must not fall back to Q3 merely because both requests say report."""
+    o = _orchestrator()
+    question = "Show me the Q3 security incident report from the breach."
+    denied = o.handle(_user("bob"), question)
+    allowed = o.handle(_user("charlie"), question)
+    missing = o.handle(_user("charlie"), "Show me the Q5 report.")
+
+    assert BREACH_RESOURCE_ID in [c.resource_id for c in allowed.citations]
+    assert not allowed.no_access
+    assert missing.answer == denied.answer == NO_ACCESS_MESSAGE
+    assert missing.no_access
+    assert missing.citations == []
+
+
+def test_existing_report_remains_previewable_and_exportable_by_charlie():
+    o = _orchestrator()
+    charlie = _user("charlie")
+    assert o.preview(charlie, BREACH_RESOURCE_ID)["content"]
+    exported = o.export(charlie, [BREACH_RESOURCE_ID])
+    assert exported["allowed"][0]["resource_id"] == BREACH_RESOURCE_ID

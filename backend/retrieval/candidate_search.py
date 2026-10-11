@@ -238,6 +238,9 @@ class CandidateSearch:
             return []
 
         mentioned_sources = _detect_mentioned_sources(query_tokens)
+        # Explicit report labels identify the requested period. Do not
+        # substitute another period just because generic words overlap.
+        report_labels = {t for t in query_tokens if re.fullmatch(r"q\d+", t)}
 
         # Find candidate resource IDs via the inverted index (exact matches).
         candidate_ids: set[str] = set()
@@ -266,6 +269,12 @@ class CandidateSearch:
         scored: list[ScoredCandidate] = []
         for rid in candidate_ids:
             ie = self._entries[rid]
+            if (
+                report_labels
+                and not report_labels.intersection(ie.title_tf)
+                and not report_labels.intersection(ie.body_tf)
+            ):
+                continue
             exact_score = 0.0
             semantic_score = 0.0
 

@@ -84,6 +84,8 @@ deny).
 - `indexer.py` — snapshots connector resources (content + indexed ACL version);
   never used to authorize.
 - `candidate_search.py` — TF-IDF + character n-gram search over every source.
+  Explicit report labels (`Q` followed by digits) require an exact token in the
+  document title/content; unrelated periods are excluded (ADR-0008).
   Deliberately over-fetches. Naming a platform in the question ("…raised in
   Slack?") **boosts** that source's resources; it never drops the others
   ([ADR-0006](decisions/0006-source-mentions-boost-not-filter.md)).

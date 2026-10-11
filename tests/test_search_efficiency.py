@@ -281,3 +281,22 @@ def test_ngram_similarity():
     assert 0 < _ngram_similarity(a, c) < 1.0
     d = _char_ngrams("xyz")
     assert _ngram_similarity(a, d) == 0.0
+
+
+def test_explicit_report_labels_match_exactly_in_title_or_content():
+    from backend.connectors.upload import UploadConnector
+
+    uploads = UploadConnector()
+    uploads.add_document("upload:q5", "Q5 Report", "Security review.")
+    uploads.add_document("upload:body", "Security Report", "Review for Q5.")
+    uploads.add_document("upload:q50", "Q50 Report", "Security review.")
+    uploads.add_document("upload:q3", "Q3 Report", "Security review.")
+    idx = Indexer(connectors=[uploads])
+    idx.reindex()
+    search = CandidateSearch(idx)
+    ids = {c.resource.resource_id for c in search.search("Show me the Q5 report.")}
+    assert ids == {"upload:q5", "upload:body"}
+    assert search.search("Q6 report") == []
+    # Multiple explicit labels can retrieve both requested periods.
+    ids = {c.resource.resource_id for c in search.search("Compare Q3 and Q5 reports")}
+    assert ids == {"upload:q3", "upload:q5", "upload:body"}
