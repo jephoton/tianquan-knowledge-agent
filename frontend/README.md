@@ -48,7 +48,8 @@ again on the server).
 - **Access control** (`manage_permissions`) — `POST /admin/revoke|grant`. No
   auto re-run: the affected user sees the change on their next query.
 - **Permissions inspector** (`manage_permissions`) — who can access what, by
-  user, role, or resource (`GET /admin/permissions/*`).
+  user, role, or resource (`GET /admin/permissions/*`). The refresh button reloads
+  the resource options and selected lookup.
 
 ## Accessibility
 

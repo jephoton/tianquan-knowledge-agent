@@ -753,7 +753,10 @@
 
     <!-- PERMISSIONS INSPECTOR (read-only "who can access what") -->
     <section class="crt-card p-6 flex flex-col">
-      <div class="section-label mb-4">permissions inspector</div>
+      <div class="flex items-center justify-between mb-4">
+        <div class="section-label">permissions inspector</div>
+        <button id="pi-refresh" type="button" class="outline-btn" style="padding:4px 12px;font-size:11px;" aria-label="Refresh permissions inspector">refresh</button>
+      </div>
       <div class="flex flex-col gap-4 flex-1">
         <div class="grid grid-cols-3 gap-2">
           <div>

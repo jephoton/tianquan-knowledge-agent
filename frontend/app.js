@@ -1000,7 +1000,19 @@ async function boot() {
   $("preview-close").onclick = () => resetPreviewToEmpty();
   wireSubjectCombo();
   wireInspectorCombo();
-
+  $("pi-refresh").onclick = async () => {
+    const button = $("pi-refresh");
+    button.disabled = true;
+    $("pi-result").setAttribute("aria-busy", "true");
+    try {
+      const r = await api("/admin/permissions/resources");
+      _piResources = (r.resources || []).map((x) => x.resource_id).sort();
+      await runInspector();
+    } catch (_) {} finally {
+      button.disabled = false;
+      $("pi-result").removeAttribute("aria-busy");
+    }
+  };
 
   // Persona dropdown (mouse + keyboard)
   $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };

@@ -111,7 +111,7 @@ stale-permitted content.
    - `subject`: pick `engineer` (role) from the list
 3. Click **REVOKE**. **Expected:** inline status *"revoke role:engineer on
    confluence:db-migration-plan — ACL v1 -> v2"*. (Optional: look up the
-   resource in the **permissions inspector** — alice is no longer an effective
+   resource in the **permissions inspector** and click **refresh** — alice is no longer an effective
    reader.)
 4. Switch back to **alice** and ask the same question again. There is no
    auto re-run: an admin change and a user's query are separate actions.
