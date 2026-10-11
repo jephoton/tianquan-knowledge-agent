@@ -129,7 +129,23 @@ def search_audit(request: Request, q: str = "") -> AuditSearchResponseModel:
         matched=parsed.matched,
         parts=parsed.parts,
         unparsed=parsed.unparsed,
+        filters=_filters(parsed.query),
     )
+
+
+def _filters(q: AuditQuery) -> dict:
+    """The structured filters a question resolved to, in the explorer's own
+    field format, so the UI can fill its filter inputs with them."""
+    resource = q.resource_contains or ""
+    if q.resource_ids is not None:
+        resource = ", ".join(sorted(q.resource_ids))
+    return {
+        "user_id": q.user_id or "",
+        "decision": q.decision or "",
+        "resource": resource,
+        "since": q.since.date().isoformat() if q.since else "",
+        "until": q.until.date().isoformat() if q.until else "",
+    }
 
 
 @router.get("/verify")

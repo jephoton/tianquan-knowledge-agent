@@ -1309,6 +1309,13 @@
             },
             "type": "array",
             "title": "Unparsed"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Filters"
           }
         },
         "type": "object",

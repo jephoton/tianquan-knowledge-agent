@@ -91,3 +91,39 @@ def test_deleted_log_file_is_tamper(client, log_path):
     _query(client)
     log_path.unlink()
     assert client.get("/audit", headers=DIANA).json()["chain_valid"] is False
+
+
+# -- plain-English search returns the filters it resolved to --------------
+
+def test_search_returns_structured_filters(client):
+    r = client.get("/audit/search", headers=DIANA, params={
+        "q": "what did alice access in the ENG confluence space in the last 7 days"}).json()
+    f = r["filters"]
+    assert f["user_id"] == "alice"
+    assert f["decision"] == "allow"
+    assert len(f["since"]) == 10 and f["until"] == ""  # YYYY-MM-DD
+    assert set(f["resource"].split(", ")) == {
+        "confluence:db-migration-plan", "confluence:payment-runbook",
+        "confluence:auth-service-design",
+    }
+
+
+def test_resource_filter_accepts_comma_separated_alternatives(client):
+    _query(client)
+    r = client.get("/audit", headers=DIANA, params={
+        "resource_contains": "MIG-231, MIG-232"}).json()
+    assert r["count"] >= 2
+    assert {e["resource_id"] for e in r["events"]} <= {"MIG-231", "MIG-232"}
+
+
+def test_filled_filters_reproduce_the_search(client):
+    _query(client)
+    s = client.get("/audit/search", headers=DIANA, params={
+        "q": "what did alice access in jira"}).json()
+    f = s["filters"]
+    params = {k: v for k, v in {
+        "user_id": f["user_id"], "decision": f["decision"],
+        "resource_contains": f["resource"], "since": f["since"],
+    }.items() if v}
+    r = client.get("/audit", headers=DIANA, params=params).json()
+    assert r["count"] == s["count"]

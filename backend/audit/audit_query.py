@@ -45,8 +45,10 @@ class AuditQuery:
         if self.resource_id is not None and event.resource_id != self.resource_id:
             return False
         if self.resource_contains is not None:
+            # Comma-separated alternatives match any ("MIG-231, MIG-232").
             rid = event.resource_id or ""
-            if self.resource_contains not in rid:
+            parts = [p.strip() for p in self.resource_contains.split(",") if p.strip()]
+            if not any(p in rid for p in parts):
                 return False
         if self.resource_ids is not None and event.resource_id not in self.resource_ids:
             return False

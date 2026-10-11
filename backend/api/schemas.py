@@ -88,6 +88,9 @@ class AuditSearchResponseModel(AuditQueryResponseModel):
     matched: bool = False
     parts: list[str] = Field(default_factory=list)
     unparsed: list[str] = Field(default_factory=list)
+    # The structured filters the question resolved to (user_id, decision,
+    # resource, since, until) — the UI fills its filter fields with these.
+    filters: dict[str, str] = Field(default_factory=dict)
 
 
 # -- /admin ------------------------------------------------------------
