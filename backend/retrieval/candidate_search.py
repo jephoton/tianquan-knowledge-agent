@@ -47,9 +47,13 @@ _BODY_WEIGHT = 1.0
 
 _MAX_CACHE_SIZE = 128
 
+# Score multiplier for resources whose platform the query names (ADR-0006).
+_SOURCE_BOOST = 2.0
+
 # Maps source-specific keywords to Source enum values. When the query
-# contains one of these keywords, only resources from the matching source
-# are scored. This avoids scanning irrelevant connectors entirely.
+# contains one of these keywords, resources from the matching source are
+# ranked higher (boosted) -- never exclusively. Naming one platform ("...raised
+# in Slack?") must not drop the others: cross-platform answers are the point.
 _SOURCE_KEYWORDS: dict[str, str] = {
     "confluence": "confluence",
     "page": "confluence",
@@ -69,17 +73,17 @@ _SOURCE_KEYWORDS: dict[str, str] = {
 }
 
 
-def _detect_source_filter(query_tokens: list[str]) -> str | None:
-    """If the query mentions a source-specific keyword, return the source name.
+def _detect_mentioned_sources(query_tokens: list[str]) -> set[str]:
+    """Return every source the query names via a source-specific keyword.
 
-    Returns None when no source keyword is found, meaning all sources should
-    be searched.
+    An empty set means no platform was named. Several can be named at once
+    ("...Slack threads and link the Confluence decision doc").
     """
-    for token in query_tokens:
-        source = _SOURCE_KEYWORDS.get(token)
-        if source:
-            return source
-    return None
+    return {
+        _SOURCE_KEYWORDS[token]
+        for token in query_tokens
+        if token in _SOURCE_KEYWORDS
+    }
 
 
 def tokenize(text: str) -> list[str]:
@@ -227,14 +231,13 @@ class CandidateSearch:
         character n-gram similarity, so "db" matches "database" and
         "migration" matches "migrate".
 
-        If the query mentions a source-specific keyword (e.g. "jira",
-        "slack"), only resources from that source are scored.
+        If the query mentions source-specific keywords (e.g. "jira",
+        "slack"), resources from those sources are boosted, not filtered.
         """
         if not query_tokens:
             return []
 
-        # Detect source filter from query keywords.
-        source_filter = _detect_source_filter(query_tokens)
+        mentioned_sources = _detect_mentioned_sources(query_tokens)
 
         # Find candidate resource IDs via the inverted index (exact matches).
         candidate_ids: set[str] = set()
@@ -256,13 +259,6 @@ class CandidateSearch:
                     sim_body = _ngram_similarity(qngrams, ie.body_ngrams)
                     if sim_title > 0.3 or sim_body > 0.3:
                         candidate_ids.add(rid)
-
-        # Apply source filter if detected.
-        if source_filter:
-            candidate_ids = {
-                rid for rid in candidate_ids
-                if self._entries[rid].resource.source.value == source_filter
-            }
 
         # Unique query tokens for normalization.
         unique_query_tokens = set(query_tokens)
@@ -298,6 +294,8 @@ class CandidateSearch:
                         semantic_score += _BODY_WEIGHT * sim_body * 0.3
 
             score = exact_score + semantic_score
+            if ie.resource.source.value in mentioned_sources:
+                score *= _SOURCE_BOOST
             if score > 0:
                 # Normalize by query size for cross-query comparability.
                 score /= len(unique_query_tokens)

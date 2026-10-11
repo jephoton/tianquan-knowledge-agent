@@ -139,36 +139,53 @@ def test_search_scores_still_descending():
     assert scores == sorted(scores, reverse=True)
 
 
-# -- Connector-level filtering ----------------------------------------
+# -- Source mentions boost, never filter (ADR-0006) ---------------------
+#
+# Naming a platform ("...raised in Slack?") must NOT drop the other three:
+# the challenge's headline scenario stitches Jira + Slack + Confluence + Drive
+# into one answer. A mentioned source is ranked higher, nothing more.
 
-def test_source_filter_jira_only():
-    """Query mentioning 'jira' should only return Jira resources."""
+def _search():
     idx = Indexer(connectors=_connectors())
     idx.reindex()
-    search = CandidateSearch(idx)
-    results = search.search("jira migration ticket", k=20)
+    return CandidateSearch(idx)
+
+
+def test_source_mention_boosts_that_source_to_the_top():
+    """Query mentioning 'jira' should rank a Jira resource first."""
+    results = _search().search("jira migration ticket", k=20)
+    assert results[0].resource.source.value == "jira"
+
+
+def test_source_mention_does_not_drop_other_sources():
+    """Mentioning one platform must still fan out across the others."""
+    results = _search().search("jira migration ticket", k=20)
     sources = {c.resource.source.value for c in results}
-    assert sources == {"jira"} or len(results) == 0
+    assert len(sources) > 1
 
 
-def test_source_filter_slack_only():
-    """Query mentioning 'slack' should only return Slack resources."""
-    idx = Indexer(connectors=_connectors())
-    idx.reindex()
-    search = CandidateSearch(idx)
-    results = search.search("slack channel message", k=20)
+def test_demo_migration_question_naming_slack_fans_out():
+    """Regression: the demo question ends 'raised in Slack?' and used to
+    collapse to a single Slack thread (no Jira, no Confluence, no denials)."""
+    q = ("What is the status of the database migration and were there "
+         "blockers raised in Slack?")
+    results = _search().search(q, k=20)
+    ids = {c.resource.resource_id for c in results}
     sources = {c.resource.source.value for c in results}
-    assert sources == {"slack"} or len(results) == 0
+    assert {"slack", "jira", "confluence"} <= sources
+    assert "slack:db-migration-thread-992" in ids
+    assert "confluence:db-migration-plan" in ids
+    assert {"MIG-231", "MIG-232"} <= ids
 
 
-def test_source_filter_confluence_only():
-    """Query mentioning 'confluence' should only return Confluence resources."""
-    idx = Indexer(connectors=_connectors())
-    idx.reindex()
-    search = CandidateSearch(idx)
-    results = search.search("confluence page migration", k=20)
-    sources = {c.resource.source.value for c in results}
-    assert sources == {"confluence"} or len(results) == 0
+def test_handbook_question_naming_two_sources_finds_both():
+    """The handbook's CTO question names Slack AND Confluence; it must find
+    the Slack design thread and the Confluence decision doc."""
+    q = ("Summarize the design discussion around the new auth service from "
+         "last sprint's Slack threads and link the Confluence decision doc.")
+    ids = {c.resource.resource_id for c in _search().search(q, k=20)}
+    assert "slack:eng-design-thread-33" in ids
+    assert "confluence:auth-service-design" in ids
 
 
 def test_no_source_filter_when_generic_query():
