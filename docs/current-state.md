@@ -14,8 +14,8 @@
   reflection section in the demo script: CodeBuddy (planning + core build),
   ADP (every LLM answer, filtered context only, no knowledge base), Miora (UI
   design + cover image).
-- ADP knowledge base removed by the owner (2026-10-11). Cover image produced
-  with Miora; final 16:9 sizing handled by the owner.
+- ADP knowledge base removed by the owner (2026-10-11). Cover image done
+  (Miora, 1672×941, 16:9) and uploaded to the submission (2026-10-11).
 
 ## Independent review fixes (2026-10-11)
 
@@ -69,8 +69,7 @@ with regression tests. **273 tests pass.** Live-verified against ADP.
 ### Open items (need you)
 
 - ~~ADP agent knowledge base~~ — removed (2026-10-11).
-- **Cover image is Required** (16:9, ~380×216) — made with Miora; owner is
-  resizing to 16:9.
+- ~~Cover image~~ — done (Miora, 16:9) and uploaded (2026-10-11).
 - **Demo video** (5–8 min, optional but how preliminary judges see the demo);
   the demo script is ~4 min, and the video should include a short reflection
   on building with CodeBuddy.
@@ -399,7 +398,7 @@ Project description written (`docs/project-description.md`).
 - **Screenshots / recordings:** CodeBuddy/WorkBuddy chat logs (M15 #4, min 3)
   and the working UI running the demos. Several dev-log entries are still marked
   "capture pending".
-- **Cover image — Required** (M15 #5, 16:9, ~380×216), e.g. via Miora.
+- ~~Cover image (M15 #5)~~ — done (Miora, 16:9), uploaded 2026-10-11.
 - **Demo video** (M15 #6, 5–8 min) — optional, but it is how preliminary
   judges see the demo.
 
