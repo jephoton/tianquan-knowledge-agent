@@ -1,123 +1,172 @@
-# Demo Script — Tianquan 天权 (≈4 minutes)
+# Demo Script — Tianquan 天权 (≈5½ min + ≈1 min reflection)
 
-> The *narration* for the live demo — what to say and show, in order, to land
-> the story. For the mechanical click-by-click steps and exact inputs, see
-> [demo-runbook.md](demo-runbook.md). Rehearse this until the arc is muscle
-> memory; the arc is what wins, not the feature count.
+> The *narration* for the demo video and live demo — what to say and show, in
+> order. For click-by-click steps and exact inputs, see
+> [demo-runbook.md](demo-runbook.md). Rehearse until the arc is muscle memory;
+> the arc is what wins, not the feature count.
 
 **One-line pitch:** *Auditable AI answers that never overstep access rights.*
 
----
+**Setup before recording:** backend (`uvicorn backend.api.app:app --port 8000`)
+and frontend (`python -m http.server 5500` in `frontend/`, open
+`http://127.0.0.1:5500`) running; restart the backend for a clean log. Window A
+= the app as **alice**; window B = the app as **diana** on the **Admin** tab;
+`docs/architecture.png` open; a terminal in `formal/`.
 
-## 0. The hook (20s, no screen — just say it)
-
-> "An AI assistant over all your company's knowledge is incredible — until a
-> contractor asks it for your biggest client's default risk, and it helpfully
-> answers from a document they were never allowed to see. In most industries
-> that's a bug. In regulated finance it's a reportable breach. The AI wasn't
-> hacked — the access control was just never there. That's the problem
-> Tianquan solves."
-
-Transition: *"The core idea is one sentence —"* → show the tagline.
-
-> **"The LLM cannot leak what it never receives."** We filter by permission
-> *before* the model sees anything.
+Coverage of the five required scenarios: **①** unified query (§2) · **②** data
+freshness (§2) · **③** negative case (§3) · **④** live revocation (§4) ·
+**⑤** audit inquiry (§5).
 
 ---
 
-## 1. The same question, two people (Demo 1 + 2) — 60s
+## 0. Track + hook (30s, no screen)
 
-**As Alice (engineer):** ask *"What's the status of the database migration and
-were there blockers raised in Slack?"*
+> "This is Tianquan, for the FinTech track — Aspire's *Internal Brain*
+> challenge."
 
-> "Alice gets a real answer, drawn from Jira, Slack and Confluence, with
-> citations — click any [n] to see its source. Now the compliance view in the
-> other window: the same query, logged with every decision. Two documents that
-> *matched* her question were **denied** — the confidential Q3 breach report
-> and a security ticket. The model never received them. It can't leak what it
-> never got."
+> "Employees lose an estimated 30% of their week searching across Confluence,
+> Jira, Slack and Drive. An AI assistant over all of it is the obvious fix —
+> until a contractor asks it about last quarter's security breach, and it
+> helpfully answers from an incident report they were never cleared to see. In
+> most industries that's a bug. In regulated finance it's a reportable breach.
+> The AI wasn't hacked; the access control was simply never there."
 
-(Setup: a second browser window as **diana** on the Admin tab. Alice's own
-screen never shows denials — that would leak that they exist.)
-
-**Switch to Bob (contractor):** ask *"Show me the Q3 security incident report
-from the breach."*
-
-> "Same system, different person. Bob gets: *'I could not find accessible
-> information.'* Now — the key part — that's the **exact same message** he'd get
-> for a topic that doesn't exist. He can't tell 'denied' from 'not found.' No
-> confirmation the document exists. No side channel. The denial is in the audit
-> log for compliance, but nothing leaks to Bob."
-
-Transition: *"Permissions aren't static, though —"*
+> **"Our core idea is one sentence: the LLM cannot leak what it never
+> receives."**
 
 ---
 
-## 2. Live revocation (Demo 3) — 30s
+## 1. Architecture in 20 seconds (show `architecture.png`)
 
-> "Say we off-board someone or pull a clearance." As **admin**, revoke a role/
-> user from a resource Alice was citing. Show the ACL version bump (v1 → v2).
-> Re-ask Alice's question.
-
-> "No reindex, no restart — the next query already reflects it. The filter
-> re-fetches the live permission every time. And that 'every time' turns out to
-> matter more than you'd think — hold that thought."
-
----
-
-## 3. The audit log is tamper-evident — for real (Demo 6) — 45s
-
-> As compliance (**diana**/**frank**), click **verify integrity** → green,
-> intact.
-
-> "Every decision is written to a real file on disk, hash-chained — each entry
-> commits to the hash of the one before it. Watch me play a malicious admin."
-
-**Open `audit_log.json` in the editor, change a `deny` to `allow`, save.** Click
-**verify integrity** again → red, **tampered at event #N**.
-
-> "I edited the log directly to hide that someone was denied. Re-verify — caught
-> at the exact event, because the recomputed hash no longer matches. You cannot
-> quietly rewrite history. *This* is the artifact a regulator asks for."
+> "Every question goes through the same fixed path. We search all four sources,
+> then — before any AI is involved — re-check each document against the
+> asker's **live** permissions in that platform's own model: Confluence spaces,
+> Jira issue security, Slack channels, Drive sharing. Only what passes reaches
+> our agent on **Tencent Cloud ADP**. Every allow, every deny and every answer
+> lands in a hash-chained audit log. The dashed lines are the trust
+> boundaries — what may cross each one, and what may not."
 
 ---
 
-## 4. The payoff: we didn't test it, we proved it (Demo 5) — 60s
+## 2. One question, four platforms (①②) — 60s
 
-> "Everything so far, you could demo. Here's what you can't fake." Open the
-> terminal, run TLC on the spec → **no error, all invariants hold.**
+**Window A, as Alice (engineer):** ask *"What's the status of the database
+migration and were there blockers raised in Slack?"*
 
-> "This model-checks every possible ordering of the pipeline. Now watch me make
-> the mistake a real engineer would make." In `access_control.tla`, edit the
-> real retrieval rule — change `ELSE LiveAllowed(r)` (re-check the live
-> permission) to `ELSE decisions[r] = "allow"` ("we already decided, why check
-> again?"). Save, re-run.
+> "Alice gets one answer stitched from Slack, Confluence and two Jira tickets,
+> generated by ADP — and every claim is cited. Click any marker and you're at
+> the source."
 
-> **"Invariant violated."** Read the trace aloud: "A document is authorized when
-> the policy runs. Then — before it's retrieved — the user is revoked. This
-> 'optimized' code trusts the earlier decision and serves it anyway. That's a
-> race condition. I didn't flip a switch labelled 'broken' — I made a change
-> that looks like a reasonable optimization, and the model checker proved it
-> leaks, with the exact sequence as evidence. Tests check the cases you
-> imagined; this checks the ones you didn't. For a security control that's the
-> difference between 'probably safe' and 'proven safe.'" Then `git checkout` the
-> file — green again.
+> "Two safety nets on the answer itself: citations must point at documents
+> Alice was actually given, and every sentence is checked against those
+> sources — anything unsupported is removed, and she's told. The model can't
+> fill in what it wasn't given."
 
----
+> "And it's never a stale snapshot: content and permissions are read from the
+> source on every query — no overnight index to fall behind — and each citation
+> shows when its source was last updated." *(point at the freshness labels)*
 
-## 5. Close (15s)
+**Window B (diana):** point at the newest query group.
 
-> "Tianquan: an internal AI brain that answers from four systems, respects every
-> source's native permissions, proves it with formal methods, and logs it so a
-> regulator can verify it. The LLM cannot leak what it never receives — and we
-> can prove it never receives it. That's what makes AI deployable in finance."
+> "Here's what Alice didn't see. Ten documents matched; eight were allowed, two
+> were **denied** — the Q3 breach report and a security ticket. They never
+> reached the model. It can't leak what it never got."
 
 ---
 
-## Video reflection (≈45–60s — for the 5–8 min submission video)
+## 3. Same system, different person (③) — 40s
 
-The handbook asks the video for "a short reflection on your build approach and
-any development tool tips with reference to CodeBuddy/WorkBuddy".
+**Window A, switch to Bob (contractor):** ask *"Show me the Q3 security
+incident report from the breach."*
+
+> "Bob gets: *'I could not find accessible information.'* That's the **exact**
+> message he'd get for something that doesn't exist. He can't tell 'denied'
+> from 'not found' — no confirmation the report exists, no side channel. Even
+> opening a source directly answers 'not available' either way."
+
+**Window B:** *"…while compliance sees every denial."*
+
+---
+
+## 4. Live revocation (④) — 40s
+
+**As frank (admin) → access control:** revoke role `engineer` on
+`confluence:db-migration-plan` → toast **ACL v1 → v2**.
+
+> "Say someone moves teams or a clearance is pulled."
+
+**Back as Alice:** re-ask the migration question → the plan is gone from the
+citations.
+
+> "No reindex, no restart — the very next query reflects it, because we
+> re-check the live permission every time. Hold on to 'every time'; it matters
+> more than you'd think."
+
+---
+
+## 5. An audit trail a regulator can query — and trust (⑤) — 60s
+
+**Window B (diana) → ask the audit trail:** *"Show me everything user jdoe
+accessed related to the payment-gateway Confluence space in the last 30
+days."* (Or *"who retrieved the q3 breach report"*.)
+
+> "That's the challenge's own example, in plain English. It shows exactly what
+> it understood — and when something doesn't exist, like that space, it says so
+> instead of quietly answering a different question."
+
+Open a query group:
+
+> "Each question is one record: who asked, what they asked, every document
+> allowed or denied, the exact answer — and which document each citation came
+> from, versus what the model was given but didn't use."
+
+**Verify integrity** → green. Open `audit_log.json`, change one `"deny"` to
+`"allow"`, save, **verify integrity** → red, *tampered at event #N*.
+
+> "Each entry commits to the hash of the one before it. I just played a
+> malicious admin hiding a denial — caught at the exact event. You cannot
+> quietly rewrite history."
+
+---
+
+## 6. The payoff: the race no test would find — 60s
+
+**Terminal:** run TLC → **no error, all invariants hold.**
+
+> "Everything so far you could demo. Here's what you can't fake. We modelled
+> the access-control design in TLA+ and model-checked every possible ordering
+> of a query against a concurrent revocation."
+
+In `access_control.tla`, change `ELSE LiveAllowed(r)` to
+`ELSE decisions[r] = "allow"` — *"we already decided, why check again?"* —
+re-run → **invariant violated**.
+
+> "A document is authorized when the policy runs; a moment later the user is
+> revoked; this 'optimized' code trusts the earlier decision and serves it
+> anyway. A time-of-check / time-of-use race — and the checker hands us the
+> exact sequence. That's why we re-check every time. Tests check the cases you
+> imagined; model checking explores the ones you didn't. The design is
+> model-checked, and the code is tested against the same invariants."
+
+`git checkout formal/access_control.tla` → green again.
+
+---
+
+## 7. Close (20s)
+
+> "Tianquan answers from four systems, respects each one's native
+> permissions, removes what it can't support, and logs every decision so a
+> regulator can verify it. It's built for real people, too —" *(toggle **clean
+> mode**)* "— a high-readability mode, full keyboard support, screen-reader
+> friendly. The LLM cannot leak what it never receives. That's what makes AI
+> deployable in finance."
+
+---
+
+## Video reflection (≈60s)
+
+The handbook asks for "a short reflection on your build approach and any
+development tool tips with reference to CodeBuddy/WorkBuddy".
 
 - **CodeBuddy** — "We started by having CodeBuddy read the challenge from the
   handbook and compare our idea against it. It drafted the architecture, the
@@ -135,10 +184,11 @@ any development tool tips with reference to CodeBuddy/WorkBuddy".
 
 ## Timing / fallbacks
 
-- Total ≈ 4 min. If cut to 2: do sections 1, 3, 4 (skip revocation + close short).
-- **TLA+ fallback:** if the live flip is risky on the day, pre-record the two
-  runs or screenshot the counterexample trace — still lands.
-- **Reset between runs:** restart the backend (clears audit log + ACL changes);
-  flip `BROKEN` back to `FALSE` in `MC_tianquan.tla`.
-- Have the backend (`uvicorn ... :8000`) and frontend (`:5500`, use
-  `127.0.0.1`) already running before you start.
+- ≈5½ min + reflection ≈ 6½ min (video limit 5–8). For a 3-minute live slot:
+  §0, §2, §3, §5 (tamper only), §6.
+- **TLA+ fallback:** pre-record both TLC runs or show the counterexample trace
+  as a slide.
+- **Live LLM fallback:** without network, answers come from the offline
+  extractive summarizer — the permission and audit story is identical.
+- **Reset between runs:** restart the backend (clears the audit log and ACL
+  changes); `git checkout formal/access_control.tla`.
