@@ -4,6 +4,7 @@
     <marker id="a-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ffb000"/></marker>
     <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4fb87a"/></marker>
     <marker id="a-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d98585"/></marker>
+    <marker id="a-ver" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c39bd3"/></marker>
     <marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b8ad98"/></marker>
     <style>
       .bg { fill: #0c0c0c; }
@@ -23,6 +24,8 @@
       .ok { stroke: #4fb87a; stroke-width: 2; fill: none; }
       .deny { stroke: #d98585; stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
       .ctl { stroke: #b8ad98; stroke-width: 1.6; fill: none; }
+      .ver { stroke: #c39bd3; stroke-width: 1.8; stroke-dasharray: 3 4; fill: none; }
+      .vt { fill: #c39bd3; font-size: 12.5px; }
       .dt { fill: #d98585; font-size: 12.5px; }
       .ct { fill: #b8ad98; font-size: 12.5px; }
     </style>
@@ -212,6 +215,10 @@
   <path class="ctl" d="M402,642 L402,580 L545,580 L545,305 L900,305 L900,288" marker-end="url(#a-muted)"/>
   <text class="ct" x="600" y="298">compliance: query + verify the log</text>
 
+  <!-- formal model verifies the orchestrator's design (design-time, not runtime) -->
+  <path class="ver" d="M1100,872 L1100,850 L1580,850 L1580,470 L1562,470" marker-end="url(#a-ver)"/>
+  <text class="vt" x="1112" y="844">verifies the pipeline design (TLA+ / TLC, design-time)</text>
+
   <!-- ============ FORMAL + LEGEND ============ -->
   <rect class="card" x="40" y="872" width="1100" height="108" rx="4"/>
   <text class="h" x="58" y="898">Formal model (TLA+ / TLC)</text>
@@ -225,4 +232,5 @@
   <line class="deny" x1="1178" y1="930" x2="1218" y2="930"/><text class="t" x="1228" y="935">denied path</text>
   <line class="tb" x1="1380" y1="930" x2="1420" y2="930"/><text class="t" x="1430" y="935">trust boundary</text>
   <line class="ctl" x1="1178" y1="961" x2="1218" y2="961"/><text class="t" x="1228" y="966">data / control feed</text>
+  <line class="ver" x1="1380" y1="961" x2="1420" y2="961"/><text class="t" x="1430" y="966">formal verification</text>
 </svg>
