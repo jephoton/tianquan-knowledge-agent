@@ -1172,6 +1172,16 @@
             "title": "Detail",
             "default": ""
           },
+          "citations": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
           "acl_version": {
             "type": "integer",
             "title": "Acl Version"
