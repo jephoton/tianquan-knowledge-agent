@@ -8,7 +8,7 @@ Read this first when continuing the project. [Architecture](architecture.md) des
 
 The demo video is complete, as reported by the user. Submission copy (blurb + project description, following the handbook's four required headings) is in [project-description.md](project-description.md); pasting it into the submission portal is the user's step. CodeBuddy usage evidence is summarised, with all five screenshots embedded, at the top of the [development log](dev-log/dev-log.md#codebuddy-usage-evidence). Remaining: hosting. Do not recreate the demo or assume older screenshot checklists are outstanding.
 
-**Deployment is planned, not implemented.** The chosen approach is a Vercel static frontend plus a single long-running cloud Python backend. The laptop does not need to stay running. Follow the [deployment handoff plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) when authorized to implement. The current request authorizes documentation only. No database, Redis or shared-storage migration is required for this demo ([ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md)). Backend host/plan and any paid provisioning remain to be selected.
+**Deployed 2026-10-11.** Frontend: https://tianquan.vercel.app (Vercel project `tianquan`, account `jettan17`; `frontend/vercel.json` + `scripts/build.cjs`, `TIANQUAN_API_BASE` passed as a build env). Backend: https://tianquan-api.onrender.com (Render free web service from `render.yaml`; `ADP_APP_KEY` and `TIANQUAN_ALLOWED_ORIGINS=https://tianquan.vercel.app` set in the dashboard). Verified in production: CORS allows only the Vercel origin; Alice's cited 4-source answer via ADP, Bob's denial, Charlie's Q3 report/preview/export, identical Q5 message, revoke → next-query exclusion (grant restored), audit groups/search/[VERIFIED], Bob 403 on /audit. Free tier sleeps after ~15 idle minutes (30–60 s cold start; state resets). Redeploy frontend: `vercel deploy --prod --cwd frontend --build-env TIANQUAN_API_BASE=https://tianquan-api.onrender.com`; backend: Render manual deploy (autoDeploy off). The plan below remains the reference. No database, Redis or shared-storage migration is required for this demo ([ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md)). Backend host/plan and any paid provisioning remain to be selected.
 
 ## Implemented baseline
 
@@ -37,7 +37,7 @@ In another terminal:
 python -m http.server 5500 --directory frontend
 ```
 
-Open `http://127.0.0.1:5500/` and API docs at `http://127.0.0.1:8000/docs`. Local `frontend/app.js` currently hardcodes `http://localhost:8000`; cloud API configuration is still a planned change.
+Open `http://127.0.0.1:5500/` and API docs at `http://127.0.0.1:8000/docs`. The UI reads its API origin from `frontend/config.js` (local default `http://localhost:8000`); the Vercel build writes the cloud origin.
 
 For tests, isolate the log from an already running demo:
 
@@ -72,7 +72,7 @@ The [published ADP experience](https://adp.tencentcloud.com/webim_exp/#/chat/ULz
 - Content is indexed at initialization/reindex; only ACLs are refreshed per retrieval candidate. Citation freshness labels describe indexed source timestamps, not a guaranteed live content fetch.
 - Grounding is lexical. If it rejects every sentence, the orchestrator restores the citation-validated original answer; this applies to live output as well as the stub. Do not claim every unsupported sentence is always removed.
 - File verification detects edits/truncation relative to the running chain. It is not an externally anchored or durable regulatory ledger and does not survive restart.
-- CORS is currently permissive. The deployment plan restricts it to configured origins, which does not replace authentication.
+- CORS is restricted to `TIANQUAN_ALLOWED_ORIGINS` (default: the local frontend). That is a browser restriction and does not replace authentication.
 - Free backend hosting may sleep and reset the demo on wake. Visitors share mutable demo state; this is an accepted demo tradeoff.
 
 ## Demo decisions to preserve

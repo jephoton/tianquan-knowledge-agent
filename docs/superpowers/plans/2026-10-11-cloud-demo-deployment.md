@@ -2,7 +2,7 @@
 
 <!-- Generated plan, 2026-10-11. No deployment or application changes executed. -->
 
-**Status:** Plan only. The user explicitly requested no implementation yet and intends to hand this to another agent. Execute only after the user authorizes implementation/deployment. Do not create services, provision paid resources or publish changes during a documentation-only handoff.
+**Status:** Executed 2026-10-11 — live at https://tianquan.vercel.app (backend https://tianquan-api.onrender.com, Render free tier). Retained as the reference for redeploys. Original status note: Plan only. The user explicitly requested no implementation yet and intends to hand this to another agent. Execute only after the user authorizes implementation/deployment. Do not create services, provision paid resources or publish changes during a documentation-only handoff.
 
 **Goal:** Host Tianquan's static UI on Vercel and its existing FastAPI backend on a cloud web service, so the laptop can be off while judges use the demo.
 

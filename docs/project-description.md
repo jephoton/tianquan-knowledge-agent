@@ -27,7 +27,7 @@ Technical: static dashboard designed with Miora; Python/FastAPI backend; TF-IDF 
 Prompts: the question plus only the permission-filtered, numbered sources are sent to Tencent Cloud ADP (fresh conversation per call, no knowledge base), instructing it to answer only from those sources and cite inline. Citations outside the context are stripped and unsupported sentences are removed by a grounding check.
 
 BUSINESS VALUE
-Unblocks internal AI where it is currently too risky: restricted content never reaches the model. Targets the 30% search time with one cited answer across four systems. Revocation is immediate (no reindex window). Audit-ready: every question, allow/deny decision, answer, citation and permission change is recorded, and tampering is flagged at the exact event. Evidence: 6 model-checked safety invariants and 292 passing automated tests. Built with CodeBuddy (development), Tencent Cloud ADP (answers) and Miora (design).
+Unblocks internal AI where it is currently too risky: restricted content never reaches the model. Targets the 30% search time with one cited answer across four systems. Revocation is immediate (no reindex window). Audit-ready: every question, allow/deny decision, answer, citation and permission change is recorded, and tampering is flagged at the exact event. Evidence: 6 model-checked safety invariants and 292 passing automated tests. Built with CodeBuddy (development), Tencent Cloud ADP (answers) and Miora (design). Live demo: https://tianquan.vercel.app
 ```
 
 ---
@@ -90,6 +90,6 @@ Productivity savings have not yet been measured; a pilot would compare time-to-a
 
 ## Prototype scope
 
-Synthetic data and selectable demo personas stand in for production SSO and live enterprise APIs. The backend holds demo state in one process, so a restart resets permission changes and the audit log. Cloud hosting is planned ([deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md)). The published [ADP agent](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) is a direct chat with the model; the permission-aware experience is the Tianquan app itself. Known limits are tracked in [current state](current-state.md#known-boundaries-and-follow-ups).
+Synthetic data and selectable demo personas stand in for production SSO and live enterprise APIs. The backend holds demo state in one process, so a restart resets permission changes and the audit log. **Live demo: https://tianquan.vercel.app** (free-tier backend: the first visit after ~15 idle minutes takes 30–60 s to wake and resets the demo state). The published [ADP agent](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) is a direct chat with the model; the permission-aware experience is the Tianquan app itself. Known limits are tracked in [current state](current-state.md#known-boundaries-and-follow-ups).
 
 [Source repository](https://github.com/jephoton/tianquan-knowledge-agent) · [Architecture](architecture.md) · [Worked examples](demo-runbook.md)

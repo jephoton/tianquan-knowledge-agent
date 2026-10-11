@@ -8,13 +8,14 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 
 ## Quick links
 
+- **Live demo:** **https://tianquan.vercel.app** — pick a persona top-right. The backend is on Render's free tier: the first visit after ~15 idle minutes takes 30–60 s to wake, and the demo state resets then.
 - **CodeBuddy usage evidence:** [development log with CodeBuddy screenshots](docs/dev-log/dev-log.md#codebuddy-usage-evidence)
 - **Live ADP agent:** [Try Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — direct model chat; it does not run the full application's permission/audit pipeline.
 - [Plan & Roadmap](docs/plan.md) — scope, milestones and submission checklist
 - [Architecture](docs/architecture.md) — diagram ([PNG](docs/architecture.png)), trust boundaries, module map
 - [Current State](docs/current-state.md) — what exists now, what's next
 - [Demo Runbook](docs/demo-runbook.md) — step-by-step demo scenarios · [Demo Script](docs/demo-script.md) — concise demo pointers with optional extensions
-- [Deployment handoff](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md) — Vercel frontend + cloud backend; planned only
+- [Deployment plan](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md) — Vercel frontend + Render backend (deployed 2026-10-11)
 - [Project description](docs/project-description.md) — blurb, overview, scenario insights, solution design, business value
 - [Decisions](docs/decisions/) — architecture decision records (ADRs)
 
@@ -107,7 +108,7 @@ want to run the TLA+ model checker.
    `ADP_APP_KEY` in `.env` to answer with the live Tencent Cloud ADP agent
    (without it, or offline, answers come from the extractive fallback).
 
-Cloud hosting is planned ([deployment plan](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md)).
+Hosted at https://tianquan.vercel.app (Vercel static UI) with the API on Render (`https://tianquan-api.onrender.com`, one free-tier instance) — see the [deployment plan](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md).
 Run one backend worker/instance. Restart resets ACL mutations/uploads and clears
 the audit log; local disk is not restart persistence.
 
