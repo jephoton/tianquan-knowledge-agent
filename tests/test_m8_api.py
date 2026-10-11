@@ -212,3 +212,31 @@ def test_admin_change_reports_version_transition(client):
     body = r.json()
     assert body["version_transition"] == \
         f"v{body['previous_version']} -> v{body['new_version']}"
+
+
+
+# -- CORS: only configured frontend origins (browser restriction, not auth) --
+
+def _preflight(client, origin, method="POST", headers="Content-Type, X-User-Id"):
+    return client.options("/query", headers={
+        "Origin": origin,
+        "Access-Control-Request-Method": method,
+        "Access-Control-Request-Headers": headers,
+    })
+
+
+def test_cors_allows_local_frontend_by_default(monkeypatch):
+    monkeypatch.delenv("TIANQUAN_ALLOWED_ORIGINS", raising=False)
+    r = _preflight(TestClient(create_app()), "http://127.0.0.1:5500")
+    assert r.status_code == 200
+    assert r.headers["access-control-allow-origin"] == "http://127.0.0.1:5500"
+    assert "x-user-id" in r.headers["access-control-allow-headers"].lower()
+
+
+def test_cors_allows_configured_origin_and_blocks_others(monkeypatch):
+    monkeypatch.setenv("TIANQUAN_ALLOWED_ORIGINS", "https://tianquan.example.app")
+    c = TestClient(create_app())
+    ok = _preflight(c, "https://tianquan.example.app")
+    assert ok.headers.get("access-control-allow-origin") == "https://tianquan.example.app"
+    bad = _preflight(c, "https://evil.example.com")
+    assert "access-control-allow-origin" not in bad.headers

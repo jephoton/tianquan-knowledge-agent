@@ -29,12 +29,24 @@ def create_app() -> FastAPI:
         description="Permission-aware enterprise knowledge agent.",
     )
 
-    # Permissive CORS for the local Miora/React dev frontend (M8).
+    # Only the configured frontend origins may call the API from a browser.
+    # This is a browser restriction, not identity verification (the demo's
+    # personas are still selectable). Set TIANQUAN_ALLOWED_ORIGINS to a
+    # comma-separated list of exact origins for a deployment.
+    origins = [
+        value.strip()
+        for value in os.environ.get(
+            "TIANQUAN_ALLOWED_ORIGINS",
+            "http://127.0.0.1:5500,http://localhost:5500",
+        ).split(",")
+        if value.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-User-Id"],
+        allow_credentials=False,
     )
 
     app.state.tianquan = AppState.create()
