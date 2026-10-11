@@ -413,6 +413,24 @@
   .combo-option:hover, .combo-option.active { background: rgba(255,176,0,0.08); color: #ffb000; }
   .combo-option .kind-tag { font-size: 9px; color: #8a7f68; text-transform: uppercase; }
 
+  /* Inline citation markers in the answer text. */
+  .cite-ref {
+    display: inline; padding: 0 2px; margin: 0 1px; border: none;
+    background: rgba(255,176,0,0.10); color: #ffb000; border-radius: 2px;
+    font: inherit; font-size: 0.85em; cursor: pointer; vertical-align: baseline;
+  }
+  .cite-ref:hover { background: rgba(255,176,0,0.22); }
+  .citation-card.flash { border-color: #ffb000; box-shadow: 0 0 0 1px #ffb000; }
+
+  /* Audit table: one header row per query, its events beneath. */
+  .audit-table tr.group-row td {
+    background: rgba(255,176,0,0.05);
+    border-top: 1px solid rgba(255,176,0,0.18);
+    color: #f0e6d2; white-space: normal; padding: 10px 12px;
+  }
+  .audit-table tr.group-row .group-meta { color: #9a8e78; font-size: 11px; margin-left: 8px; }
+  .audit-table tr.group-row .group-q { color: #ffb000; }
+
   /* Chain badge large */
   .chain-badge-lg {
     display: inline-flex;
@@ -497,6 +515,8 @@
       <div id="answer-text" class="phosphor-text answer-processing" style="font-size:16px;line-height:1.9;">
         &gt; awaiting query...
       </div>
+      <!-- Grounding note: how many sentences INV8 removed (shown only when > 0). -->
+      <div id="answer-grounding" style="display:none;font-size:11px;color:#9a8e78;margin-top:6px;"></div>
 
       <!-- Citations -->
       <div id="answer-citations" class="mt-4 flex gap-3 flex-wrap"></div>
@@ -518,7 +538,8 @@
         click a cited source above to view its full content here.
       </div>
       <!-- Populated state. -->
-      <div id="preview-title" style="display:none;font-size:13px;color:#f0e6d2;margin-bottom:8px;"></div>
+      <div id="preview-title" style="display:none;font-size:13px;color:#f0e6d2;margin-bottom:4px;"></div>
+      <div id="preview-origin" class="mono" style="display:none;font-size:11px;color:#9a8e78;margin-bottom:8px;word-break:break-all;"></div>
       <pre id="preview-content" style="display:none;white-space:pre-wrap;font-size:12px;line-height:1.6;color:#cdbfa6;background:#0a0a0a;border:1px solid rgba(232,220,200,0.08);border-radius:2px;padding:12px;max-height:280px;overflow:auto;margin:0;"></pre>
     </div>
   </section>
@@ -617,7 +638,7 @@
     <table class="audit-table">
       <thead>
         <tr>
-          <th>timestamp</th>
+          <th>time (UTC)</th>
           <th>user</th>
           <th>action</th>
           <th>resource / detail</th>
@@ -632,7 +653,7 @@
     <div class="mt-3 flex items-center justify-between">
       <span id="audit-count" style="font-size:11px;color:#9a8e78;">showing 0 events</span>
       <div id="audit-pager" class="flex items-center gap-3" style="font-size:11px;color:#b8ad98;">
-        <span>rows</span>
+        <span>queries / page</span>
         <input id="audit-pagesize" type="number" min="1" max="100" value="10"
                class="crt-input" style="width:60px;padding:4px 8px;font-size:11px;" />
         <button id="audit-prev" class="outline-btn" style="padding:3px 10px;font-size:11px;">prev</button>

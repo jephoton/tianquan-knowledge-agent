@@ -198,6 +198,7 @@ async function runQuery(question) {
   ans.className = "phosphor-text answer-processing";
   ans.innerHTML = `<span class="spinner"></span>processing query through permission filter...`;
   $("answer-citations").innerHTML = "";
+  $("answer-grounding").style.display = "none";
 
   const askBtn = $("ask-btn");
   askBtn.disabled = true;
@@ -251,11 +252,47 @@ function freshnessBadge(updatedAt) {
   return `<span style="color:${color};font-size:10px;">● ${label}</span>`;
 }
 
+// Answer text with each [n] marker turned into a button that jumps to (and,
+// for export-capable personas, opens) the cited source. Text is escaped first,
+// so only the marker buttons are markup.
+function answerHtml(text, citations) {
+  const known = new Set(citations.map((c) => c.marker));
+  return esc(text).replace(/\[(\d+)\]/g, (m) =>
+    known.has(m)
+      ? `<button type="button" class="cite-ref" data-marker="${m}" aria-label="source ${m.slice(1, -1)}">${m}</button>`
+      : m);
+}
+
+// Scroll to a citation card and flash it; open it in the preview if allowed.
+function focusCitation(marker) {
+  const card = document.querySelector(`.citation-card[data-marker="${marker}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  card.classList.add("flash");
+  setTimeout(() => card.classList.remove("flash"), 1200);
+  if (state.canExport) previewResource(card.dataset.resourceId);
+}
+
 function renderAnswer(r) {
   state.lastAnswer = r;  // remembered so a persona switch can re-gate citations
   const ans = $("answer-text");
   ans.className = "phosphor-text answer-complete";
-  ans.textContent = r.answer;
+  ans.innerHTML = answerHtml(r.answer, r.citations || []);
+  ans.querySelectorAll(".cite-ref").forEach((b) => {
+    b.onclick = () => focusCitation(b.dataset.marker);
+  });
+
+  // The grounding check (INV8) may trim sentences the cited sources don't
+  // support. Say so, so a shorter answer reads as the check working.
+  const g = $("answer-grounding");
+  const removed = r.grounding_removed || 0;
+  if (removed > 0) {
+    g.textContent = `✓ grounding check removed ${removed} sentence${removed === 1 ? "" : "s"} ` +
+      `not supported by the cited sources`;
+    g.style.display = "";
+  } else {
+    g.style.display = "none";
+  }
 
   const cites = $("answer-citations");
   cites.innerHTML = "";
@@ -273,6 +310,8 @@ function renderAnswer(r) {
   r.citations.forEach((c) => {
     const card = document.createElement("div");
     card.className = "citation-card";
+    card.dataset.marker = c.marker;
+    card.dataset.resourceId = c.resource_id;
     if (canOpenSource) {
       card.style.cursor = "pointer";
       card.title = "click to view the source content";
@@ -307,6 +346,8 @@ function clearQuery() {
   }
   const cites = $("answer-citations");
   if (cites) cites.innerHTML = "";
+  const g = $("answer-grounding");
+  if (g) g.style.display = "none";
   resetPreviewToEmpty();
 }
 
@@ -317,6 +358,7 @@ function resetPreviewToEmpty() {
   if (empty) empty.style.display = "";
   $("preview-id-wrap").style.display = "none";
   $("preview-title").style.display = "none";
+  $("preview-origin").style.display = "none";
   $("preview-content").style.display = "none";
   $("preview-export").style.display = "none";
   $("preview-close").style.display = "none";
@@ -340,11 +382,16 @@ async function previewResource(resourceId) {
   // otherwise), but guard anyway.
   if (!state.canExport) return;
   try {
-    const r = await api(`/resource/${encodeURIComponent(resourceId)}?user_id=${encodeURIComponent(state.currentUser)}`);
+    // Identity travels in the X-User-Id header (added by api()); the server
+    // re-checks the live ACL and audits the view.
+    const r = await api(`/resource/${encodeURIComponent(resourceId)}`);
     $("preview-id").textContent = r.resource_id;
     $("preview-id-wrap").style.display = "";
     $("preview-title").textContent = `${sourceIcon(r.source)} ${r.title}`;
     $("preview-content").textContent = r.content;
+    const origin = $("preview-origin");
+    origin.textContent = r.url ? `source: ${r.url}` : "";
+    origin.style.display = r.url ? "" : "none";
     // Swap from empty state to populated state.
     $("preview-empty").style.display = "none";
     $("preview-title").style.display = "";
@@ -445,11 +492,53 @@ async function nlSearchAudit() {
       if (r.parts && r.parts.length) summary += `  [${r.parts.join(" · ")}]`;
     }
     interp.textContent = summary;
-    interp.style.color = r.matched ? "#5fb87f" : "#c47a7a";
+    const partial = r.unparsed && r.unparsed.length;
+    interp.style.color = !r.matched ? "#c47a7a" : partial ? "#ffb000" : "#5fb87f";
   } catch (e) {
     interp.textContent = e.message;
     interp.style.color = "#c47a7a";
   }
+}
+
+// Group events (newest first) by query_id, keeping newest-first group order;
+// each group's events are listed oldest-first (decisions, then the answer).
+function groupAuditEvents(events) {
+  const groups = [];
+  const byId = new Map();
+  events.forEach((e) => {
+    let g = byId.get(e.query_id);
+    if (!g) {
+      g = { query_id: e.query_id, events: [] };
+      byId.set(e.query_id, g);
+      groups.push(g);
+    }
+    g.events.push(e);
+  });
+  groups.forEach((g) => g.events.reverse());
+  return groups;
+}
+
+function utcStamp(ts) {
+  return (ts || "").replace("T", " ").slice(0, 19) + " UTC";
+}
+
+function groupHeaderRow(g) {
+  const first = g.events[0];
+  const q = g.events.find((e) => e.question)?.question;
+  let what;
+  if (q) what = `asked <span class="group-q">“${esc(q)}”</span>`;
+  else if (g.events.every((e) => e.detail === "source_preview")) what = "opened a source preview";
+  else if (g.events.every((e) => e.action === "export")) what = "exported";
+  else what = esc((first.action || "").toLowerCase());
+  const allow = g.events.filter((e) => e.decision === "allow").length;
+  const deny = g.events.length - allow;
+  const tr = document.createElement("tr");
+  tr.className = "group-row";
+  tr.innerHTML =
+    `<td colspan="6"><span style="color:#cdbfa6;">${esc(first.user_id)}</span> ${what}` +
+    `<span class="group-meta">${esc(utcStamp(first.timestamp))} · ${g.events.length} event${g.events.length === 1 ? "" : "s"}` +
+    ` (${allow} allow / ${deny} deny) · query ${esc((g.query_id || "").slice(0, 8))}</span></td>`;
+  return tr;
 }
 
 function renderAudit() {
@@ -462,68 +551,74 @@ function renderAudit() {
     renderAuditPager();
     return;
   }
+  const groups = groupAuditEvents(events);
   const size = state.auditPageSize;
   const start = state.auditPage * size;
-  const page = events.slice(start, start + size);
-  page.forEach((e) => {
-    const tr = document.createElement("tr");
-    const ts = (e.timestamp || "").replace("T", " ").slice(0, 19);
-    const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
-    // Resource column: the resource id, or — for an answer event (no resource)
-    // — the captured answer text. Long answer text is truncated with an
-    // EXPAND toggle so compliance can read the full statement on demand
-    // without blowing up the row height for everyone.
-    let mid, midStyle = "";
-    if (e.resource_id) {
-      mid = esc(e.resource_id);
-    } else if (e.detail) {
-      const full = esc(e.detail);
-      if (e.detail.length > 90) {
-        const short = esc(e.detail.slice(0, 90)) + "…";
-        mid =
-          `<span class="answer-detail" style="color:#b8ad98;font-style:italic;">` +
-          `<span class="ad-short">“${short}”</span>` +
-          `<span class="ad-full" style="display:none;">“${full}”</span></span> ` +
-          `<button class="ad-expand outline-btn" style="padding:1px 7px;font-size:9px;">expand</button>`;
-      } else {
-        mid = `<span style="color:#b8ad98;font-style:italic;">“${full}”</span>`;
-      }
-      midStyle = "white-space:normal;min-width:260px;max-width:460px;";
-    } else {
-      mid = "—";
-    }
-    tr.innerHTML =
-      `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
-      `<td>${esc(e.user_id)}</td>` +
-      `<td>${esc((e.action || "").toUpperCase())}</td>` +
-      `<td style="${midStyle}">${mid}</td>` +
-      `<td>${pill(e.decision)}</td>` +
-      `<td style="font-size:11px;">${esc(hash)}</td>`;
-    // Wire the EXPAND toggle (if present) to swap short/full and flip the label.
-    const btn = tr.querySelector(".ad-expand");
-    if (btn) {
-      btn.onclick = () => {
-        const wrap = tr.querySelector(".answer-detail");
-        const shortEl = wrap.querySelector(".ad-short");
-        const fullEl = wrap.querySelector(".ad-full");
-        const expanded = fullEl.style.display !== "none";
-        fullEl.style.display = expanded ? "none" : "";
-        shortEl.style.display = expanded ? "" : "none";
-        btn.textContent = expanded ? "expand" : "collapse";
-      };
-    }
-    body.appendChild(tr);
+  const pageGroups = groups.slice(start, start + size);
+  pageGroups.forEach((g) => {
+    body.appendChild(groupHeaderRow(g));
+    g.events.forEach((e) => body.appendChild(auditEventRow(e)));
   });
-  const end = Math.min(start + size, events.length);
+  const end = Math.min(start + size, groups.length);
   $("audit-count").textContent =
-    `showing ${start + 1}–${end} of ${events.length} events`;
+    `showing queries ${start + 1}–${end} of ${groups.length} (${events.length} events)`;
   renderAuditPager();
+}
+
+function auditEventRow(e) {
+  const tr = document.createElement("tr");
+  const ts = (e.timestamp || "").slice(11, 19);
+  const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
+  // Resource column: the resource id, or — for an answer event (no resource)
+  // — the captured answer text. Long answer text is truncated with an
+  // EXPAND toggle so compliance can read the full statement on demand
+  // without blowing up the row height for everyone.
+  let mid, midStyle = "";
+  if (e.resource_id) {
+    mid = esc(e.resource_id);
+  } else if (e.detail) {
+    const full = esc(e.detail);
+    if (e.detail.length > 90) {
+      const short = esc(e.detail.slice(0, 90)) + "…";
+      mid =
+        `<span class="answer-detail" style="color:#b8ad98;font-style:italic;">` +
+        `<span class="ad-short">“${short}”</span>` +
+        `<span class="ad-full" style="display:none;">“${full}”</span></span> ` +
+        `<button class="ad-expand outline-btn" style="padding:1px 7px;font-size:9px;">expand</button>`;
+    } else {
+      mid = `<span style="color:#b8ad98;font-style:italic;">“${full}”</span>`;
+    }
+    midStyle = "white-space:normal;min-width:260px;max-width:460px;";
+  } else {
+    mid = "—";
+  }
+  tr.innerHTML =
+    `<td style="color:#f0e6d2;" class="phosphor-text">${esc(ts)}</td>` +
+    `<td>${esc(e.user_id)}</td>` +
+    `<td>${esc((e.action || "").toUpperCase())}</td>` +
+    `<td style="${midStyle}">${mid}</td>` +
+    `<td>${pill(e.decision)}</td>` +
+    `<td style="font-size:11px;">${esc(hash)}</td>`;
+  // Wire the EXPAND toggle (if present) to swap short/full and flip the label.
+  const btn = tr.querySelector(".ad-expand");
+  if (btn) {
+    btn.onclick = () => {
+      const wrap = tr.querySelector(".answer-detail");
+      const shortEl = wrap.querySelector(".ad-short");
+      const fullEl = wrap.querySelector(".ad-full");
+      const expanded = fullEl.style.display !== "none";
+      fullEl.style.display = expanded ? "none" : "";
+      shortEl.style.display = expanded ? "" : "none";
+      btn.textContent = expanded ? "expand" : "collapse";
+    };
+  }
+  return tr;
 }
 
 function renderAuditPager() {
   const pager = $("audit-pager");
   if (!pager) return;
-  const total = state.lastAuditEvents.length;
+  const total = groupAuditEvents(state.lastAuditEvents).length;
   const pages = Math.max(1, Math.ceil(total / state.auditPageSize));
   const cur = state.auditPage + 1;
   $("audit-prev").disabled = state.auditPage <= 0;
@@ -536,7 +631,7 @@ function auditPrev() {
 }
 
 function auditNext() {
-  const pages = Math.ceil(state.lastAuditEvents.length / state.auditPageSize);
+  const pages = Math.ceil(groupAuditEvents(state.lastAuditEvents).length / state.auditPageSize);
   if (state.auditPage < pages - 1) { state.auditPage++; renderAudit(); }
 }
 
