@@ -109,7 +109,7 @@ stale-permitted content.
 2. Switch to **frank** (admin) → **Admin** tab → **access control**:
    - `resource_id`: `confluence:db-migration-plan`
    - `subject`: pick `engineer` (role) from the list
-3. Click **REVOKE**. **Expected:** toast *"revoke role:engineer on
+3. Click **REVOKE**. **Expected:** inline status *"revoke role:engineer on
    confluence:db-migration-plan — ACL v1 -> v2"*. (Optional: look up the
    resource in the **permissions inspector** — alice is no longer an effective
    reader.)
@@ -257,8 +257,7 @@ rewritten). Run a couple of queries first (Demos 1–2 populate it).
    `"decision": "deny"` event and change it to `"allow"` (an insider hiding
    that they were denied access). Save the file.
 3. Switch back to the browser (or click **refresh** / change any filter).
-   **Expected:** badge turns red **[TAMPERED · event #N]** and a toast warns
-   "audit log integrity check FAILED at event #N". It stays red whatever the
+   **Expected:** badge turns red **[TAMPERED · event #N]** with the failing event identified in the badge. It stays red whatever the
    filters **and** after new queries — the log is append-only, so the edit is
    never written over. The question, answer text and citation map are hashed
    too, so editing any of them is caught the same way; deleting the newest

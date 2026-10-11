@@ -2,6 +2,11 @@
 
 > **Last updated:** 2026-10-11 (independent review fixes: cross-platform search, preview audit, grounding, ADP isolation, audit question + grouping, accessibility, vendored assets, architecture diagram)
 
+## Demo polish and continuation review
+
+<!-- Generated continuation handoff. -->
+- Removed popup toasts without adding replacement messages, per user preference. Existing query errors, ACL success status, inspector lookup errors, integrity badge and offline footer remain.
+
 ## Append-only audit log, fail-closed connectors, export/connector beats (2026-10-11, pass 4)
 
 - **The audit log is append-only JSON Lines (`audit_log.jsonl`).** It used to

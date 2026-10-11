@@ -28,16 +28,6 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
-function toast(msg, isError = false) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.style.borderColor = isError ? "#8a3a3a" : "#4fb87a";
-  t.style.color = isError ? "#c47a7a" : "#4fb87a";
-  t.style.display = "block";
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => { t.style.display = "none"; }, 3500);
-}
-
 function esc(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -231,7 +221,7 @@ function applyCleanMode(on) {
 // -- query -------------------------------------------------------------
 
 async function runQuery(question) {
-  if (!state.currentUser) { toast("select a persona first", true); return; }
+  if (!state.currentUser) return;
   if (!question) return;
   state.lastQuery = question;
 
@@ -271,7 +261,6 @@ async function runQuery(question) {
     // below for personas with audit access.
     if (state.canAudit) await refreshAudit();
   } catch (e) {
-    toast(e.message, true);
     ans.className = "phosphor-text";
     ans.textContent = "> error: " + e.message;
   } finally {
@@ -451,9 +440,7 @@ async function previewResource(resourceId) {
     $("preview-close").style.display = "";
     $("resource-preview").style.display = "block";
     $("resource-preview").scrollIntoView({ behavior: "smooth", block: "nearest" });
-  } catch (e) {
-    toast("preview unavailable: " + e.message, true);
-  }
+  } catch (_) {}
 }
 
 // -- export (per-citation) — actually downloads the content -----------
@@ -479,13 +466,8 @@ async function exportResource(resourceId) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast(`exported ${resourceId} → downloaded`);
-    } else {
-      toast(`export denied for ${resourceId}`, true);
     }
-  } catch (e) {
-    toast("export denied: " + e.message, true);
-  }
+  } catch (_) {}
 }
 
 // -- policy inspector --------------------------------------------------
@@ -746,10 +728,6 @@ function renderStats(r) {
 // included), so this badge is always current — no verify button.
 function setChainBadge(valid, status) {
   const b = $("chain-badge");
-  if (!valid && state.chainValid !== false) {
-    const m = /_at_(\d+)/.exec(status || "");
-    toast(`audit log integrity check FAILED${m ? ` at event #${m[1]}` : ""} — the log was modified`, true);
-  }
   state.chainValid = !!valid;
   if (valid) {
     b.textContent = "[VERIFIED]";
@@ -844,7 +822,7 @@ async function adminChange(kind) {
   const resource_id = $("rev-resource").value.trim();
   const subject = $("rev-subject").value.trim();
   const subject_kind = $("rev-kind").value.trim() || "role";
-  if (!resource_id || !subject) { toast("resource_id and subject required", true); return; }
+  if (!resource_id || !subject) return;
 
   try {
     const r = await api("/admin/" + kind, {
@@ -852,13 +830,12 @@ async function adminChange(kind) {
       body: JSON.stringify({ resource_id, subject, subject_kind }),
     });
     const msg = `${r.change} ${r.subject_kind}:${r.subject} on ${r.resource_id} — ACL ${r.version_transition}`;
-    toast(msg);
     $("rev-status").textContent = "last change: " + msg;
     await refreshAudit();
     // No auto re-run: an access-control change and a user's query are
     // separate actions by separate actors. The effect is observed on the
     // NEXT query the affected user makes — as it would be in production.
-  } catch (e) { toast(e.message, true); }
+  } catch (_) {}
 }
 
 // -- permissions inspector (read-only "who can access what") ----------
@@ -995,7 +972,6 @@ async function boot() {
     $("footer-status").textContent = "api: offline — start `python -m uvicorn backend.api.app:app`";
     $("footer-status").style.color = "#c47a7a";
     $("health-dot").style.color = "#8a3a3a";
-    toast("cannot reach API at " + API_BASE, true);
   }
 
   $("ask-btn").onclick = () => runQuery($("query-input").value.trim());
@@ -1015,7 +991,7 @@ async function boot() {
   $("audit-nl").addEventListener("keydown", (e) => {
     if (e.key === "Enter") nlSearchAudit();
   });
-  $("audit-refresh").onclick = () => refreshAudit().catch((e) => toast(e.message, true));
+  $("audit-refresh").onclick = () => refreshAudit().catch(() => {});
   $("audit-prev").onclick = auditPrev;
   $("audit-next").onclick = auditNext;
   $("audit-pagesize").addEventListener("change", (e) => setAuditPageSize(e.target.value));
@@ -1024,6 +1000,7 @@ async function boot() {
   $("preview-close").onclick = () => resetPreviewToEmpty();
   wireSubjectCombo();
   wireInspectorCombo();
+
 
   // Persona dropdown (mouse + keyboard)
   $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };
@@ -1067,12 +1044,12 @@ async function boot() {
     const d = new Date(Date.now() - 7 * 86400000);
     $("f-since").value = d.toISOString().slice(0, 10);
     $("f-until").value = "";
-    refreshAudit().catch((e) => toast(e.message, true));
+    refreshAudit().catch(() => {});
   };
   $("f-clear").onclick = () => {
     $("audit-nl-interp").textContent = "";
     ["f-user", "f-decision", "f-resource", "f-since", "f-until"].forEach((id) => { $(id).value = ""; });
-    refreshAudit().catch((e) => toast(e.message, true));
+    refreshAudit().catch(() => {});
   };
 
   // Tab switching

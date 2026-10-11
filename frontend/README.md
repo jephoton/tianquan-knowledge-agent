@@ -58,7 +58,7 @@ again on the server).
 - Visible keyboard focus everywhere; the persona switcher is a listbox (arrow
   keys, Enter, Escape); tabs follow the ARIA tab pattern; citation cards are
   keyboard-operable.
-- Answers and toasts are announced to screen readers (`aria-live`); form
+- Answers are announced to screen readers (`aria-live`); form
   fields have labels; the minimum text size is 11px; text colours meet WCAG AA
   contrast on their backgrounds; animations stop under
   `prefers-reduced-motion`.
@@ -82,8 +82,7 @@ again on the server).
    Then visit `http://127.0.0.1:5500/`. (CORS is open on the backend, so any
    local port works.)
 
-If the backend is not running, the footer shows `api: offline` and a toast
-appears — the UI degrades gracefully.
+If the backend is not running, the footer shows `api: offline` — the UI degrades gracefully.
 
 ## Notes
 
