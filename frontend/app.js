@@ -31,8 +31,8 @@ async function api(path, opts = {}) {
 function toast(msg, isError = false) {
   const t = $("toast");
   t.textContent = msg;
-  t.style.borderColor = isError ? "#8a3a3a" : "#3a8a5a";
-  t.style.color = isError ? "#c47a7a" : "#3a8a5a";
+  t.style.borderColor = isError ? "#8a3a3a" : "#4fb87a";
+  t.style.color = isError ? "#c47a7a" : "#4fb87a";
   t.style.display = "block";
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { t.style.display = "none"; }, 3500);
@@ -83,19 +83,21 @@ async function loadPersonas() {
   users.forEach((u, i) => {
     const opt = document.createElement("div");
     opt.className = "persona-option" + (i === 0 ? " active" : "");
+    opt.setAttribute("role", "option");
+    opt.tabIndex = -1;
     opt.dataset.userId = u.user_id;
     opt.dataset.role = u.roles[0] || "user";
     opt.dataset.name = u.name;
     opt.dataset.canAudit = u.can_audit ? "1" : "";
     opt.dataset.canManage = u.can_manage ? "1" : "";
     opt.dataset.canExport = u.can_export ? "1" : "";
-    const mark = u.privileged ? ` <span style="color:#ffb000;font-size:9px;">◆</span>` : "";
+    const mark = u.privileged ? ` <span style="color:#ffb000;font-size:11px;">◆</span>` : "";
     opt.innerHTML =
       `<span>${esc(u.name)} <span style="color:#9a8e78;">(${esc(u.user_id)})</span>${mark}</span>` +
       `<span class="role-tag">${esc(u.roles[0] || "user")}</span>`;
     opt.onclick = () => {
       selectPersona(u);
-      closePersonaMenu();
+      closePersonaMenu(true);
     };
     menu.appendChild(opt);
     if (i === 0) selectPersona(u);
@@ -109,7 +111,9 @@ function selectPersona(u) {
   state.canManage = !!u.can_manage;
   state.canExport = !!u.can_export;
   document.querySelectorAll(".persona-option").forEach((c) => {
-    c.classList.toggle("active", c.dataset.userId === u.user_id);
+    const on = c.dataset.userId === u.user_id;
+    c.classList.toggle("active", on);
+    c.setAttribute("aria-selected", on ? "true" : "false");
   });
   $("current-user").textContent = `${u.name} [${state.currentRole}]`;
   const qp = $("query-persona");
@@ -177,14 +181,50 @@ function applyAdminGate() {
   if (state.canAudit) refreshAudit().catch(() => {});
 }
 
-function togglePersonaMenu() {
-  $("persona-menu").classList.toggle("open");
-  $("persona-trigger").classList.toggle("active");
+function personaOptions() {
+  return [...document.querySelectorAll(".persona-option")];
 }
 
-function closePersonaMenu() {
+function openPersonaMenu(focusActive = false) {
+  $("persona-menu").classList.add("open");
+  $("persona-trigger").classList.add("active");
+  $("persona-trigger").setAttribute("aria-expanded", "true");
+  if (focusActive) {
+    const opts = personaOptions();
+    (opts.find((o) => o.classList.contains("active")) || opts[0])?.focus();
+  }
+}
+
+function togglePersonaMenu() {
+  if ($("persona-menu").classList.contains("open")) closePersonaMenu();
+  else openPersonaMenu();
+}
+
+function closePersonaMenu(returnFocus = false) {
   $("persona-menu").classList.remove("open");
   $("persona-trigger").classList.remove("active");
+  $("persona-trigger").setAttribute("aria-expanded", "false");
+  if (returnFocus) $("persona-trigger").focus();
+}
+
+// Keyboard: arrows move between personas, Enter/Space picks, Escape closes.
+function onPersonaMenuKey(e) {
+  const opts = personaOptions();
+  const i = opts.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); opts[(i + 1) % opts.length].focus(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); opts[(i - 1 + opts.length) % opts.length].focus(); }
+  else if (e.key === "Home") { e.preventDefault(); opts[0].focus(); }
+  else if (e.key === "End") { e.preventDefault(); opts[opts.length - 1].focus(); }
+  else if ((e.key === "Enter" || e.key === " ") && i >= 0) { e.preventDefault(); opts[i].click(); }
+  else if (e.key === "Escape" || e.key === "Tab") { closePersonaMenu(e.key === "Escape"); }
+}
+
+// -- clean mode (no CRT effects; persisted per viewer) -----------------
+
+function applyCleanMode(on) {
+  document.body.classList.toggle("clean", on);
+  $("clean-toggle").setAttribute("aria-pressed", on ? "true" : "false");
+  try { localStorage.setItem("tianquan-clean", on ? "1" : "0"); } catch (_) {}
 }
 
 // -- query -------------------------------------------------------------
@@ -196,6 +236,7 @@ async function runQuery(question) {
 
   const ans = $("answer-text");
   ans.className = "phosphor-text answer-processing";
+  ans.setAttribute("aria-busy", "true");
   ans.innerHTML = `<span class="spinner"></span>processing query through permission filter...`;
   $("answer-citations").innerHTML = "";
   $("answer-grounding").style.display = "none";
@@ -233,6 +274,7 @@ async function runQuery(question) {
     ans.className = "phosphor-text";
     ans.textContent = "> error: " + e.message;
   } finally {
+    ans.removeAttribute("aria-busy");
     askBtn.disabled = false;
     askBtn.classList.remove("ask-busy");
     askBtn.textContent = "ASK";
@@ -245,11 +287,11 @@ function freshnessBadge(updatedAt) {
   const then = new Date(updatedAt).getTime();
   const ageHours = (now - then) / 36e5;
   let color, label;
-  if (ageHours < 24) { color = "#3a8a5a"; label = "updated today"; }
+  if (ageHours < 24) { color = "#4fb87a"; label = "updated today"; }
   else if (ageHours < 168) { color = "#ffb000"; label = `updated ${Math.round(ageHours / 24)}d ago`; }
   else { color = "#c47a7a"; label = `updated ${Math.round(ageHours / 168)}w ago`; }
   // Small dot + explicit label — subtle, but self-explanatory.
-  return `<span style="color:${color};font-size:10px;">● ${label}</span>`;
+  return `<span style="color:${color};font-size:11px;">● ${label}</span>`;
 }
 
 // Answer text with each [n] marker turned into a button that jumps to (and,
@@ -315,7 +357,13 @@ function renderAnswer(r) {
     if (canOpenSource) {
       card.style.cursor = "pointer";
       card.title = "click to view the source content";
+      card.setAttribute("role", "button");
+      card.tabIndex = 0;
+      card.setAttribute("aria-label", `open source ${c.marker}: ${c.title}`);
       card.onclick = () => previewResource(c.resource_id);
+      card.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); previewResource(c.resource_id); }
+      };
     } else {
       card.title = "answer is cited from this source";
     }
@@ -584,7 +632,7 @@ function auditEventRow(e) {
         `<span class="answer-detail" style="color:#b8ad98;font-style:italic;">` +
         `<span class="ad-short">“${short}”</span>` +
         `<span class="ad-full" style="display:none;">“${full}”</span></span> ` +
-        `<button class="ad-expand outline-btn" style="padding:1px 7px;font-size:9px;">expand</button>`;
+        `<button class="ad-expand outline-btn" aria-expanded="false" style="padding:1px 7px;font-size:11px;">expand</button>`;
     } else {
       mid = `<span style="color:#b8ad98;font-style:italic;">“${full}”</span>`;
     }
@@ -610,6 +658,7 @@ function auditEventRow(e) {
       fullEl.style.display = expanded ? "none" : "";
       shortEl.style.display = expanded ? "" : "none";
       btn.textContent = expanded ? "expand" : "collapse";
+      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
     };
   }
   return tr;
@@ -652,9 +701,9 @@ function setChainBadge(valid, status) {
   const b = $("chain-badge");
   if (valid) {
     b.textContent = "[VERIFIED]";
-    b.style.color = "#3a8a5a";
+    b.style.color = "#4fb87a";
     b.style.background = "rgba(58,138,90,0.1)";
-    b.style.textShadow = "0 0 4px #3a8a5a";
+    b.style.textShadow = "0 0 4px #4fb87a";
   } else {
     b.textContent = "[TAMPERED]";
     b.style.color = "#c47a7a";
@@ -709,7 +758,7 @@ function renderSubjectMenu(filter = "") {
   };
   html += section("roles", roles);
   html += section("users", usrs);
-  if (!html) html = `<div class="combo-option" style="color:#8a7f68;cursor:default;">no match</div>`;
+  if (!html) html = `<div class="combo-option" style="color:#9a8e78;cursor:default;">no match</div>`;
   menu.innerHTML = html;
   menu.querySelectorAll(".combo-option[data-value]").forEach((el) => {
     el.onclick = () => {
@@ -800,7 +849,7 @@ function renderInspectorMenu(filter = "") {
   const opts = piOptionsFor(kind).filter((o) => o.label.toLowerCase().includes(f));
   const menu = $("pi-menu");
   if (!opts.length) {
-    menu.innerHTML = `<div class="combo-option" style="color:#8a7f68;cursor:default;">no match</div>`;
+    menu.innerHTML = `<div class="combo-option" style="color:#9a8e78;cursor:default;">no match</div>`;
     return;
   }
   menu.innerHTML = opts.map((o) =>
@@ -840,11 +889,11 @@ function renderUserPerms(r) {
   let html = `<div style="margin-bottom:8px;color:#f0e6d2;">${esc(r.name)} <span style="color:#9a8e78;">(${esc(r.user_id)})</span> — roles: ${roles || "none"}</div>`;
   html += `<div style="font-size:11px;color:#9a8e78;margin-bottom:8px;">can read ${r.readable_count} of ${r.resources.length} resources</div>`;
   html += r.resources.map((a) => {
-    const dot = a.can_read ? `<span style="color:#3a8a5a;">●</span>` : `<span style="color:#c47a7a;">●</span>`;
+    const dot = a.can_read ? `<span style="color:#4fb87a;">●</span>` : `<span style="color:#c47a7a;">●</span>`;
     const viaTag = a.can_read
-      ? `<span class="kind-tag" style="color:#8a7f68;">${esc(a.via)}</span>`
-      : `<span class="kind-tag" style="color:#8a7f68;">no access</span>`;
-    const dl = a.can_read && a.can_export ? ` <span style="color:#5fb87f;font-size:9px;">↓dl</span>` : "";
+      ? `<span class="kind-tag" style="color:#9a8e78;">${esc(a.via)}</span>`
+      : `<span class="kind-tag" style="color:#9a8e78;">no access</span>`;
+    const dl = a.can_read && a.can_export ? ` <span style="color:#5fb87f;font-size:11px;">↓dl</span>` : "";
     return _permRow(
       `${dot} ${sourceIcon(a.source)} <span style="color:#cdbfa6;">${esc(a.resource_id)}</span>${dl}`,
       viaTag,
@@ -858,11 +907,11 @@ function renderRolePerms(r) {
   html += `<div class="section-label mb-2" style="margin-top:8px;">members (${r.members.length})</div>`;
   html += r.members.length
     ? `<div style="color:#cdbfa6;margin-bottom:10px;">${r.members.map(esc).join(", ")}</div>`
-    : `<div style="color:#8a7f68;margin-bottom:10px;">no users hold this role</div>`;
+    : `<div style="color:#9a8e78;margin-bottom:10px;">no users hold this role</div>`;
   html += `<div class="section-label mb-2">grants access to (${r.resources.length})</div>`;
   html += r.resources.length
     ? r.resources.map((x) => _permRow(`<span style="color:#cdbfa6;">${esc(x)}</span>`)).join("")
-    : `<div style="color:#8a7f68;">no resources grant via this role</div>`;
+    : `<div style="color:#9a8e78;">no resources grant via this role</div>`;
   return html;
 }
 
@@ -875,7 +924,7 @@ function renderResourcePerms(r) {
   html += line("allowed roles", r.allowed_roles, "#cdbfa6");
   html += line("allowed users", r.allowed_users, "#cdbfa6");
   html += line("denied users", r.denied_users, "#c47a7a");
-  html += line("effective readers", r.effective_readers, "#3a8a5a");
+  html += line("effective readers", r.effective_readers, "#4fb87a");
   return html;
 }
 
@@ -938,8 +987,21 @@ async function boot() {
   wireSubjectCombo();
   wireInspectorCombo();
 
-  // Persona dropdown
+  // Persona dropdown (mouse + keyboard)
   $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };
+  $("persona-trigger").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openPersonaMenu(true);
+    }
+  });
+  $("persona-menu").addEventListener("keydown", onPersonaMenuKey);
+
+  // Clean mode: restore the viewer's last choice (CRT is the default).
+  let clean = false;
+  try { clean = localStorage.getItem("tianquan-clean") === "1"; } catch (_) {}
+  applyCleanMode(clean);
+  $("clean-toggle").onclick = () => applyCleanMode(!document.body.classList.contains("clean"));
   document.addEventListener("click", (e) => {
     const dd = $("persona-dropdown");
     if (dd && !dd.contains(e.target)) closePersonaMenu();
@@ -971,7 +1033,10 @@ async function boot() {
 }
 
 function switchTab(tabId, btn) {
-  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach((b) => {
+    b.classList.remove("active");
+    b.setAttribute("aria-selected", b.dataset.tab === tabId ? "true" : "false");
+  });
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
   if (btn) btn.classList.add("active");
   else btn = document.querySelector(`[data-tab="${tabId}"]`);
