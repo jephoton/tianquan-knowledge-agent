@@ -95,4 +95,5 @@ def submit_query(req: QueryRequest, request: Request) -> QueryResponseModel:
         viewer_privileged=auditor,
         viewer_can_export=exporter,
         audit_chain_head=resp.audit_chain_head,
+        grounding_removed=resp.grounding_removed,
     )

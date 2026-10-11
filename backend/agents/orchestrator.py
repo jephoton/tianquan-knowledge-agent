@@ -42,6 +42,8 @@ class QueryResponse:
     decisions: list[Decision] = field(default_factory=list)
     audit_chain_head: str = ""
     no_access: bool = False
+    # Sentences the grounding checker (INV8) removed from the served answer.
+    grounding_removed: int = 0
 
     @property
     def allow_count(self) -> int:
@@ -233,6 +235,7 @@ class Orchestrator:
         #     whose vocabulary doesn't match the context), fall back to a
         #     minimal grounded statement rather than an empty string.
         grounding_report: GroundingReport | None = None
+        grounding_removed = 0
         if not answer.no_access:
             pre_grounding_text = answer.text
             grounding_report = self._grounding_checker.check(
@@ -240,6 +243,7 @@ class Orchestrator:
             )
             if grounding_report.grounded_text:
                 answer.text = grounding_report.grounded_text
+                grounding_removed = len(grounding_report.ungrounded_sentences)
             else:
                 # The grounding checker stripped every sentence. This is a
                 # hallucination guard (INV8) aimed at a *generative* LLM
@@ -283,6 +287,7 @@ class Orchestrator:
             decisions=retrieval.outcome.decisions,
             audit_chain_head=self._audit.head_hash(),
             no_access=answer.no_access,
+            grounding_removed=grounding_removed,
         )
 
 

@@ -53,6 +53,36 @@ _STOPWORDS = frozenset({
 })
 
 
+# Ordinary words an LLM capitalizes only because they open a sentence
+# ("Based on...", "Both blockers..."). They are not names, so a capitalized
+# phrase is never flagged just for containing one.
+_COMMON_CAPITALIZED = frozenset({
+    "based", "both", "however", "currently", "overall", "additionally",
+    "according", "following", "finally", "first", "second", "third", "next",
+    "note", "yes", "in", "summary", "all", "each", "some", "any", "most",
+    "none", "one", "two", "three", "after", "before", "once", "while",
+    "although", "because", "since", "until", "meanwhile", "therefore",
+    "thus", "furthermore", "moreover", "specifically", "today", "recently",
+    "previously", "per", "regarding", "unfortunately", "fortunately",
+})
+
+
+# Sources write dates as ISO (2026-09-14); LLMs write "September 14". A month
+# name is supported when its number appears in the context's dates.
+_MONTHS = {
+    m: i for i, m in enumerate(
+        ["january", "february", "march", "april", "may", "june", "july",
+         "august", "september", "october", "november", "december"], start=1)
+}
+
+
+def _word_supported(word: str, context_tokens: set[str]) -> bool:
+    if word in context_tokens:
+        return True
+    n = _MONTHS.get(word)
+    return n is not None and (f"{n:02d}" in context_tokens or str(n) in context_tokens)
+
+
 # --- Data structures -----------------------------------------------------
 
 @dataclass
@@ -137,6 +167,42 @@ def _extract_entities(text: str) -> set[str]:
     return entities
 
 
+def _missing_entities(
+    sentence: str, context_entities: set[str], context_tokens: set[str],
+) -> set[str]:
+    """Return the sentence's entities that the context does not support.
+
+    Capitalized phrases are checked word by word: "AM SGT" is supported when
+    "sgt" occurs in the context, and stopwords or sentence-opening words
+    ("There", "Both") never count. An invented name ("Olympus Mons", "SQL")
+    still fails, because its words appear nowhere in the context.
+    """
+    # Citation markers ([1], [2]) are not claims; their digits are not numbers.
+    sentence = re.sub(r"\[\d+\]", " ", sentence)
+    missing: set[str] = set()
+    for match in _ENTITY_RE.finditer(sentence):
+        phrase = match.group(1).lower()
+        if phrase in context_entities:
+            continue
+        words = [
+            w for w in phrase.split()
+            if w not in _STOPWORDS and w not in _COMMON_CAPITALIZED
+        ]
+        if not all(_word_supported(w, context_tokens) for w in words):
+            missing.add(phrase)
+    for match in _NUMBER_RE.finditer(sentence):
+        if match.group(0) not in context_entities | context_tokens:
+            missing.add(match.group(0))
+    for match in _TECH_RE.finditer(sentence):
+        term = match.group(0).lower()
+        if term in context_entities | context_tokens:
+            continue
+        parts = [w for w in re.split(r"-", term) if w and w not in _STOPWORDS]
+        if not all(_word_supported(w, context_tokens) for w in parts):
+            missing.add(term)
+    return missing
+
+
 # --- The checker ---------------------------------------------------------
 
 
@@ -171,6 +237,9 @@ class GroundingChecker:
             )
 
         context_tokens = set(_content_tokens(_tokenize(context.text)))
+        # Also index digit/letter runs inside mixed tokens ("9AM" -> "9", "am";
+        # "120ms" -> "120"), so "9 AM" in an answer matches "9AM" in a source.
+        context_tokens |= set(re.findall(r"\d+|[a-z]+", context.text.lower()))
         context_entities = _extract_entities(context.text)
 
         all_sentences = _sentences(answer_text)
@@ -197,13 +266,9 @@ class GroundingChecker:
             # Common-word paraphrasing (synonyms, word-form changes) is
             # tolerated because overlap covers that — only *named* entities
             # (capitalized words, numbers, hyphenated terms) are checked here.
-            sent_entities = _extract_entities(sentence)
-            # Entities that are citation markers [1] are always fine.
-            non_marker_entities = {
-                e for e in sent_entities
-                if not re.fullmatch(r"\[\d+\]", e)
-            }
-            missing_entities = non_marker_entities - context_entities - context_tokens
+            missing_entities = _missing_entities(
+                sentence, context_entities, context_tokens,
+            )
 
             # A sentence is grounded if BOTH:
             # - overlap >= threshold (sufficient lexical overlap with context)

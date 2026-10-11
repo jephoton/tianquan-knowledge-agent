@@ -329,3 +329,111 @@ def test_grounding_report_is_dataclass():
     assert report.confidence == 1.0
     assert report.grounded_sentences == []
     assert report.ungrounded_sentences == []
+
+# -- Over-strip regressions (live ADP answers) -----------------------------
+#
+# A real ADP answer to the demo migration question. Every sentence is backed by
+# the authorized context, yet the checker used to strip the first two because
+# ordinary sentence-opening words ("Based", "There", "Both") were treated as
+# named entities missing from the context, and "AM SGT" was checked as one
+# phrase instead of word by word. The user was left with a dangling fragment.
+
+_ADP_MIGRATION_ANSWER = (
+    "Based on the provided information, the database migration is currently "
+    "in Phase 3, with the final write traffic cutover scheduled for Friday at "
+    "2 AM SGT [2][3]. There were two blockers raised for this phase: the need "
+    "to verify that replication lag stays under 100ms during peak hours, and a "
+    "requirement to review connection pool sizing for the new cluster [3]. "
+    "Both blockers have been resolved. Replication lag was verified to average "
+    "40ms with a maximum of 85ms under simulated peak load [3][4], and "
+    "connection pool sizing was tested successfully with double the normal "
+    "load [1][3]."
+)
+
+
+def _demo_migration_context():
+    from backend.retrieval.pipeline import RetrievalPipeline
+    alice = IdentityStore().get_user("alice")
+    q = ("What is the status of the database migration and were there "
+         "blockers raised?")
+    return RetrievalPipeline(_connectors()).run(alice, q, k=20).context
+
+
+def test_live_llm_grounded_answer_is_not_over_stripped():
+    report = GroundingChecker().check(_ADP_MIGRATION_ANSWER, _demo_migration_context())
+    assert report.ungrounded_sentences == []
+    assert report.grounded_text.startswith("Based on the provided information")
+
+
+def test_sentence_opening_word_is_not_an_entity():
+    ctx = _context_with_text(
+        ("r1", "Two blockers were raised: replication lag and pool sizing."),
+    )
+    answer = "Both blockers were raised: replication lag and pool sizing [1]."
+    assert GroundingChecker().check(answer, ctx).grounded is True
+
+
+def test_invented_name_at_sentence_start_still_caught():
+    ctx = _context_with_text(
+        ("r1", "The database migration plan covers the PostgreSQL upgrade."),
+    )
+    answer = "Olympus Mons hosts the database migration plan for the upgrade [1]."
+    assert GroundingChecker().check(answer, ctx).grounded is False
+
+
+def test_orchestrator_reports_removed_sentence_count():
+    """The API surfaces how many sentences INV8 removed, so a stripped answer
+    reads as a safety check working rather than a broken answer."""
+    llm = _FixedLLM(
+        "The database migration plan is documented [1]. "
+        "The Martian colony discovered ancient ruins beneath Olympus Mons [1]."
+    )
+    orch = Orchestrator(_connectors(), llm=llm)
+    alice = IdentityStore().get_user("alice")
+    resp = orch.handle(alice, "database migration plan", k=20)
+    assert resp.grounding_removed == 1
+    assert "Martian" not in resp.answer
+
+
+def test_no_access_reports_zero_removed():
+    orch = Orchestrator(_connectors())
+    bob = IdentityStore().get_user("bob")
+    resp = orch.handle(bob, "security breach incident report", k=20)
+    assert resp.no_access is True
+    assert resp.grounding_removed == 0
+
+
+def test_month_name_matches_iso_date_in_context():
+    """Context dates are ISO (2026-09-14); LLMs write 'September 14, 2026'."""
+    ctx = _context_with_text(
+        ("r1", "2026-09-14: payment outage triggered by a Redis failover."),
+    )
+    answer = "The payment outage on September 14, 2026 was triggered by a Redis failover [1]."
+    assert GroundingChecker().check(answer, ctx).grounded is True
+
+
+def test_wrong_month_still_flagged():
+    ctx = _context_with_text(
+        ("r1", "2026-09-14: payment outage triggered by a Redis failover."),
+    )
+    answer = "The payment outage on October 14, 2026 was triggered by a Redis failover [1]."
+    assert GroundingChecker().check(answer, ctx).grounded is False
+
+
+def test_spaced_time_matches_compact_time_in_context():
+    """Slack says '120ms at 9AM'; LLMs write '9 AM'."""
+    ctx = _context_with_text(
+        ("r1", "alice: 120ms at 9AM but settled to 40ms by 10AM. Fine for cutover."),
+    )
+    answer = "It hit 120ms at 9 AM but settled to 40ms by 10 AM, fine for cutover [1]."
+    assert GroundingChecker().check(answer, ctx).grounded is True
+
+
+def test_hyphenated_term_checked_word_by_word():
+    ctx = _context_with_text(
+        ("r1", "The go/no-go signal is due Thursday end of day for the cutover."),
+    )
+    ok = "The go/no-go signal for the cutover is due Thursday end-of-day [1]."
+    assert GroundingChecker().check(ok, ctx).grounded is True
+    bad = "The cutover signal was delayed by a sql-injection incident Thursday [1]."
+    assert GroundingChecker().check(bad, ctx).grounded is False

@@ -47,6 +47,9 @@ class QueryResponseModel(BaseModel):
     viewer_privileged: bool = False
     viewer_can_export: bool = False
     audit_chain_head: str
+    # Sentences removed by the grounding check (INV8) — shown to the user so
+    # a trimmed answer reads as the safety check working, not a broken reply.
+    grounding_removed: int = 0
 
 
 # -- /audit ------------------------------------------------------------
