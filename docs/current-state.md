@@ -2,6 +2,28 @@
 
 > **Last updated:** 2026-10-11 (independent review fixes: cross-platform search, preview audit, grounding, ADP isolation, audit question + grouping, accessibility, vendored assets, architecture diagram)
 
+## Audit explorer UX from demo run-through (2026-10-11, pass 3)
+
+- **Permission changes are audited.** Revoke/grant append an `acl_revoke` /
+  `acl_grant` event (actor, resource, `revoke role:engineer · ACL v1 -> v2`,
+  decision `change` — never counted as allow/deny). Shown as amber CHANGE rows.
+- **Integrity is checked automatically.** Every `/audit` and `/audit/search`
+  verifies the in-memory chain **and** the on-disk file, so a hand-edit (or a
+  deleted file) shows on the next refresh whatever the filters; the "verify
+  integrity" button is gone. The UI also refreshes when the window regains
+  focus and toasts once when tampering is first detected. An empty trail (no
+  file yet) reads as verified. Note: the next appended event rewrites the file
+  from memory, so check before running another query.
+- **Plain-English search fills the filter fields** (`filters` in the
+  response: user_id, decision, resource, since, until); the table is loaded
+  from those fields so it always matches them. The bracketed parameter echo is
+  gone. The resource filter accepts comma-separated alternatives.
+- **Prompt-injection attempts are flagged in the audit explorer** (red badge on
+  the query group, read from the answer event's `injection_suspected:` reason).
+- Demo script: first person ("I"), TLC commands inline, injection and
+  permissions-inspector beats added; runbook updated.
+  284 tests pass.
+
 ## Citation map in the audit trail + tool credits (2026-10-11, pass 2)
 
 - **The logged answer's [n] markers are now traceable.** The answer event

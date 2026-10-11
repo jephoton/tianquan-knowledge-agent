@@ -142,12 +142,14 @@ question."
 
    The line under the box shows exactly what was understood; anything it could
    not map is listed in amber rather than silently ignored.
-4. Each query group shows which allowed documents the answer **cited**
+4. Revokes and grants appear in the same history (amber **CHANGE** rows: who,
+   what, ACL version). Each query group shows which allowed documents the answer **cited**
    (`citation [2]`) and which it was given but did **not cite**; the logged answer
    has a `cited:` key mapping every `[n]` to its document (hover a chip to see
    it). The map is hashed with the event, so it is evidence, not a UI guess.
-5. The structured filters (user, decision, resource substring, date range) and
-   **verify integrity** (badge **[VERIFIED]**) work alongside it.
+5. Asking in plain English **fills the filter fields** (user, decision,
+   resource ids, date range) with what it understood; edit any field to refine.
+   The integrity badge is re-checked on every refresh.
 
 **Talking point:** "Every retrieval and denial is hash-chained. Change one past
 event and verification fails — the audit trail is tamper-evident."
@@ -156,10 +158,10 @@ event and verification fails — the audit trail is tamper-evident."
 
 ## Demo 5 — Formal verification (TLA+): break the real logic, watch it get caught
 
-**Point:** the safety is model-checked, not just tested. We don't flip a switch
-labelled "broken" — we make the kind of change a real engineer would make, in
+**Point:** the safety is model-checked, not just tested. I don't flip a switch
+labelled "broken" — I make the kind of change a real engineer would make, in
 the real retrieval logic, and the model checker proves it introduces a leak and
-hands us the exact exploit trace.
+hands me the exact exploit trace.
 
 **The one line that matters** is `AdmitToContext(r)` in
 `formal/access_control.tla` — the rule deciding whether a candidate enters the
@@ -201,7 +203,7 @@ context' = candidates
 
 Re-run STEP 1's command. **Expect INV1 violated.** Trace: search over-fetches
 `r2` (a doc the asker can't see) → Decide marks it **deny** → but Retrieve admits
-*everything* → `r2` lands in the context. *"We didn't filter at all, and the
+*everything* → `r2` lands in the context. *"This version didn't filter at all, and the
 checker caught the exact document that leaked."*
 
 ### Bug B — "the clever optimization" (subtle, impressive — the revocation race)
@@ -211,7 +213,7 @@ Revert Bug A, then change the `AdmitToContext` operator's `ELSE` line:
 ```tla
 \* from (correct — re-check live ACL):
 ELSE LiveAllowed(r)
-\* to (a plausible optimization — "we already decided, why check again?"):
+\* to (a plausible optimization — "it was already decided, why check again?"):
 ELSE decisions[r] = "allow"
 ```
 
@@ -222,11 +224,11 @@ Re-run. **Expect INV1 violated.** Trace (read it aloud):
 3. Retrieve trusts the stale "allow" → r1 enters the context though alice can no
    longer read it. **Time-of-check / time-of-use leak.**
 
-**Talking point:** "The permission check is simple. What's hard — and what we
+**Talking point:** "The permission check is simple. What's hard — and what I
 proved — is the *timing*. Bug A is the obvious one. Bug B is the one that scares
 me: the code *does* filter, it just trusts a decision from a moment ago, and a
 concurrent revocation slips through. That's a race no one thinks to unit-test.
-The model checker explores every interleaving, found it, and handed us the exact
+The model checker explores every interleaving, found it, and handed me the exact
 sequence. For a security control, that's the difference between 'probably safe'
 and 'proven safe'. Then I revert — and it's green again."
 
@@ -240,23 +242,26 @@ and 'proven safe'. Then I revert — and it's green again."
 ## Demo 6 — Tamper-evident audit log (real file edit)
 
 **Point:** the audit trail is hash-chained and persisted to a real file on
-disk. An insider editing that file to cover their tracks is detectable — we
-don't trust memory, we re-hash the file itself.
+disk. An insider editing that file to cover their tracks is detectable — the
+check doesn't trust memory, it re-hashes the file itself on every refresh.
 
 **Setup:** the backend writes every decision to `audit_log.json` in the repo
 root as it happens. Run a couple of queries first (Demos 1–2 populate it).
 
-1. As **frank** (admin) or **diana** (compliance), in the **Audit Explorer**
-   click **verify integrity**.
-   **Expected:** badge **[VERIFIED]**, toast "log file verified — chain
-   intact".
+1. As **frank** (admin) or **diana** (compliance), open the **Audit Explorer**.
+   **Expected:** badge **[VERIFIED]** — integrity is re-checked automatically
+   on every refresh (filter change, new query, refresh button, or returning to
+   the browser window).
 2. **The attack — do it live:** open `audit_log.json` in your editor. Find a
    `"decision": "deny"` event and change it to `"allow"` (an insider hiding
    that they were denied access). Save the file.
-3. Click **verify integrity** again.
-   **Expected:** badge turns red **[TAMPERED]**, toast "LOG FILE TAMPERED
-   at event #N: tampered_event_at_N:hash_mismatch". The question and answer
-   text are hashed too, so editing what someone asked is caught the same way.
+3. Switch back to the browser (or click **refresh** / change any filter).
+   **Expected:** badge turns red **[TAMPERED · event #N]** and a toast warns
+   "audit log integrity check FAILED at event #N". It stays red whatever the
+   filters. The question, answer text and citation map are hashed too, so
+   editing any of them is caught the same way. **Don't run a new query between
+   the edit and the check** — the next logged event rewrites the file from
+   memory.
 
 **Talking point:** "Every decision is written to disk, and each event's hash
 includes the previous event's hash — a blockchain over the audit log. Watch: I'll

@@ -41,8 +41,10 @@ again on the server).
 - **Audit explorer** (`audit_query`) — plain-English search
   (`GET /audit/search`) and structured filters (`GET /audit`). Events are
   grouped per query under a header row with the question, UTC time, and
-  allow/deny counts. **verify integrity** re-hashes the on-disk log
-  (`GET /audit/verify-file`).
+  allow/deny counts. Plain-English search fills the filter fields with what
+  it understood. Revokes/grants appear as **CHANGE** rows. The integrity badge
+  is re-checked on every refresh — including the on-disk log — so a hand-edit
+  shows the moment you return to the page.
 - **Access control** (`manage_permissions`) — `POST /admin/revoke|grant`. No
   auto re-run: the affected user sees the change on their next query.
 - **Permissions inspector** (`manage_permissions`) — who can access what, by
