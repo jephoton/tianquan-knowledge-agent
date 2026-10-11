@@ -62,3 +62,32 @@ def test_permission_changes_do_not_count_as_allow_or_deny(client):
         "resource_id": PLAN, "subject": "engineer", "subject_kind": "role"})
     r = client.get("/audit", headers=DIANA).json()
     assert r["count"] == 1 and r["allow_count"] == 0 and r["deny_count"] == 0
+
+
+# -- integrity is checked on every audit query ----------------------------
+
+def test_empty_log_reads_as_verified(client):
+    assert client.get("/audit", headers=DIANA).json()["chain_valid"] is True
+
+
+def test_hand_edit_shows_on_next_refresh_and_stays_red(client, log_path):
+    _query(client)
+    assert client.get("/audit", headers=DIANA).json()["chain_valid"] is True
+
+    data = json.loads(log_path.read_text(encoding="utf-8"))
+    data[0]["decision"] = "deny" if data[0]["decision"] == "allow" else "allow"
+    log_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    # No verify button: any audit query reports it, whatever the filters.
+    r1 = client.get("/audit", headers=DIANA).json()
+    r2 = client.get("/audit", headers=DIANA, params={"user_id": "bob"}).json()
+    r3 = client.get("/audit/search", headers=DIANA, params={"q": "what did alice access"}).json()
+    for r in (r1, r2, r3):
+        assert r["chain_valid"] is False
+        assert "tampered_event_at_0" in r["chain_status"]
+
+
+def test_deleted_log_file_is_tamper(client, log_path):
+    _query(client)
+    log_path.unlink()
+    assert client.get("/audit", headers=DIANA).json()["chain_valid"] is False

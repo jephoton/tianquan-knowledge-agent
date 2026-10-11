@@ -97,10 +97,20 @@ class AuditQueryEngine:
     def run(self, query: AuditQuery) -> AuditQueryResult:
         """Filter the chain by the query and attach verification status."""
         matched = [e for e in self._chain.events() if query.matches(e)]
-        return AuditQueryResult(
-            events=matched,
-            verification=self._chain.verify(),
-        )
+        return AuditQueryResult(events=matched, verification=self.verify())
+
+    def verify(self) -> VerificationResult:
+        """Integrity of the whole trail, re-checked on every query.
+
+        The in-memory chain is verified, and — when the chain persists to disk
+        — so is the file as it is now, so a hand-edit (or deletion) of the log
+        shows on the very next query whatever the filters. Before the first
+        event there is no file yet; that is a valid, empty trail.
+        """
+        v = self._chain.verify()
+        if v.valid and self._chain.persist_path and len(self._chain) > 0:
+            v = self._chain.verify_file()
+        return v
 
     def for_user(self, user_id: str) -> AuditQueryResult:
         """Convenience: all events for a user."""
