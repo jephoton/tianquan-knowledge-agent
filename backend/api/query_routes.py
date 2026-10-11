@@ -7,8 +7,9 @@ versions for the policy inspector), and the audit chain head.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from backend.api.deps import require_permission
 from backend.api.schemas import (
     CitationModel,
     DecisionModel,
@@ -16,46 +17,31 @@ from backend.api.schemas import (
     QueryResponseModel,
 )
 from backend.auth.roles import can_audit, can_export
-from backend.models import Action, DecisionResult
-from backend.policy.policy_engine import PolicyEngine
+from backend.models import DecisionResult, User
 
 router = APIRouter(tags=["query"])
 
 
 @router.get("/resource/{resource_id:path}")
-def get_resource_content(resource_id: str, request: Request, user_id: str):
-    """Return a resource's content for the source-preview panel — but ONLY if
-    the acting user is authorized to read it (re-checked against the live ACL).
+def get_resource_content(
+    resource_id: str,
+    request: Request,
+    user: User = Depends(require_permission("export")),
+):
+    """Return a resource's raw content for the source-preview panel.
 
-    This is itself an access-control boundary: previewing a source the user
-    cannot see would be a leak. A denied request returns 403 and is auditable
-    via the normal pipeline (the preview is a read, same rules as a query).
+    An access-control and audit boundary in its own right:
+    - the acting user comes from the X-User-Id header (401 without it);
+    - it requires `export` — once you can read the raw source you can copy it
+      out, so viewing it IS exporting (403 otherwise);
+    - READ is re-checked against the live ACL and every view is audited;
+    - denied and nonexistent resources get the identical 404, so the
+      response never confirms that a restricted resource exists.
     """
-    state = request.app.state.tianquan
-    user = state.identity.get_user(user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail=f"unknown user: {user_id}")
-
-    resource = None
-    for connector in state.orchestrator._connectors:
-        resource = connector.get_resource(resource_id)
-        if resource is not None:
-            break
-    if resource is None:
-        raise HTTPException(status_code=404, detail="resource not found")
-
-    decision = PolicyEngine().decide(user, resource, Action.READ)
-    if decision.result == DecisionResult.DENY:
-        # No metadata leak: same opaque 403 regardless of why.
-        raise HTTPException(status_code=403, detail="not authorized")
-
-    return {
-        "resource_id": resource.resource_id,
-        "source": resource.source.value,
-        "title": resource.title,
-        "content": resource.content,
-        "updated_at": resource.updated_at.isoformat() if resource.updated_at else None,
-    }
+    result = request.app.state.tianquan.orchestrator.preview(user, resource_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="resource not available")
+    return result
 
 
 @router.post("/query", response_model=QueryResponseModel)

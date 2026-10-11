@@ -142,6 +142,51 @@ class Orchestrator:
             "all_allowed": len(denied) == 0 and len(allowed) > 0,
         }
 
+    def preview(self, user: User, resource_id: str) -> dict | None:
+        """Return a resource's raw content for the source preview, or None.
+
+        Re-decides READ against the LIVE ACL and audits the view either way
+        (detail="source_preview"), so reading a raw source is as traceable as
+        exporting it. A nonexistent resource is audited as a deny and returns
+        None exactly like an unauthorized one — callers must not be able to
+        tell "denied" from "does not exist" (no existence side channel).
+        """
+        from backend.models import DecisionResult
+        from backend.policy.policy_engine import PolicyEngine
+
+        resource = None
+        for connector in self._connectors:
+            resource = connector.get_resource(resource_id)
+            if resource is not None:
+                break
+
+        if resource is None:
+            decision = Decision(
+                user_id=user.user_id,
+                resource_id=resource_id,
+                action=Action.READ,
+                result=DecisionResult.DENY,
+                reason="resource_not_found",
+                acl_version=0,
+                policy_version=0,
+            )
+        else:
+            decision = PolicyEngine().decide(user, resource, Action.READ)
+
+        self._audit.append_decision(
+            decision, str(uuid.uuid4()), detail="source_preview",
+        )
+        if resource is None or decision.result != DecisionResult.ALLOW:
+            return None
+        return {
+            "resource_id": resource.resource_id,
+            "source": resource.source.value,
+            "title": resource.title,
+            "content": resource.content,
+            "url": resource.url,
+            "updated_at": resource.updated_at.isoformat() if resource.updated_at else None,
+        }
+
     def handle(
         self,
         user: User,
