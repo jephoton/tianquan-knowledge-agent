@@ -9,9 +9,9 @@
 
 **Setup before recording:** backend (`uvicorn backend.api.app:app --port 8000`)
 and frontend (`python -m http.server 5500` in `frontend/`, open
-`http://127.0.0.1:5500`) running; restart the backend for a clean log. Window A
-= the app as **alice**; window B = the app as **diana** on the **Admin** tab;
-`docs/architecture.png` open; a terminal in `formal/`.
+`http://127.0.0.1:5500`) running; restart the backend for a clean log. One browser window — switch
+personas with the account menu (top right) as you go; `docs/architecture.png`
+open; a terminal in `formal/`.
 
 Coverage of the five required scenarios: **①** unified query (§2) · **②** data
 freshness (§2) · **③** negative case (§3) · **④** live revocation (§4) ·
@@ -50,7 +50,7 @@ freshness (§2) · **③** negative case (§3) · **④** live revocation (§4) 
 
 ## 2. One question, four platforms (①②) — 60s
 
-**Window A, as Alice (engineer):** ask *"What's the status of the database
+**As Alice (engineer):** ask *"What's the status of the database
 migration and were there blockers raised in Slack?"*
 
 > "Alice gets one answer stitched from Slack, Confluence and two Jira tickets,
@@ -66,9 +66,10 @@ migration and were there blockers raised in Slack?"*
 > source on every query — no overnight index to fall behind — and each citation
 > shows when its source was last updated." *(point at the freshness labels)*
 
-**Window B (diana):** point at the newest query group.
+**Switch to Diana (compliance) → Admin tab:** point at Alice's query group.
 
-> "Here's what Alice didn't see. Ten documents matched; eight were allowed, two
+> "Alice's own screen never shows what was denied — that would leak that it
+> exists. Here's what she didn't see. Ten documents matched; eight were allowed, two
 > were **denied** — the Q3 breach report and a security ticket. They never
 > reached the model. It can't leak what it never got."
 
@@ -76,7 +77,7 @@ migration and were there blockers raised in Slack?"*
 
 ## 3. Same system, different person (③) — 40s
 
-**Window A, switch to Bob (contractor):** ask *"Show me the Q3 security
+**Switch to Bob (contractor) → Query tab:** ask *"Show me the Q3 security
 incident report from the breach."*
 
 > "Bob gets: *'I could not find accessible information.'* That's the **exact**
@@ -84,7 +85,8 @@ incident report from the breach."*
 > from 'not found' — no confirmation the report exists, no side channel. Even
 > opening a source directly answers 'not available' either way."
 
-**Window B:** *"…while compliance sees every denial."*
+*(Optional: flip back to Diana for a second — "…while compliance sees every
+denial.")*
 
 ---
 
@@ -95,7 +97,8 @@ incident report from the breach."*
 
 > "Say someone moves teams or a clearance is pulled."
 
-**Back as Alice:** re-ask the migration question → the plan is gone from the
+**Switch back to Alice:** re-ask the migration question (switching clears the
+box — use the **migration status** chip) → the plan is gone from the
 citations.
 
 > "No reindex, no restart — the very next query reflects it, because we
@@ -106,7 +109,7 @@ citations.
 
 ## 5. An audit trail a regulator can query — and trust (⑤) — 60s
 
-**Window B (diana) → ask the audit trail:** *"Show me everything user jdoe
+**Switch to Diana → Admin → ask the audit trail:** *"Show me everything user jdoe
 accessed related to the payment-gateway Confluence space in the last 30
 days."* (Or *"who retrieved the q3 breach report"*.)
 

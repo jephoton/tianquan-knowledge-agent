@@ -41,10 +41,12 @@
    the live LLM does — without it, answers fall back to the offline extractive
    summarizer.
 
-4. **Two windows make the denials visible.** A non-privileged persona never
-   sees what was denied (that would leak existence). Open a second window as
-   **diana** (compliance) on the **Admin** tab: her audit explorer shows each
-   query as one group — the question, then every allow/deny decision.
+4. **Switch to diana to show denials.** A non-privileged persona never sees
+   what was denied (that would leak existence). After a query, switch to
+   **diana** (compliance) → **Admin** tab: her audit explorer shows each query
+   as one group — the question, then every allow/deny decision. Switching
+   persona clears the query box; the example chips re-run a question in one
+   click.
 
 > **Important:** the backend holds state in memory (audit chain + ACL changes).
 > If you ran Demo 3 (revocation) already, **restart the backend** for a clean
@@ -68,7 +70,7 @@ while still denying what the asker can't see.
    `confluence:db-migration-plan`, `MIG-231` and `MIG-232` (the live LLM
    usually cites four; the offline fallback cites every allowed source). Click
    an inline `[n]` marker to jump to its citation card.
-4. **In diana's window** (audit explorer): the group *alice asked "What is the
+4. **Switch to diana** → Admin (audit explorer): the group *alice asked "What is the
    status…"* shows **8 allow / 2 deny** — `confluence:q3-breach-report` and
    `SEC-101` matched the search but were denied (alice lacks security scope).
    The LLM never received them.
@@ -87,7 +89,7 @@ documents were filtered out before the model saw them."
 3. **Expected:** the answer is exactly
    *"I could not find accessible information matching your request."*
    with **no citations**.
-4. **In diana's window:** the group *bob asked "Show me the Q3…"* shows every
+4. **Switch to diana** → Admin: the group *bob asked "Show me the Q3…"* shows every
    decision as DENY — visible to compliance, never surfaced to the asker.
    Or ask the audit trail: *"show denied events for bob"*.
 
