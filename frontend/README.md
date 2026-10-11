@@ -18,6 +18,9 @@ so the page renders with no internet access. Icons are inline SVG.
 
 ## Files
 
+- `config.js` — public runtime config (`apiBase`); defaults to `http://localhost:8000`.
+- `scripts/build.cjs` + `vercel.json` — Vercel build: copies the UI to `dist/` and writes `dist/config.js` from `TIANQUAN_API_BASE` (must be a bare HTTPS origin).
+
 - `index.html` — layout + CRT styling (from Miora), with hooks/IDs for wiring.
 - `app.js` — API client + rendering. `API_BASE` constant points at the backend.
 - `vendor/` — pinned Tailwind browser build + its licence.

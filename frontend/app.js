@@ -4,7 +4,8 @@
  * Static, no build step — served as-is. Base URL is a single constant.
  */
 
-const API_BASE = "http://localhost:8000";
+// Backend origin comes from config.js (local default, or the cloud build).
+const API_BASE = (window.TIANQUAN_CONFIG?.apiBase || "http://localhost:8000").replace(/\/+$/, "");
 
 // Minimum artificial delay (ms) so denied/no-access queries don't appear instant.
 const MIN_QUERY_DELAY = 400;

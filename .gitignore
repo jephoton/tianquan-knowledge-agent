@@ -34,6 +34,9 @@ formal/states/
 audit_log.json
 audit_log.jsonl
 
+# ── Frontend build output (Vercel) ──
+frontend/dist/
+
 # ── Misc ────────────────────────────────────────
 *.log
 tmp_*
