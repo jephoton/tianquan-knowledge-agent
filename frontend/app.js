@@ -605,7 +605,8 @@ function renderAudit() {
   const pageGroups = groups.slice(start, start + size);
   pageGroups.forEach((g) => {
     body.appendChild(groupHeaderRow(g));
-    g.events.forEach((e) => body.appendChild(auditEventRow(e)));
+    const ctx = citationContext(g);
+    g.events.forEach((e) => body.appendChild(auditEventRow(e, ctx)));
   });
   const end = Math.min(start + size, groups.length);
   $("audit-count").textContent =
@@ -613,7 +614,29 @@ function renderAudit() {
   renderAuditPager();
 }
 
-function auditEventRow(e) {
+// The answer event records which resource each [n] marker cites. Build the
+// lookup once per query group so the answer text and the decision rows can
+// both point at the same documents.
+function citationContext(g) {
+  const answer = g.events.find((e) => !e.resource_id && e.detail && e.question);
+  const byMarker = new Map();
+  const byResource = new Map();
+  ((answer && answer.citations) || []).forEach((c) => {
+    byMarker.set(c.marker, c.resource_id);
+    byResource.set(c.resource_id, c.marker);
+  });
+  return { hasAnswer: !!answer, byMarker, byResource };
+}
+
+// Escaped answer text with each recorded [n] as a chip naming its resource.
+function chipCitations(escapedText, ctx) {
+  return escapedText.replace(/\[(\d+)\]/g, (m) => {
+    const rid = ctx.byMarker.get(m);
+    return rid ? `<span class="cite-chip" title="${esc(rid)}">${m}</span>` : m;
+  });
+}
+
+function auditEventRow(e, ctx = { hasAnswer: false, byMarker: new Map(), byResource: new Map() }) {
   const tr = document.createElement("tr");
   const ts = (e.timestamp || "").slice(11, 19);
   const hash = e.event_hash ? "0x" + e.event_hash.slice(0, 4) + ".." + e.event_hash.slice(-4) : "";
@@ -624,10 +647,14 @@ function auditEventRow(e) {
   let mid, midStyle = "";
   if (e.resource_id) {
     mid = esc(e.resource_id);
+    // In a query group, mark which allowed documents the answer actually cited.
+    const marker = ctx.byResource.get(e.resource_id);
+    if (marker) mid += ` <span class="cite-badge">${esc(marker)} cited</span>`;
+    else if (ctx.hasAnswer && e.decision === "allow") mid += ` <span class="cite-badge muted">not cited</span>`;
   } else if (e.detail) {
-    const full = esc(e.detail);
+    const full = chipCitations(esc(e.detail), ctx);
     if (e.detail.length > 90) {
-      const short = esc(e.detail.slice(0, 90)) + "…";
+      const short = chipCitations(esc(e.detail.slice(0, 90)), ctx) + "…";
       mid =
         `<span class="answer-detail" style="color:#b8ad98;font-style:italic;">` +
         `<span class="ad-short">“${short}”</span>` +
@@ -635,6 +662,12 @@ function auditEventRow(e) {
         `<button class="ad-expand outline-btn" aria-expanded="false" style="padding:1px 7px;font-size:11px;">expand</button>`;
     } else {
       mid = `<span style="color:#b8ad98;font-style:italic;">“${full}”</span>`;
+    }
+    // Always-visible key: which document each marker refers to.
+    if (e.citations && e.citations.length) {
+      mid += `<div class="cited-line">cited: ` +
+        e.citations.map((c) => `<span class="cite-chip">${esc(c.marker)}</span> ${esc(c.resource_id)}`).join(" · ") +
+        `</div>`;
     }
     midStyle = "white-space:normal;min-width:260px;max-width:460px;";
   } else {
