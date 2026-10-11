@@ -1,4 +1,8 @@
-﻿# Miora Prompt — Tianquan 天权 Frontend (M8)
+﻿<!-- Generated archival status note, 2026-10-11; original authored content preserved. -->
+
+> **Historical design brief.** The original Miora prompt is preserved below. The implemented UI is static HTML/JS, not any framework requested in the brief. Consult [frontend README](README.md) and [current state](../docs/current-state.md) for actual behavior. Treat the prompt as design history, not current implementation instructions.
+
+# Miora Prompt — Tianquan 天权 Frontend (M8)
 
 This is the prompt to give Miora to generate the Tianquan (天权) React UI. It codes
 against the FastAPI backend in `backend/api/` (see the API contract at the

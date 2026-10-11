@@ -1,72 +1,26 @@
-# ADR-0005: LLM client behind an interface; provider decision deferred
+# ADR-0005: LLM client abstraction with ADP and offline fallback
 
-**Date:** 2026-09-28  
-**Status:** Partially accepted — interface **Accepted**; concrete provider **Open**
+<!-- Generated status reconciliation, 2026-10-11. -->
+
+**Date:** 2026-09-28; provider resolution incorporated 2026-10-11.  
+**Status:** Accepted — interface and concrete ADP provider implemented.
 
 ## Context
 
-M6 (the answer agent) needs to call an LLM to generate grounded, cited answers
-from the assembled context. Two questions arose:
-
-1. **Architecture:** should the answer agent call a provider SDK directly, or
-   talk to an abstraction?
-2. **Provider:** Tencent Cloud LLM via WorkBuddy/ADP (the hackathon-required
-   surface) vs a free/open-source model (e.g. local Ollama) for development?
-
-Two hard constraints frame the provider question:
-
-- The track requires building on Tencent Cloud AI; WorkBuddy/ADP is the named
-  LLM surface, and CodeBuddy/WorkBuddy usage proof is a **required** M13
-  submission deliverable. A free model as the *only* path risks the submission.
-- The provider access path (WorkBuddy vs ADP, credentials) is **not yet
-  confirmed** by the team.
-
-A key property de-risks this: the permission-safety guarantee (INV1/INV2) lives
-entirely in the retrieval pipeline. The LLM only ever receives already-filtered
-context, so it is a swappable component behind a trust boundary (architecture.md
-§2, boundary 4). Nothing about safety depends on which model is used.
+The answer agent needs a model to synthesize cited answers from assembled authorized context. The original provider decision was open while access to Tencent tooling was investigated; the WorkBuddy route was initially blocked. That blocker is historical: the ADP adapter and published agent are now working. CodeBuddy provides development usage evidence; it is not the runtime LLM adapter.
 
 ## Decision
 
-**Accepted now:** the answer agent depends on an `LLMClient` interface
-(a minimal `generate(prompt, context) -> str` protocol), never a concrete SDK.
-M6 is built and tested against a **deterministic stub** implementation so all
-answer-agent logic (grounding, citation validation, no-metadata-leak, and the
-end-to-end query→retrieval→answer→audit path) runs offline and reproducibly.
-
-**Deferred (Open):** which concrete `LLMClient` backs the live demo. Candidates:
-
-| Option | Role | Notes |
-|--------|------|-------|
-| Tencent Cloud LLM (WorkBuddy/ADP) | preferred demo path | **Blocked: WorkBuddy API requires a Pro upgrade not currently available.** Config-level swap once Pro access lands. |
-| CodeBuddy | fallback + usage proof | Already the documented dev tool; satisfies the CodeBuddy/WorkBuddy proof deliverable (M13 #4). |
-| Local open-source (e.g. Ollama) | fallback dev/demo adapter | Realistic offline dev/demo if Tencent access never lands. |
-| Deterministic stub | tests / CI | Canned grounded answers from context; always available. |
-
-**Current status of the provider question:** the WorkBuddy API path is blocked
-on a Pro upgrade. Because the submission's tool-usage requirement is satisfied
-by CodeBuddy (already in use and logged in the dev-log), the project is not at
-risk. This ADR moves to Accepted once a concrete live provider is wired
-(WorkBuddy if Pro lands, else CodeBuddy or a local model).
+Depend on `LLMClient.generate(prompt) -> str`, not a provider SDK in the answer agent. Use Tencent Cloud ADP for live generation when configured. Keep the deterministic extractive `StubLLMClient` for tests, offline operation and live-call failures. The backend selects the client using `ADP_APP_KEY`; the key belongs exclusively in backend configuration.
 
 ## Rationale
 
-- The interface is the actual debt-avoiding move: it decouples every downstream
-  milestone from the provider choice, so deferring the provider costs nothing.
-- A stub keeps tests fast, offline, and deterministic — important because the
-  invariants (INV6 no-unauthorized-citation, INV7 no-metadata-leak) must be
-  asserted reliably, not against a nondeterministic model.
-- Keeps the WorkBuddy/ADP requirement firmly in scope (it's the intended demo
-  path) without blocking implementation on credentials.
+The permission gate precedes prompt construction and remains independent of the model provider. A small interface isolates SSE/TLS/provider concerns. Deterministic tests can exercise citations, denial/no-match behavior and audit sequencing without live network calls.
 
 ## Consequences
 
-- One small module (`backend/agents/llm_client.py`) defines the protocol and
-  the stub; provider adapters are added later without touching the answer agent.
-- M6 is complete and fully tested now (stub client); the live path is a config
-  swap.
-- Open follow-up (blocks the *live demo*, not implementation): WorkBuddy is
-  blocked on a Pro upgrade. When resolved, add the chosen adapter (WorkBuddy,
-  CodeBuddy, or a local model) and move this ADR to Accepted. The submission's
-  tool-usage proof is already covered by CodeBuddy, so this is not a
-  submission risk.
+- `adp_client.py` implements the live adapter; `llm_client.py` contains the protocol/stub. Provider selection is no longer an open follow-up.
+- Each ADP call creates a fresh conversation ([ADR-0007](0007-stateless-llm-calls.md)); do not attach an unfiltered agent knowledge base.
+- Runtime generation errors fall back to the stub; `/health` reports key configuration, not per-answer provenance or provider availability.
+- Citation validation and lexical grounding are implementation checks, not proof of generated truth. Known fallbacks/gaps are tracked in [current state](../current-state.md#known-boundaries-and-follow-ups).
+- See the [completed integration reference](../design/adp-integration-plan.md) and [deployment plan](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).

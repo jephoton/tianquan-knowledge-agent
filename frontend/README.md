@@ -30,11 +30,14 @@ Panels render only for personas holding the matching permission (enforced
 again on the server).
 
 - **Persona switcher** — seed users from `GET /users`; selection drives every
-  request (sent as the `X-User-Id` header). Switching persona clears the
+  request (`POST /query` resolves body `user_id`; privileged routes resolve
+  `X-User-Id`). These are demo identities, not verified login sessions.
+  Switching persona clears the
   previous answer.
 - **Query console** — `POST /query`; the answer's `[n]` markers are buttons
   that jump to their citation card. A note appears when the grounding check
-  removed unsupported sentences.
+  removed sentences using lexical checks. If every sentence is rejected, the
+  backend retains the original citation-validated answer; this is not semantic proof.
 - **Source preview** (`export`) — click a citation or `[n]` to load the raw
   source via `GET /resource/{id}` (audited), with its origin link and a
   **download ↓** (`POST /export`).
@@ -69,7 +72,7 @@ again on the server).
 1. Start the backend (from the repo root):
 
    ```powershell
-   uvicorn backend.api.app:app --port 8000
+   python -m uvicorn backend.api.app:app --port 8000 --workers 1
    ```
 
 2. Serve this folder over HTTP (not `file://`, since `app.js` calls the API
@@ -87,7 +90,15 @@ If the backend is not running, the footer shows `api: offline` — the UI degrad
 
 ## Notes
 
-- If you change `backend/api/schemas.py`, re-export the spec:
-  `python -c "import json; from backend.api.app import create_app; open('frontend/openapi.json','w').write(json.dumps(create_app().openapi(), indent=2))"`
+- If you change the API schema/routes, re-export the spec from the repo root
+  with an isolated audit path: importing the app otherwise clears the demo log.
+
+  ```powershell
+  python -c "import json, os, tempfile; from pathlib import Path; os.environ['TIANQUAN_AUDIT_LOG']=str(Path(tempfile.mkdtemp(prefix='tianquan-openapi-'))/'audit.jsonl'); from backend.api.app import app; Path('frontend/openapi.json').write_text(json.dumps(app.openapi(), indent=2), encoding='utf-8')"
+  ```
 - The editor may warn `Unknown at rule @theme` in `index.html` — that's
   Tailwind v4's browser-build syntax; it's valid at runtime and can be ignored.
+
+## Deployment status
+
+The API origin is currently hardcoded to localhost. Vercel hosting with public API-origin configuration is [planned, not implemented](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). The backend needs a separate single-instance cloud host. Browser localStorage remembers clean mode; it does not store authoritative ACLs or shared audit state.

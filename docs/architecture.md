@@ -2,6 +2,8 @@
 
 > **Last updated:** 2026-10-11
 
+<!-- Generated reconciliation: implementation boundaries and deployment status. -->
+
 ![Tianquan architecture and trust boundaries](architecture.png)
 
 The diagram source is [architecture.svg](architecture.svg) (renders on GitHub);
@@ -21,18 +23,19 @@ One request path, enforced in a fixed order:
    2. candidate search over all four sources,
    3. **permission filter** — live ACL re-fetch + PolicyEngine, per candidate,
    4. context assembler (authorized content only, citation-marked),
-   5. **Tencent Cloud ADP** drafts the cited answer,
-   6. answer checks — citation validation (INV6) and grounding (INV8),
-   7. **audit** — every decision and the answer, hash-chained to disk.
+   5. audit allow/deny decisions before generation,
+   6. **Tencent Cloud ADP** drafts the cited answer (stub fallback available),
+   7. answer checks — citation validation (INV6) and grounding (INV8),
+   8. audit the served answer and citation map, hash-chained to disk.
 4. Denied documents go to the audit log only — never to the LLM, never to the
-   user.
+   unauthorized asker. Authorized auditors can inspect denial metadata.
 
 ## 2. Trust boundaries
 
 | | Boundary | What crosses it, and what may not |
 |---|---|---|
-| TB1 | **Identity at the API** | The acting user comes from the `X-User-Id` header (demo-grade; production would use SSO/OIDC). Privileged routes return 401/403 server-side regardless of the UI. |
-| TB2 | **Policy engine is authoritative** | Every candidate is re-decided against its **live** ACL at query time. Search results are suggestions, never access. |
+| TB1 | **Identity at the API** | `POST /query` resolves the body `user_id`; privileged routes resolve `X-User-Id`. Both are caller-selected demo identities; production needs verified SSO/OIDC. Privileged routes return 401/403 server-side regardless of the UI. |
+| TB2 | **Policy engine is authoritative** | The filter fetches current ACLs per candidate and runs the policy engine. Missing ACLs currently fall back to the indexed resource; see limitations below. |
 | TB3 | **Only authorized content passes** | The context assembler only ever receives allowed resources. |
 | TB4 | **LLM sees filtered context only** | ADP receives the assembled authorized context and nothing else. Each call opens a **fresh ADP conversation**, so the model has no memory of another user's prompt. |
 | TB5 | **Every decision is logged** | Allow and deny decisions, the question, and the served answer are appended to a SHA-256 hash chain, appended to `audit_log.jsonl` (append-only: earlier lines are never rewritten, so a hand-edit stays detectable). |
@@ -82,7 +85,7 @@ deny).
 ### `backend/retrieval/`
 
 - `indexer.py` — snapshots connector resources (content + indexed ACL version);
-  never used to authorize.
+  intended for search rather than authorization; missing live-ACL fallback is an exception noted below.
 - `candidate_search.py` — TF-IDF + character n-gram search over every source.
   Explicit report labels (`Q` followed by digits) require an exact token in the
   document title/content; unrelated periods are excluded (ADR-0008).
@@ -105,8 +108,9 @@ deny).
   offline and as the runtime fallback (ADR-0005).
 - `answer_agent.py` — grounded answer from the assembled context; strips
   citations not backed by it (INV6); canonical no-access message (INV7).
-- `grounding_checker.py` — removes answer sentences the cited context doesn't
-  support (INV8). Capitalized phrases and hyphenated terms are checked word by
+- `grounding_checker.py` — lexical sentence/context checks (INV8), not semantic
+  verification. The orchestrator retains the original citation-validated answer
+  if every sentence is rejected; otherwise rejected sentences are removed. Capitalized phrases and hyphenated terms are checked word by
   word; month names match ISO dates; "9 AM" matches "9AM". The count of
   removed sentences is returned to the UI.
 - `query_scanner.py` — flags prompt-injection patterns in the audit trail
@@ -142,7 +146,9 @@ deny).
 | `POST/GET /upload` | `manage_permissions` | runtime ingestion (not in the UI) |
 
 `state.py` holds one shared orchestrator so revocations persist across
-requests. Routes are thin adapters over the layers below.
+requests within one process. ACL changes, uploads and the chain are process-local;
+startup truncates the audit file. Exactly one worker/instance is required.
+Routes are thin adapters over the layers below.
 
 ### `frontend/`
 
@@ -203,7 +209,7 @@ keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
     "query_id": str,                  # groups one query's events
     "resource_id": str | None,
     "action": str,
-    "decision": "allow" | "deny",
+    "decision": "allow" | "deny" | "change",
     "reason": str,
     "question": str,                  # the user's question, on every event of a query
     "detail": str,                    # answer text on the answer event; "source_preview" on previews
@@ -223,10 +229,10 @@ keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
    a. Scan the question for injection patterns (flag only).
    b. Candidate search across all sources (over-fetch; named platforms boosted).
    c. For each candidate: fetch the LIVE ACL, PolicyEngine.decide(user, r, read).
-   d. Audit every decision (allow and deny) with the question.
-   e. Assemble allowed content into a cited context window.
+   d. Assemble allowed content into a cited context window.
+   e. Audit every decision (allow and deny) with the question before generation.
    f. ADP drafts the answer (fresh conversation); stub fallback on failure.
-   g. Strip citations not in the context (INV6); remove unsupported sentences (INV8).
+   g. Strip out-of-context citations (INV6); apply lexical grounding/fallback (INV8).
    h. Audit the answer event (question + answer text + marker -> resource map).
 3. Return {answer, citations, decisions*, grounding_removed, audit_chain_head}.
    * deny details only for callers with audit_query.
@@ -235,14 +241,15 @@ keyboard-operable (persona listbox, tabs, citation cards) with visible focus.
 ## 6. ACL versioning & freshness
 
 Each resource carries an ACL version, incremented on every permission change.
-The indexer records the version at index time; the permission filter always
-evaluates the **current** ACL fetched from the connector, so a revoke takes
-effect on the next query with no reindex. Content is also read from the
-connector at query time, and each citation carries `updated_at`.
+The indexer records the version at index time; supported connectors return
+current ACLs to the filter, so a revoke takes effect on the next query with
+no reindex. Content remains the indexed snapshot until explicit reindex
+(initialization and upload trigger indexing); each citation carries the
+source `updated_at`. These labels do not guarantee a live content fetch.
 
 ## 7. No-metadata-leak behavior
 
-On denial, the user never sees the denied resource's title, ID, or a "you don't
+For a non-auditor query with no accessible matches, the asker does not see the denied resource's title, ID, or a "you don't
 have permission" message (which would confirm existence). The user sees the
 canonical *"I could not find accessible information matching your request."*
 The same holds for the source preview: a denied and a nonexistent resource get
@@ -251,11 +258,13 @@ the identical 404. Denials are recorded in the audit log for compliance.
 ## 8. Formal model boundary
 
 The TLA+ specification (`formal/`) models a single query's lifecycle — search →
-decide → retrieve → answer → audit — with revocation able to fire at any point
+decide (with audit) → retrieve → answer — with revocation able to fire at any point
 up to retrieval. TLC checks INV1–INV4, INV6, and INV7 over every reachable
-state; the naive variant (trusting the decide-time snapshot) leaks under a
+state of the configured two-user/two-resource model; the naive variant (trusting the decide-time snapshot) leaks under a
 revoke-after-decide race. The spec is an abstract model; the implementation is
-tested against the same properties (275 tests).
+tested against corresponding properties (292 tests verified on 2026-10-11).
+There is no verified refinement from TLA+ to Python. INV5 is deferred; INV8 is
+a Python grounding heuristic, outside the six modeled invariants.
 
 ## 9. Technology choices
 
@@ -265,5 +274,13 @@ tested against the same properties (275 tests).
 | Frontend     | Static HTML/JS (Miora-generated design) | No build step; vendored Tailwind for offline demos |
 | LLM          | Tencent Cloud ADP | Hackathon track requirement; swappable via `LLMClient` |
 | Formal model | TLA+ / TLC | Best fit for temporal safety properties such as revocation races |
-| Audit log    | Hash-chained JSON on disk | Simple, transparent, demonstrable tamper-evidence |
+| Audit log    | Hash-chained JSONL on disk | Simple, transparent, demonstrable tamper-evidence |
 | Dev tool     | CodeBuddy | Required proof of usage |
+
+## 10. Prototype limits and deployment boundary
+
+The [deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) is not implemented. It proposes Vercel static hosting plus one long-running cloud backend, with no shared-storage migration. The laptop can be off; backend restart resets demo state and truncates the audit file, even on persistent disk. `/health` reports configured mode rather than successful live generation.
+
+The current implementation has no production authentication, synchronization for concurrent audit appends, externally anchored ledger or durable startup recovery. ACL retrieval and context assembly are separate operations; the model does not establish all concurrent Python schedules are safe. A missing connector ACL returns the indexed resource, which can still be permitted by the policy engine. All-rejected grounding restores the original answer. These gaps and their follow-ups are tracked in [current state](current-state.md#known-boundaries-and-follow-ups).
+
+The direct published ADP chat bypasses this application pipeline. Use the full deployed frontend to demonstrate Tianquan's permission and audit features. Keep synthetic data and backend-only credentials.

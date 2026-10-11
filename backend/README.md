@@ -1,19 +1,38 @@
 ﻿# Backend — Tianquan 天权
 
-Python / FastAPI backend for the permission-aware enterprise knowledge agent.
+<!-- Generated setup reference; reconciled on 2026-10-11. -->
+
+Python/FastAPI service for permission-aware retrieval, cited answers and audit inspection. The [architecture](../docs/architecture.md) maps the modules and boundaries.
+
+## Run locally
+
+From the repo root with Python 3.11 and uv:
+
+```powershell
+uv run --with-requirements requirements.txt python -m uvicorn backend.api.app:app --port 8000 --workers 1
+```
+
+Alternatively install `requirements.txt` in a virtual environment and run `python -m uvicorn backend.api.app:app --port 8000 --workers 1`. API docs: `http://127.0.0.1:8000/docs`; liveness: `/health`.
+
+- `ADP_APP_KEY`: backend-only environment variable or ignored `.env`; absent key uses the extractive stub. Live failures also fall back.
+- `TIANQUAN_AUDIT_LOG`: writable JSONL path, default `audit_log.jsonl` in the working directory.
+- `/health` reports configuration, not confirmation that every response used ADP.
 
 ## Structure
 
-```
-api/          # FastAPI routes
-connectors/   # Mock Confluence/Jira/Slack/GDrive connectors
-auth/         # Identity, roles, sessions
-policy/       # Policy engine, permission mapping, delegation, freshness
-retrieval/    # Indexer, candidate search, permission filter, context assembler
-agents/       # Orchestrator, answer agent, optional action agent
-audit/        # Event schema, hash chain, audit query
-```
+| Directory | Responsibility |
+|---|---|
+| `api/` | Query, audit, admin, source preview/export and upload routes; process-local state |
+| `connectors/` | Mock Confluence/Jira/Slack/Drive plus runtime upload connector |
+| `auth/` | Seeded identities and role/action permissions; no production sessions/SSO |
+| `policy/` | Policy decisions, source mapping, freshness, revoke/grant and inspector |
+| `retrieval/` | Indexing, TF-IDF/n-gram search, ACL filter and context assembly |
+| `agents/` | Orchestrator, ADP/stub, answer/citation checks, grounding and injection flags |
+| `audit/` | Event schema, hash chain, file verification and audit search |
+| `seed/` | Synthetic source data |
 
-## Setup
+## State and recovery
 
-> Will be added once scaffolding is complete.
+Use one worker and one instance. ACL mutations, uploads and audit memory are local to that process. Restart resets them and **truncates the audit file**; save needed evidence first. A persistent disk alone does not provide restart recovery. Stop the backend in its own terminal and rerun the command; leave the frontend running.
+
+Tests must use a separate audit path when a demo is running: see [test instructions](../tests/README.md). Cloud hosting is [planned, not implemented](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). Known ACL, concurrency and grounding gaps are in [current state](../docs/current-state.md#known-boundaries-and-follow-ups).

@@ -1,7 +1,7 @@
 # ADR-0004: Keyword candidate search instead of vector embeddings for V1
 
 **Date:** 2026-09-28  
-**Status:** Superseded (M14 — hybrid TF-IDF + n-gram semantic search implemented)
+**Status:** Superseded (M14 — hybrid TF-IDF + character n-gram search implemented)
 
 ## Context
 
@@ -46,19 +46,23 @@ that allows a vector-based implementation to be swapped in later.
   for the demo corpus; flagged as a stretch upgrade if time permits.
 - The permission filter must re-fetch the **live** ACL from the connector at
   query time (not the indexed snapshot), so that candidate over-fetching can
-  never leak revoked content. Freshness checking (M2) backs this.
+  honor supported connectors' revocations. Freshness checking observes ACL versions;
+  missing-ACL snapshot fallback remains a documented implementation gap.
 
-## Update (M14, 2026-09-29)
+## Current implementation update (reconciled 2026-10-11)
 
 The stretch upgrade has been implemented. Candidate search now uses:
 - **Inverted index** (token → resource_ids) for O(query_tokens) lookup
 - **TF-IDF scoring** for term-rarity-aware ranking
-- **Character n-gram similarity** (bigrams + trigrams) for semantic fuzzy
+- **Character n-gram similarity** (bigrams + trigrams) for lexical fuzzy
   matching — "db" matches "database", "migrate" matches "migration"
-- **Connector-level source filtering** — query mentioning "jira" skips
-  non-Jira connectors
+- **Source mention boosts** — mentioning a source increases its rank without
+  dropping other sources (supersedes the earlier exclusive-filter design;
+  [ADR-0006](0006-source-mentions-boost-not-filter.md))
 - **Parallel connector polling** — ThreadPoolExecutor for `list_resources()`
 - **Result caching** — LRU cache keyed by (query, k), invalidated on reindex
 
 No external embedding model or vector store is needed — the n-gram approach
-provides semantic matching while remaining deterministic and offline.
+provides approximate string matching while remaining deterministic and offline.
+
+Explicit Q-number matching now excludes resources lacking an exact label token in title/body; see [ADR-0008](0008-exact-report-labels.md). Character n-grams are not embedding-based semantic retrieval.

@@ -2,11 +2,17 @@
 
 TLA+ specification of the permission-aware retrieval access-control model.
 
+<!-- Generated scope/command reconciliation, 2026-10-11. -->
+
+TLC exhaustively explores the configured finite model, not all executions of
+the Python app. No verified refinement or implementation-level proof exists.
+
 ## Files
 
 - `access_control.tla` — the specification (query lifecycle state machine).
-- **`MC_tianquan.tla` / `MC_tianquan.cfg` — the LIVE DEMO harness.** One file;
-  flip the `BROKEN` flag to go from "proven safe" to "counterexample".
+- **`MC_tianquan.tla` / `MC_tianquan.cfg` — the demo harness.** Show these
+  alongside the specification and prepared TLC output. The optional live demo
+  edits `AdmitToContext` in the spec; fixed safe/broken backups also exist.
 - `MC_safe.tla` / `MC_broken.tla` — fixed-variant backups (same content, pinned
   to FALSE/TRUE) for a non-interactive run.
 
@@ -47,15 +53,18 @@ init --Search--> searched --Decide--> decided --Retrieve--> retrieved --Answer--
 
 ## Live demo — edit the real logic, not a flag
 
-The demo injects a bug the way an engineer actually would — editing the real
-retrieval rule — and TLC proves it leaks. (The `BROKEN` constant still exists so
+The optional demo edits the abstract retrieval rule, and TLC finds a
+counterexample within the configured model. This does not edit Python code. (The `BROKEN` constant still exists so
 the `MC_safe`/`MC_broken` harnesses run automatically, but the *demo* edits real
 logic so judges watch a plausible change become provably unsafe.)
+
+From the `formal/` directory, with Java 17+ on PATH and the VS Code TLA+
+extension installed:
 
 ```powershell
 $jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar" | Select-Object -First 1).FullName
 
-# 1. Prove safe — expect: "No error has been found." (34 states)
+# 1. Check safe — expect: "No error has been found."
 java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
 ```
 
@@ -75,12 +84,26 @@ before Retrieve is served from the stale decision. INV1 violated:
 3. Retrieve trusts the stale "allow" → r1 enters the context though alice can no
    longer read it. Time-of-check/time-of-use leak.
 
-Reset with `git checkout formal/access_control.tla`.
+Undo only the deliberate spec edit in the editor, then rerun TLC. Avoid
+restoring the whole file if it contains unrelated changes.
 
-The lesson, proven not just tested: filtering correctly is not enough — you must
-re-check the live ACL **at retrieval time**, because permissions can change
-between the decision and the read. Tests check the cases you imagined; the model
-checker exhaustively found the one you didn't.
+The model demonstrates why a live permission check is needed at context
+admission rather than trusting an earlier decision. Python uses a live ACL
+filter and separate context assembly; concurrency and missing-ACL gaps are
+recorded in [current state](../docs/current-state.md#known-boundaries-and-follow-ups).
+The six modeled invariants exclude INV5 (deferred) and INV8 (Python-only
+lexical grounding).
 
 > TLC writes a `states/` dir and `*_TTrace_*` files on a run; these are
 > generated artifacts and are gitignored.
+
+## Fixed harnesses (no spec edits)
+
+From `formal/`, with `$jar` set as above:
+
+```powershell
+java -cp $jar tlc2.TLC -config MC_safe.cfg MC_safe.tla
+java -cp $jar tlc2.TLC -config MC_broken.cfg MC_broken.tla
+```
+
+The safe configuration should complete with no error. The broken configuration intentionally reports an invariant violation; that result is expected and is not a passing safe-model check. State counts depend on the exact harness/model revision and should be taken from the current run.

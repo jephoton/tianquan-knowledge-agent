@@ -1,81 +1,37 @@
-# Design — Retrieval Pipeline & Invariant Enforcement
+# Design — Retrieval Pipeline and Invariant Enforcement
 
-> **Last updated:** 2026-09-29
+<!-- Generated implementation reconciliation, 2026-10-11. -->
 
-## Pipeline overview
+## Actual query sequence
 
-```
-user + query
-  │
-  ▼
-1. CandidateSearch.search(query, k)        ← over-fetches (recall > precision)
-  │    returns list[ScoredCandidate]
-  ▼
-2. PermissionFilter.filter(user, candidates)  ← the enforcement gate
-  │    re-fetches LIVE ACL per candidate
-  │    runs PolicyEngine.decide() on each
-  │    records allow AND deny decisions
-  │    returns FilterOutcome { allowed, decisions }
-  ▼
-3. ContextAssembler.assemble(outcome.allowed) ← builds LLM context
-  │    bounded to max_chars (8000 default)
-  │    assigns citation markers [1], [2], ...
-  │    returns AssembledContext { text, citations, included_resource_ids }
-  ▼
-4. AnswerAgent.answer(query, context)         ← LLM generates answer
-  │    strips unauthorized citations (INV6)
-  │    no-leak message on empty context (INV7)
-  ▼
-5. GroundingChecker.check(answer, context)    ← strips hallucinations (INV8)
-  │    lexical overlap + entity extraction
-  ▼
-6. Orchestrator audits every decision (INV4)
-```
+1. Query scanner flags suspicious input for audit; it does not block access.
+2. Candidate search ranks indexed content across sources, boosting named platforms. Exact Q-number tokens constrain labelled report requests.
+3. Permission filter fetches each connector ACL and calls the policy engine. It returns both allowed candidates and all policy decisions.
+4. Context assembler bounds allowed indexed content (8,000 characters by default) and assigns citation markers.
+5. Orchestrator appends all allow/deny decisions, with the question, before answer generation.
+6. Answer agent returns the canonical no-access message for empty context, otherwise asks ADP/stub for a cited answer and validates citation markers. Live-call failures use the extractive stub.
+7. Lexical grounding checks can remove sentences. If every sentence is rejected, the orchestrator retains the original citation-validated answer; this is not strict semantic grounding.
+8. Orchestrator audits the exact served answer and citation mapping, then the API hides denial details from non-auditors.
 
-## Where each invariant is enforced
+## Invariant mapping and limits
 
-| INV | Name | Enforcement point | How |
-|-----|------|-------------------|-----|
-| INV1 | RetrievedOnlyIfAuthorized | PermissionFilter | Only `allowed` candidates reach the assembler |
-| INV2 | LLMSeesOnlyRetrievedContent | PermissionFilter (before context) | Filtering happens before assembly, not after |
-| INV3 | RevokedAccessNotReusable | PermissionFilter + FreshnessChecker | Live ACL re-fetch; freshness check flags stale snapshots |
-| INV4 | EveryDecisionAudited | Orchestrator | `append_decisions(all)` before answer generation |
-| INV5 | NoPrivilegeEscalation | Deferred | Action agent removed from roadmap |
-| INV6 | NoUnauthorizedCitation | AnswerAgent._validate_citations | Strips `[N]` markers not backed by context |
-| INV7 | NoMetadataLeakOnDeny | AnswerAgent.answer | Canonical message on empty context; identical to "not found" |
-| INV8 | GroundedAnswerOnly | GroundingChecker.check | Post-LLM sentence-level grounding verification |
+| ID | Implementation location | Assurance scope |
+|---|---|---|
+| INV1 RetrievedOnlyIfAuthorized | PermissionFilter | Allowed candidates only; missing live ACL currently falls back to snapshot |
+| INV2 LLMSeesOnlyRetrievedContent | Filter + ContextAssembler | Prompt receives assembled allowed sources; keep ADP knowledge base empty |
+| INV3 RevokedAccessNotReusable | Filter live ACL fetch | Supported connector revoke affects next query without reindex; no proof of all Python schedules |
+| INV4 EveryDecisionAudited | Orchestrator | Policy decisions appended before generation; answer also logged |
+| INV5 NoPrivilegeEscalation | Deferred | Action delegation removed from scope |
+| INV6 NoUnauthorizedCitation | AnswerAgent | Removes citation markers absent from authorized context; not factual entailment |
+| INV7 NoMetadataLeakOnDeny | AnswerAgent/API | Canonical no-access/no-match text; denied metadata withheld from non-auditors |
+| INV8 GroundedAnswerOnly | GroundingChecker/Orchestrator | Lexical heuristic with all-rejected fallback; Python-only, not TLA+ |
 
-## The 4 policy gates
+TLA+ checks six active invariants in a finite abstract model, independently of the Python tests. See [formal boundary](../architecture.md#8-formal-model-boundary).
 
-`PolicyEngine.decide(user, resource, action)` runs 4 gates in order. If any
-fails, the decision is DENY with the reason set to the failing gate:
+## Policy gates
 
-1. **Deny-list override** — if `user.user_id in acl.denied_users` → immediate
-   DENY (`explicit_deny_list`). Deny always wins.
-2. **Source-specific rules** — `check_source_specific(user, resource)` applies
-   native semantics (Confluence page restrictions, Jira issue security, Slack
-   channel type, GDrive sharing).
-3. **Sensitivity clearance** — `check_sensitivity_clearance(user, resource)`
-   checks the `SENSITIVITY_CLEARANCE` matrix (e.g. only `security_team` /
-   `compliance_officer` / `admin` can see `CONFIDENTIAL`).
-4. **Action permission** — `check_action_permission(user, action)` checks
-   whether the user's role permits the requested action (e.g. `contractor`
-   can `read` but not `export`).
+`PolicyEngine.decide(user, resource, action)` applies deny-list override, source-specific rules, sensitivity clearance and role/action permission, in that order. The generic unknown-source path requires an explicit user or role grant; it does not default to allow. The engine evaluates the resource passed to it; **the filter**, rather than the engine, fetches the ACL.
 
-All 4 pass → ALLOW.
+The index supplies content and an ACL-version snapshot. For supported connector resources, the current ACL replaces the snapshot before policy evaluation; freshness compares versions for observability. Content is refreshed by reindexing, not each query. If `connector.get_acl()` returns `None`, the filter currently returns the indexed resource and the engine may permit it. Future connector failure/deletion handling needs an explicit deny and regression coverage. This documented gap must not be described as fail-closed retrieval.
 
-The engine is **stateless** — every call reads the live ACL from the
-connector. No caching. This is critical for INV3.
-
-## Why the index is not trusted for authorization
-
-The `Indexer` snapshots resources (including their ACL at snapshot time) for
-search. But authorization is **never** decided from the snapshot. The
-`PermissionFilter` always calls `connector.get_acl(resource_id)` to get the
-**live** ACL, then runs the policy engine on that.
-
-The `indexed_acl_version` is only used by the `FreshnessChecker` to flag
-staleness — it doesn't gate access. Even if the index is stale, the live ACL
-is authoritative.
-
-This means a revoke between indexing and query is honored without a reindex.
+The [current-state limitations](../current-state.md#known-boundaries-and-follow-ups) also cover concurrency, restart persistence, demo identity and grounding. Deployment is [planned only](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).

@@ -1,10 +1,12 @@
 ﻿# Design — Permission Model Unification
 
-> **Last updated:** 2026-09-29
+> **Last updated:** 2026-10-11
+
+<!-- Generated reconciliation of source scope and extension guidance. -->
 
 ## Problem
 
-Tianquan integrates four source systems (Confluence, Jira, Slack, Google
+Tianquan models four source systems through mock connectors (Confluence, Jira, Slack, Google
 Drive), each with a fundamentally different native permission model:
 
 | Source | Native model |
@@ -26,11 +28,12 @@ dataclass at connector construction time:
 
 ```python
 Resource {
-    source: Source              # CONFLUENCE | JIRA | SLACK | GDRIVE
+    source: Source              # CONFLUENCE | JIRA | SLACK | GDRIVE | UPLOAD
     resource_id: str
     title: str
     content: str
     updated_at: datetime
+    url: str
     sensitivity_level: SensitivityLevel  # PUBLIC | INTERNAL | RESTRICTED | CONFIDENTIAL
     acl: ACL {
         acl_version: int
@@ -69,7 +72,7 @@ rules:
 - **Confluence** — If `page_restriction == "named"`, space-level access is
   ignored. Only explicit `allowed_users`/`allowed_roles` entries apply.
   Otherwise standard ACL check with space-level logging.
-- **Jira** — If `issue_security == "security"`, only `security_team` or
+- **Jira** — If `issue_security == "security"`, only `security_team`, `admin` or
   explicit named users can see the issue, even if the project grants access to
   all engineers.
 - **Slack** — `channel_type == "public"` means all workspace members see it
@@ -83,33 +86,12 @@ rules:
    `Resource`/`ACL` shape (including populating `source_permissions`).
 2. The policy engine checks `allowed_users`/`allowed_roles`/`denied_users`
    **uniformly** (deny-list → source-specific → sensitivity → action).
-3. `source_permissions` is only consulted **inside** the source-specific
-   checker — the rest of the system never reads it.
+3. Source-specific authorization is centralized in the checker. Catalog and
+   audit-search code also reads source metadata to resolve source/container names;
+   that metadata does not independently authorize access.
 
 ## Extending to a new source
 
-To add a 5th source (e.g. Notion), you must touch **4 files** — but none of
-them are in the retrieval pipeline, audit, answer, or API layers:
+Typical changes are a `Source` enum member in `backend/models.py`, a `BaseConnector` implementation, source-specific permission rules in `backend/policy/permission_mapping.py` and registration in `backend/api/state.py`. Add connector/policy tests and inspect API/frontend labels and seed assumptions; the exact file count depends on the source. The generic retrieval, assembly and audit interfaces can usually remain unchanged.
 
-| Step | File | Work |
-|------|------|------|
-| 1. Add `NOTION` to the `Source` enum | `backend/models.py` | 1 line |
-| 2. Write a connector class extending `BaseConnector` | `backend/connectors/notion.py` | ~100 lines: translate native objects to `Resource`/`ACL` with `source_permissions` |
-| 3. Add `_check_notion()` to the permission mapping | `backend/policy/permission_mapping.py` | ~30 lines: native permission rules |
-| 4. Register the connector | `backend/api/state.py` | 1 line: `NotionConnector()` in the list |
-
-**What does NOT change:**
-
-- `indexer.py` — iterates `connector.list_resources()` generically
-- `candidate_search.py` — scores `Resource.title` + `Resource.content` generically
-- `permission_filter.py` — calls `PolicyEngine.decide()` generically
-- `context_assembler.py` — assembles `Resource.content` generically
-- `answer_agent.py` — generates from assembled context generically
-- `orchestrator.py` — sequences the pipeline generically
-- `audit/` — logs `Decision` objects generically
-- `api/routes` — pass through to orchestrator generically
-- Frontend — reads API responses generically
-
-You cannot avoid writing the connector itself — every source has different
-data shapes and permission models that must be translated. But the design
-ensures the translation is the **only** new code.
+A connector must translate source objects into `Resource`/`ACL`, preserving source semantics. Unknown-source rules use deny-list → explicit user grant → role grant → deny. That is distinct from a missing ACL: the filter currently falls back to the indexed resource when `get_acl()` returns `None`, which can be allowed. Address unavailable/deleted ACLs explicitly before adding real source connections. See [pipeline mapping](pipeline-and-invariants.md) and [known limits](../current-state.md#known-boundaries-and-follow-ups).

@@ -4,6 +4,12 @@
 
 **Pitch:** Permission-safe, auditable AI answers backed by a TLA+ model-checked access-control design.
 
+> **Recording status:** The user reports the video is complete. This file remains
+> a reference outline, not an instruction to re-record. The opening/outro below
+> are preserved narration. The 30% estimate and regulatory wording in the hook
+> are not measured or established by this repo; submission copy avoids those
+> unsupported quantitative/legal claims.
+
 Aim for about 6–7 minutes of core demo plus 45–60 seconds of reflection.
 Timings are rehearsal targets, not measured recording times. Exact inputs,
 clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
@@ -46,7 +52,7 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 ## 3. Unified answer + freshness (required scenarios ①②) — 60s
 - Alice: ask “What's the status of the database migration and were there blockers raised in Slack?”
 - Point out multiple platforms, citation markers and source update labels.
-- Content and permissions fetched on each query; unsupported answer sentences removed.
+- Permissions checked per query; content uses indexed snapshots with source timestamps. Grounding checks are lexical and have a documented all-rejected fallback.
 - Diana → Admin: show the query group, eight allowed and two denied documents.
 - Denied metadata stays out of Alice's answer; the audit view explains the filtering.
 
@@ -98,9 +104,9 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 ## 9. Close — spoken recap (≈40s)
 
 > "Tianquan brings Confluence, Jira, Slack and Drive into one cited answer,
-> using current source content and permissions. Documents you cannot access
+> using cited source content and current permissions. Documents you cannot access
 > stay out of the model, and revoked access takes effect on the next query.
-> Unsupported claims are removed; raw-source viewing and export require their
+> Grounding checks help filter unsupported claims; raw-source viewing and export require their
 > own permission checks. Every decision, answer and permission change goes
 > into a tamper-evident audit trail you can query in plain English.
 

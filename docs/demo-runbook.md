@@ -1,5 +1,10 @@
 ﻿# Demo Runbook — Tianquan 天权
 
+<!-- Generated scope and recovery reconciliation, 2026-10-11. -->
+
+> The video is complete (user-reported). Keep this as a mechanical reference
+> for testing and deployment checks; it does not require a new recording.
+>
 > **This file = the mechanical reference** (every scenario, exact inputs,
 > expected outputs, verified against seed data). It is NOT the video script.
 >
@@ -11,7 +16,9 @@
 > **Live ADP agent:** The Tianquan agent is published on Tencent Cloud ADP at
 > [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
 > The backend calls it with each query's permission-filtered context. The agent
-> must have **no knowledge base attached**: anything in its knowledge base
+> must have **no knowledge base attached**. The direct published link does not
+> run Tianquan's server permission/audit pipeline. Additional agent data could
+> bypass the intended source gate: anything in its knowledge base
 > bypasses Tianquan's permission filter, both on the public link and on backend
 > calls.
 
@@ -20,7 +27,7 @@
 1. **Start the backend** (from the repo root):
 
    ```powershell
-   uvicorn backend.api.app:app --port 8000
+   python -m uvicorn backend.api.app:app --port 8000 --workers 1
    ```
 
 2. **Start the frontend** (from `frontend/`):
@@ -54,7 +61,8 @@ The 7 seed personas (top bar): `alice` (engineer), `bob` (contractor),
 ## Demo 1 — Allowed answer, multi-source
 
 **Point:** the same system unifies four sources and answers with citations,
-while still denying what the asker can't see.
+while still filtering documents the asker can't see. Citation choices vary by
+LLM response; verify source membership rather than an exact citation count.
 
 1. Select persona **alice**.
 2. Ask: *"What is the status of the database migration and were there blockers
@@ -167,8 +175,8 @@ event and verification fails — the audit trail is tamper-evident."
 
 **Point:** the safety is model-checked, not just tested. I don't flip a switch
 labelled "broken" — I make the kind of change a real engineer would make, in
-the real retrieval logic, and the model checker proves it introduces a leak and
-hands me the exact exploit trace.
+the abstract retrieval rule, and the model checker finds a leak trace within
+the configured finite model. This edits the TLA+ spec, not Python.
 
 **The one line that matters** is `AdmitToContext(r)` in
 `formal/access_control.tla` — the rule deciding whether a candidate enters the
@@ -187,15 +195,15 @@ $jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\
 
 > Git Bash alt: `JAR=$(ls "$HOME"/.vscode/extensions/tlaplus.vscode-ide-*/out/tools/tla2tools.jar | head -1)`
 
-**STEP 1 — prove it's safe:**
+**STEP 1 — check the safe model:**
 
 ```powershell
 java -cp $jar tlc2.TLC -config MC_tianquan.cfg MC_tianquan.tla
-# Expect: "Model checking completed. No error has been found." (34 states)
+# Expect: "Model checking completed. No error has been found." (state counts depend on the current harness)
 ```
 
 **STEP 2 — the live edit. Two bugs you can inject (pick one, or escalate from A
-to B). Both are edits to real logic, not a flag.**
+to B). Both edit the specification's retrieval rule; the app is unchanged.**
 
 ### Bug A — "I forgot to filter" (obvious, relatable)
 
@@ -231,16 +239,17 @@ Re-run. **Expect INV1 violated.** Trace (read it aloud):
 3. Retrieve trusts the stale "allow" → r1 enters the context though alice can no
    longer read it. **Time-of-check / time-of-use leak.**
 
-**Talking point:** "The permission check is simple. What's hard — and what I
-proved — is the *timing*. Bug A is the obvious one. Bug B is the one that scares
+**Talking point:** "The permission check is simple. What's hard — and what the
+model explores — is the *timing*. Bug A is the obvious one. Bug B is the one that scares
 me: the code *does* filter, it just trusts a decision from a moment ago, and a
 concurrent revocation slips through. That's a race no one thinks to unit-test.
-The model checker explores every interleaving, found it, and handed me the exact
-sequence. For a security control, that's the difference between 'probably safe'
-and 'proven safe'. Then I revert — and it's green again."
+The model checker explores the configured model's interleavings, finds the
+race and gives me the exact sequence. This is evidence about the design,
+backed by implementation tests; it is not a full application proof.
+Then I undo that edit and check the safe model again."
 
-> **Reset:** `git checkout formal/access_control.tla` restores the correct spec
-> instantly after the demo.
+> **Reset:** undo only the deliberate demo edit in the editor, then rerun TLC.
+> Preserve unrelated edits. See [formal instructions](../formal/README.md).
 > **Fallback:** `MC_safe.*` / `MC_broken.*` run the safe/broken variants without
 > editing, and the traces above can be shown as a slide if a live run is risky.
 
@@ -271,15 +280,18 @@ rewritten). Run a couple of queries first (Demos 1–2 populate it).
    lines is caught as a truncated log.
 
 **Talking point:** "Every decision is written to disk, and each event's hash
-includes the previous event's hash — a blockchain over the audit log. Watch: I'll
+includes the previous event's hash — a hash chain over the audit log. Watch: I'll
 play a malicious admin and edit the log file directly to turn a DENY into an
 ALLOW. Re-verify — and it's caught at the exact event, because the recomputed
-hash no longer matches. You cannot quietly rewrite history. That's what makes
-this legally defensible for a regulator."
+hash no longer matches. The running verifier detects the edited file relative to its chain.
+This demonstrates tamper evidence; it is not an externally anchored ledger
+or a regulatory certification."
 
 > This re-reads and re-hashes the actual file (`/audit/verify-file`), so the
-> edit is caught no matter how it was made. **Reset:** restart the backend (or
-> delete `audit_log.jsonl`) to start a fresh clean log.
+> edit is caught relative to the running chain. Save needed evidence first;
+> **reset by restarting the backend**, which truncates the file and resets ACLs
+> and uploads. Deleting the file while the server runs does not reset its
+> in-memory chain. Concurrent appends and startup recovery are not hardened.
 
 
 ---
