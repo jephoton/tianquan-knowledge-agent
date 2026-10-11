@@ -75,3 +75,23 @@ def test_denied_and_missing_previews_are_audited(client):
     events = [e for e in _audit(client) if e["user_id"] == "jdoe"]
     assert {e["resource_id"] for e in events} == {BREACH, "confluence:does-not-exist"}
     assert all(e["decision"] == "deny" for e in events)
+
+
+# -- /audit/search resolves resource phrases against the live catalog ------
+
+def test_audit_search_resolves_resource_phrase(client):
+    client.post("/query", json={"user_id": "alice", "k": 20,
+        "question": "What is the status of the database migration?"})
+    client.post("/query", json={"user_id": "charlie", "k": 20,
+        "question": "Show me the Q3 security incident report from the breach"})
+    r = client.get("/audit/search", headers={"X-User-Id": "diana"},
+                   params={"q": "who retrieved the q3 breach report"}).json()
+    assert r["count"] >= 1
+    assert {e["resource_id"] for e in r["events"]} == {BREACH}
+    assert r["unparsed"] == []
+
+
+def test_audit_search_reports_unparsed_words(client):
+    r = client.get("/audit/search", headers={"X-User-Id": "diana"},
+                   params={"q": "what did alice access about the zorblax initiative"}).json()
+    assert "zorblax" in r["unparsed"]

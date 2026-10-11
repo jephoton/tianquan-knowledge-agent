@@ -80,6 +80,24 @@ def query_audit(
     )
 
 
+def _catalog(state) -> list[nl_query.CatalogEntry]:
+    """Every live resource with its native container (Confluence space, Jira
+    project, Slack channel, Drive folder), for resolving resource phrases."""
+    entries = []
+    for connector in state.orchestrator._connectors:
+        for r in connector.list_resources():
+            sp = r.acl.source_permissions or {}
+            container = (
+                sp.get("space") or sp.get("project") or sp.get("channel")
+                or sp.get("drive") or ""
+            )
+            entries.append(nl_query.CatalogEntry(
+                resource_id=r.resource_id, title=r.title,
+                source=r.source.value, container=container,
+            ))
+    return entries
+
+
 @router.get("/search", response_model=AuditSearchResponseModel)
 def search_audit(request: Request, q: str = "") -> AuditSearchResponseModel:
     """Natural-language audit search.
@@ -95,7 +113,9 @@ def search_audit(request: Request, q: str = "") -> AuditSearchResponseModel:
     user_ids = list(users.keys())
     names = {uid: u.name for uid, u in users.items()}
 
-    parsed = nl_query.parse(q, user_ids=user_ids, names=names)
+    parsed = nl_query.parse(
+        q, user_ids=user_ids, names=names, catalog=_catalog(state),
+    )
     result = state.audit_query.run(parsed.query)
 
     return AuditSearchResponseModel(
@@ -108,6 +128,7 @@ def search_audit(request: Request, q: str = "") -> AuditSearchResponseModel:
         interpretation=parsed.interpretation,
         matched=parsed.matched,
         parts=parsed.parts,
+        unparsed=parsed.unparsed,
     )
 
 

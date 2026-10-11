@@ -37,12 +37,165 @@ class ParsedQuery:
         matched: True if ANY criterion was extracted. A question that parsed
             to nothing (all filters empty) is reported so the UI can warn
             rather than silently returning the entire log.
+        unparsed: Words of the question that mapped to nothing. They are
+            reported back (never silently dropped) so the inspector knows the
+            result may be broader than what they asked.
     """
 
     query: AuditQuery
     interpretation: str = ""
     matched: bool = False
     parts: list[str] = field(default_factory=list)
+    unparsed: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class CatalogEntry:
+    """A resource the parser can resolve phrases against.
+
+    `container` is the resource's native grouping: the Confluence space, Jira
+    project, Slack channel, or Drive folder.
+    """
+
+    resource_id: str
+    title: str
+    source: str
+    container: str = ""
+
+
+# Platform names -> source value.
+_SOURCE_WORDS = {
+    "confluence": "confluence", "jira": "jira", "slack": "slack",
+    "gdrive": "gdrive", "drive": "gdrive",
+}
+
+# Container nouns -> the source whose native grouping they name.
+_CONTAINER_WORDS = {"space": "confluence", "project": "jira", "channel": "slack"}
+
+# Words that carry no filter meaning of their own (question scaffolding, the
+# vocabulary the user/time/decision rules already handle, generic nouns).
+_FILLER = frozenset({
+    "show", "me", "everything", "anything", "all", "what", "did", "does", "do",
+    "who", "whom", "which", "user", "users", "related", "relating", "to",
+    "the", "a", "an", "in", "on", "of", "for", "about", "events", "event",
+    "any", "that", "were", "was", "is", "are", "by", "from", "with", "has",
+    "have", "had", "happened", "list", "give", "find", "there", "touch",
+    "touched", "their", "his", "her", "its", "and", "or", "at", "into",
+    "ever", "since", "when", "how", "many", "times", "it", "they", "them",
+    "access", "accessed", "accesses", "allowed", "allow", "read", "reads",
+    "viewed", "view", "views", "retrieved", "retrieve", "saw", "see", "got",
+    "denied", "deny", "denies", "blocked", "refused", "rejected", "couldn",
+    "t", "last", "past", "this", "week", "weeks", "month", "months", "day",
+    "days", "today", "yesterday", "doc", "docs", "document", "documents",
+    "page", "pages", "ticket", "tickets", "issue", "issues", "thread",
+    "threads", "file", "files", "resource", "resources", "anyone", "someone",
+})
+
+_WORD_RE = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)*")
+
+
+def _words(text: str) -> list[str]:
+    return _WORD_RE.findall(text.lower())
+
+
+def _title_words(entry: CatalogEntry) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", f"{entry.title} {entry.resource_id}".lower()))
+
+
+def _best_matches(
+    topic: list[str], entries: list[CatalogEntry],
+) -> tuple[set[str], set[str]]:
+    """Resolve topic words to the catalog entries matching the most of them.
+
+    Returns (resource_ids, words that matched). Ties keep every entry with the
+    top score, so "q3 report" matches both Q3 reports rather than guessing.
+    """
+    best = 0
+    winners: list[CatalogEntry] = []
+    for e in entries:
+        score = len(set(topic) & _title_words(e))
+        if score > best:
+            best, winners = score, [e]
+        elif score == best and score > 0:
+            winners.append(e)
+    if best == 0:
+        return set(), set()
+    used = set(topic) & set().union(*(_title_words(e) for e in winners))
+    return {e.resource_id for e in winners}, used
+
+
+def resolve_resources(
+    text: str, catalog: list[CatalogEntry], consumed: set[str],
+) -> tuple[set[str] | None, str, list[str], list[str]]:
+    """Resolve source / container / topic phrases in `text` to resource ids.
+
+    Returns (resource_ids or None, label, notes, unparsed). `consumed` holds
+    words other rules already explained (user names etc.).
+    """
+    words = [w for w in _words(text) if w not in consumed]
+    sources = {_SOURCE_WORDS[w] for w in words if w in _SOURCE_WORDS}
+    pool = [e for e in catalog if not sources or e.source in sources]
+    explained = {w for w in words if w in _SOURCE_WORDS}
+    notes: list[str] = []
+    label = ", ".join(sorted(sources)) if sources else ""
+    resolved: set[str] | None = {e.resource_id for e in pool} if sources else None
+
+    # Container phrase: "the ENG confluence space", "SEC project", "space ENG".
+    for i, w in enumerate(words):
+        if w not in _CONTAINER_WORDS:
+            continue
+        csource = _CONTAINER_WORDS[w]
+        j = i - 1
+        while j >= 0 and words[j] in _SOURCE_WORDS:
+            j -= 1
+        name = words[j] if j >= 0 and words[j] not in _FILLER else ""
+        if not name and i + 1 < len(words) and words[i + 1] not in _FILLER:
+            name = words[i + 1]
+        explained.add(w)
+        if not name:
+            continue
+        explained.add(name)
+        in_container = [
+            e for e in catalog
+            if e.source == csource and e.container.lower() == name
+        ]
+        if in_container:
+            resolved = {e.resource_id for e in in_container}
+            label = f"the {name.upper()} {csource} {w}"
+        else:
+            # No such container: say so, and fall back to that source's
+            # resources about the name rather than dropping the constraint.
+            fallback = [e for e in catalog if e.source == csource]
+            ids, _ = _best_matches(re.findall(r"[a-z0-9]+", name), fallback)
+            if ids:
+                resolved = ids
+                label = f"{csource} resources about '{name}'"
+                notes.append(
+                    f"No {csource} {w} named '{name}' — matched {csource} "
+                    f"resources about it instead: {', '.join(sorted(ids))}."
+                )
+            else:
+                notes.append(f"No {csource} {w} named '{name}' — ignored.")
+        break
+
+    # Topic words: whatever is left, matched against titles/ids.
+    topic: list[str] = []
+    for w in words:
+        if w in explained or w in _FILLER or w.isdigit():
+            continue
+        topic.extend(re.findall(r"[a-z0-9]+", w))
+    unparsed: list[str] = []
+    if topic:
+        scope = [e for e in catalog if resolved is None or e.resource_id in resolved]
+        ids, used = _best_matches(topic, scope)
+        if ids:
+            resolved = ids
+            label = (
+                ", ".join(sorted(ids)) if len(ids) <= 3
+                else f"{len(ids)} resources matching '{' '.join(sorted(used))}'"
+            )
+        unparsed = [w for w in topic if w not in used]
+    return resolved, label, notes, unparsed
 
 
 def _now() -> datetime:
@@ -131,10 +284,14 @@ def parse(
     user_ids: list[str],
     names: dict[str, str] | None = None,
     now: datetime | None = None,
+    catalog: list[CatalogEntry] | None = None,
 ) -> ParsedQuery:
     """Parse a natural-language audit question into a ParsedQuery.
 
     Deterministic and conservative: only sets a filter when it is confident.
+    With a `catalog`, resource phrases ("the q3 breach report", "the ENG
+    Confluence space") resolve to resource ids, and any words that map to
+    nothing are reported in `unparsed`.
     """
     text = (text or "").strip()
     parts: list[str] = []
@@ -149,6 +306,20 @@ def parse(
     if qm:
         resource_contains = qm.group(1).strip()
 
+    # Words the user rule explained (id and display-name tokens).
+    consumed: set[str] = set()
+    if uid:
+        consumed.add(uid.lower())
+        consumed.update(((names or {}).get(uid) or "").lower().split())
+    unquoted = text[:qm.start()] + text[qm.end():] if qm else text
+
+    resource_ids: set[str] | None = None
+    resource_label, notes, unparsed = "", [], []
+    if catalog is not None:
+        resource_ids, resource_label, notes, unparsed = resolve_resources(
+            unquoted, catalog, consumed,
+        )
+
     if uid:
         parts.append(f"user = {user_label}")
     if decision:
@@ -157,21 +328,28 @@ def parse(
         parts.append(time_label)
     if resource_contains:
         parts.append(f'resource contains "{resource_contains}"')
+    if resource_ids is not None:
+        parts.append(f"resource = {resource_label}")
 
     query = AuditQuery(
         user_id=uid,
         decision=decision,
         resource_contains=resource_contains,
+        resource_ids=resource_ids,
         since=since,
         until=until,
     )
 
-    matched = bool(uid or decision or time_label or resource_contains)
+    matched = bool(
+        uid or decision or time_label or resource_contains
+        or resource_ids is not None
+    )
     if matched:
         subject = user_label if uid else "all users"
         action = dec_label.replace("that were ", "") if decision else "activity"
+        on = f" on {resource_label}" if resource_ids is not None else ""
         when = time_label or "across the whole log"
-        interpretation = f"Showing {action} for {subject} {when}.".replace("  ", " ")
+        interpretation = f"Showing {action} for {subject}{on} {when}.".replace("  ", " ")
     else:
         interpretation = (
             "Couldn't extract a filter from that question — showing the full "
@@ -179,9 +357,17 @@ def parse(
             "\"what did alice access last week?\""
         )
 
+    if notes:
+        interpretation += " " + " ".join(notes)
+    if unparsed:
+        interpretation += " Not understood (ignored): " + ", ".join(
+            f"'{w}'" for w in unparsed
+        ) + "."
+
     return ParsedQuery(
         query=query,
         interpretation=interpretation,
         matched=matched,
         parts=parts,
+        unparsed=unparsed,
     )

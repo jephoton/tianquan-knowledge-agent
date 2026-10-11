@@ -23,12 +23,15 @@ class AuditQuery:
 
     All criteria are optional and combined with AND. `resource_contains`
     matches a substring of the resource_id (e.g. "payment-gateway" for
-    Demo 4). `since`/`until` bound the timestamp (inclusive).
+    Demo 4); `resource_ids` matches any of a set of exact ids (what a
+    natural-language resource phrase resolves to). `since`/`until` bound the
+    timestamp (inclusive).
     """
 
     user_id: str | None = None
     resource_id: str | None = None
     resource_contains: str | None = None
+    resource_ids: set[str] | None = None
     query_id: str | None = None
     decision: str | None = None
     action: str | None = None
@@ -45,6 +48,8 @@ class AuditQuery:
             rid = event.resource_id or ""
             if self.resource_contains not in rid:
                 return False
+        if self.resource_ids is not None and event.resource_id not in self.resource_ids:
+            return False
         if self.query_id is not None and event.query_id != self.query_id:
             return False
         if self.decision is not None and event.decision != self.decision:

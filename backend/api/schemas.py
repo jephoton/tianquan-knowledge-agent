@@ -86,6 +86,7 @@ class AuditSearchResponseModel(AuditQueryResponseModel):
     interpretation: str = ""
     matched: bool = False
     parts: list[str] = Field(default_factory=list)
+    unparsed: list[str] = Field(default_factory=list)
 
 
 # -- /admin ------------------------------------------------------------
