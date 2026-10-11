@@ -11,6 +11,7 @@ Built for the **Tencent Cloud AI CAN DO IT Singapore Hackathon 2026 — Track 4:
 ## Quick links
 
 - **Live demo:** **https://tianquan.vercel.app** — pick a persona top-right. The backend is on Render's free tier: the first visit after ~15 idle minutes takes 30–60 s to wake, and the demo state resets then.
+- **Demo video:** https://youtu.be/2sPXMDbFf7A
 - **CodeBuddy usage evidence:** [development log with CodeBuddy screenshots](docs/dev-log/dev-log.md#codebuddy-usage-evidence)
 - **Live ADP agent:** [Try Tianquan on Tencent Cloud ADP](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG) — direct model chat; it does not run the full application's permission/audit pipeline.
 - [Plan & Roadmap](docs/plan.md) — scope, milestones and submission checklist
