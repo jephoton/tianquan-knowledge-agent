@@ -41,6 +41,7 @@ _PAYLOAD_FIELDS = (
     "reason",
     "question",
     "detail",
+    "citations",
     "acl_version",
     "policy_version",
     "previous_hash",
@@ -62,6 +63,10 @@ class AuditEvent:
     `detail` is free text for context that doesn't fit the structured fields —
     notably the generated answer text on an answer event, so the full record
     of "what the AI told the user" is captured in the tamper-evident log.
+
+    `citations` maps the answer's markers to resources on the answer event
+    ([{"marker": "[1]", "resource_id": ...}]), so a reviewer can tell which
+    document each [n] in the logged answer refers to.
     """
 
     event_id: str
@@ -75,6 +80,7 @@ class AuditEvent:
     resource_id: str | None = None
     question: str = ""
     detail: str = ""
+    citations: list[dict[str, str]] = field(default_factory=list)
     timestamp: datetime = field(default_factory=utc_now)
     previous_hash: str = ""
     event_hash: str = ""
@@ -129,6 +135,7 @@ def event_from_dict(d: dict[str, Any]) -> AuditEvent:
         resource_id=d.get("resource_id"),
         question=d.get("question", ""),
         detail=d.get("detail", ""),
+        citations=d.get("citations", []),
         timestamp=ts or utc_now(),
         previous_hash=d.get("previous_hash", ""),
         event_hash=d.get("event_hash", ""),
@@ -141,6 +148,7 @@ def event_from_decision(
     event_id: str,
     detail: str = "",
     question: str = "",
+    citations: list[dict[str, str]] | None = None,
 ) -> AuditEvent:
     """Build an (unchained) AuditEvent from a policy Decision.
 
@@ -167,5 +175,6 @@ def event_from_decision(
         policy_version=decision.policy_version,
         question=question,
         detail=detail,
+        citations=list(citations or []),
         timestamp=decision.timestamp,
     )

@@ -65,6 +65,7 @@ class AuditEventModel(BaseModel):
     reason: str
     question: str = ""
     detail: str = ""
+    citations: list[dict[str, str]] = Field(default_factory=list)
     acl_version: int
     policy_version: int
     previous_hash: str

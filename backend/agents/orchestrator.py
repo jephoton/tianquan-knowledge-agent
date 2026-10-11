@@ -280,8 +280,13 @@ class Orchestrator:
         # Capture the exact answer text served to the user in the tamper-evident
         # log — so a compliance officer can later see WHAT the AI said, not just
         # that it answered. (The no-access canonical message is captured too.)
+        # The marker -> resource map, so the logged [1], [2] are traceable.
         self._audit.append_decision(
             answer_decision, query_id, detail=answer.text, question=query,
+            citations=[
+                {"marker": c.marker, "resource_id": c.resource_id}
+                for c in answer.citations
+            ],
         )
 
         return QueryResponse(

@@ -323,3 +323,36 @@ def test_question_is_hashed_so_editing_it_is_detected(tmp_path):
     data[0]["question"] = "something innocuous"
     json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
     assert chain.verify_file().valid is False
+
+
+# -- The answer's citation map is part of the tamper-evident record --------
+#
+# The logged answer text carries [1], [2] markers; without the marker ->
+# resource map a compliance officer cannot tell which document [2] was.
+
+def test_answer_event_records_citation_map():
+    from backend.agents.orchestrator import Orchestrator
+    orch = Orchestrator(_connectors())
+    alice = IdentityStore().get_user("alice")
+    resp = orch.handle(alice, "What is the status of the database migration?", k=20)
+    answer_event = [e for e in orch.audit.events()
+                    if e.query_id == resp.query_id and e.resource_id is None][0]
+    assert answer_event.citations == [
+        {"marker": c.marker, "resource_id": c.resource_id} for c in resp.citations
+    ]
+    assert answer_event.citations  # the demo question is answered with citations
+
+
+def test_citation_map_is_hashed_so_editing_it_is_detected(tmp_path):
+    import json
+    log = str(tmp_path / "audit_log.json")
+    chain = HashChain(persist_path=log)
+    chain.append_decision(
+        _decn(rid=None), "q1", detail="Phase 3 is next [1].",
+        citations=[{"marker": "[1]", "resource_id": "MIG-231"}],
+    )
+    data = json.load(open(log, encoding="utf-8"))
+    assert data[0]["citations"] == [{"marker": "[1]", "resource_id": "MIG-231"}]
+    data[0]["citations"][0]["resource_id"] = "confluence:q3-breach-report"
+    json.dump(data, open(log, "w", encoding="utf-8"), indent=2)
+    assert chain.verify_file().valid is False
