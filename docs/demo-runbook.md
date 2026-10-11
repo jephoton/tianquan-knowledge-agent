@@ -3,18 +3,11 @@
 > **This file = the mechanical reference** (every scenario, exact inputs,
 > expected outputs, verified against seed data). It is NOT the video script.
 >
-> **For the video, follow [demo-script.md](demo-script.md)** — one ~4-minute
-> narrative using four beats:
->   1. same question, two people (Demos 1 + 2)
->   2. live revocation (Demo 3)
->   3. tamper-evident audit log, edited live (Demo 6)
->   4. formal proof — break the real logic, TLC catches it (Demo 5)
+> **For the video, follow [demo-script.md](demo-script.md)**. Start in clean
+> mode; show the unified answer, Bob's denial and Charlie's permitted access,
+> source preview/export and missing Q5 report; then revocation, audit and formal
+> assurance. Finish with the outro and reflection.
 >
-> **Repo depth (NOT in the video — mention in one line, keep for judges who dig
-> in):** Demo 4 (plain-English audit inquiry), the permissions inspector, and the
-> M11–M13 guards (hallucination, freshness, prompt-injection). These are
-> strengths to reference verbally, not screen time.
-
 > **Live ADP agent:** The Tianquan agent is published on Tencent Cloud ADP at
 > [adp.tencentcloud.com/webim_exp/#/chat/ULzqcG](https://adp.tencentcloud.com/webim_exp/#/chat/ULzqcG).
 > The backend calls it with each query's permission-filtered context. The agent
@@ -96,6 +89,20 @@ documents were filtered out before the model saw them."
 **Talking point:** "Bob gets the same message he'd get for a topic that doesn't
 exist. He can't tell 'denied' from 'not found' — no side-channel leak. But
 compliance can see the denied attempt in the audit trail."
+
+---
+
+## Demo 2b — Charlie: allowed report, preview/export, missing report
+
+1. Switch to **charlie** and repeat Bob's exact question:
+   *“Show me the Q3 security incident report from the breach.”*
+2. **Expected:** a cited answer including `confluence:q3-breach-report`.
+3. Open the report's citation in the source viewer; show full content and the
+   origin link, then click **download ↓**. Charlie has both read access and
+   export permission. The preview and export are audited.
+4. Still as Charlie ask *“Show me the Q5 report.”*
+5. **Expected:** *“I could not find accessible information matching your request.”*
+   with no citations — identical to Bob's inaccessible Q3 response.
 
 ---
 
@@ -274,36 +281,6 @@ this legally defensible for a regulator."
 > edit is caught no matter how it was made. **Reset:** restart the backend (or
 > delete `audit_log.jsonl`) to start a fresh clean log.
 
-
----
-
-## Source preview and download (export-capable personas)
-
-**Point:** reading a raw source is treated as exporting it.
-
-1. As **charlie** (security_team) ask *"What happened in the payment outage and
-   how was it fixed?"*, then click a citation card or an inline `[n]` marker.
-2. **Expected:** the source preview shows the full content and its origin link;
-   **download ↓** saves it. alice and bob (no `export`) see citation cards but
-   no preview.
-3. In the audit explorer the view appears as *charlie opened a source preview*.
-   A denied or nonexistent resource returns the same 404 and is audited too.
-
----
-
-## Plugging in a new source (upload connector)
-
-**Point:** a new data source is one connector behind the same interface, and
-it inherits the permission filter, grounding check and audit trail — fail-closed.
-
-1. Open `http://127.0.0.1:8000/docs` → **POST /upload** → *Try it out*,
-   `X-User-Id: frank`, body with `"allowed_roles": ["security_team", "admin"]`
-   (full example in the demo script §8) → *Execute*.
-2. Ask *"What happened in the Q4 production incident?"* as **charlie** → the
-   upload is cited; as **alice** or **bob** → not shown.
-3. The interface is `backend/connectors/base.py` (list, fetch, ACL, membership,
-   ACL update). A connector without its own permission rules gets the generic
-   ACL check: deny-list, explicit user grant, role grant — otherwise denied.
 
 ---
 
