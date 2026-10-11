@@ -100,3 +100,40 @@ class ACLChangeModel(BaseModel):
     change: str
     subject: str
     subject_kind: str
+
+
+# -- permissions inspector --------------------------------------------
+
+class ResourceAccessModel(BaseModel):
+    resource_id: str
+    source: str
+    title: str
+    can_read: bool
+    can_export: bool
+    via: str
+    reason: str
+
+
+class UserAccessReportModel(BaseModel):
+    user_id: str
+    name: str
+    roles: list[str] = Field(default_factory=list)
+    readable_count: int = 0
+    resources: list[ResourceAccessModel] = Field(default_factory=list)
+
+
+class RoleReportModel(BaseModel):
+    role: str
+    members: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
+
+
+class ResourceReportModel(BaseModel):
+    resource_id: str
+    source: str
+    title: str
+    acl_version: int
+    allowed_users: list[str] = Field(default_factory=list)
+    allowed_roles: list[str] = Field(default_factory=list)
+    denied_users: list[str] = Field(default_factory=list)
+    effective_readers: list[str] = Field(default_factory=list)
