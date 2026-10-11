@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://unpkg.com" />
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/js/all.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <title>Tianquan 天权</title>
+  <!-- Vendored (pinned) so the demo never depends on venue wifi or a CDN. -->
+  <script src="vendor/tailwindcss-browser-4.3.3.js"></script>
   <style>
     * {
       scrollbar-width: thin;
@@ -441,9 +440,9 @@
       <!-- Persona dropdown -->
       <div class="persona-dropdown" id="persona-dropdown">
         <div class="persona-trigger" id="persona-trigger">
-          <i class="fas fa-user-circle" style="font-size:14px;opacity:0.6;"></i>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="opacity:0.7;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.2 18.8a7 7 0 0 1 11.6 0"/></svg>
           <span id="current-user">select user</span>
-          <i class="fas fa-chevron-down" style="font-size:10px;opacity:0.4;"></i>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true" style="opacity:0.6;"><path d="m6 9 6 6 6-6"/></svg>
         </div>
         <div class="persona-menu" id="persona-menu">
           <div style="padding:6px 14px;font-size:10px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(232,220,200,0.06);">switch persona</div>
@@ -722,6 +721,5 @@
 <div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:10000;background:#141414;border:1px solid #ffb000;color:#ffb000;padding:10px 16px;border-radius:2px;font-family:'SF Mono','Menlo','Consolas',monospace;font-size:12px;box-shadow:0 0 12px rgba(255,176,0,0.3);max-width:360px;"></div>
 
 </body>
-<script>if (window.lucide) lucide.createIcons();</script>
 <script src="app.js"></script>
 </html>
