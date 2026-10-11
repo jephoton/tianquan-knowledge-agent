@@ -174,7 +174,7 @@ cd formal
 $jar = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tlaplus.vscode-ide-*\out\tools\tla2tools.jar" | Select-Object -First 1).FullName
 ```
 
-> Git Bash alt: `JAR="C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-2026.9.251644/out/tools/tla2tools.jar"`
+> Git Bash alt: `JAR=$(ls "$HOME"/.vscode/extensions/tlaplus.vscode-ide-*/out/tools/tla2tools.jar | head -1)`
 
 **STEP 1 — prove it's safe:**
 

@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Find tla2tools.jar from the VS Code extension.
-JAR=$(ls "C:/Users/Jethro/.vscode/extensions/tlaplus.vscode-ide-"*/out/tools/tla2tools.jar 2>/dev/null | head -1)
+JAR=$(ls "$HOME/.vscode/extensions/tlaplus.vscode-ide-"*/out/tools/tla2tools.jar 2>/dev/null | head -1)
 
 if [ -z "$JAR" ]; then
   echo "ERROR: tla2tools.jar not found."
