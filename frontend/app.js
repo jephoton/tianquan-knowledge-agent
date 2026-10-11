@@ -162,9 +162,17 @@ function applyAdminGate() {
   if (auditSection) auditSection.style.display = state.canAudit ? "block" : "none";
   if (statsSection) statsSection.style.display = state.canAudit ? "grid" : "none";
 
-  // manage_permissions gates revocation + upload.
+  // manage_permissions gates revocation + permissions inspector.
   const opsSection = $("ops-section");
   if (opsSection) opsSection.style.display = state.canManage ? "grid" : "none";
+
+  // Lazily load the resource list for the inspector's resource lookup, once,
+  // when a manage-capable persona opens the admin tab (endpoint is gated).
+  if (state.canManage && !_piResources.length) {
+    api("/admin/permissions/resources")
+      .then((r) => { _piResources = (r.resources || []).map((x) => x.resource_id).sort(); })
+      .catch(() => {});
+  }
 
   if (state.canAudit) refreshAudit().catch(() => {});
 }
@@ -628,6 +636,25 @@ function wireSubjectCombo() {
   });
 }
 
+function wireInspectorCombo() {
+  const input = $("pi-subject");
+  const menu = $("pi-menu");
+  const kindSel = $("pi-kind");
+  if (!input) return;
+  const open = () => { renderInspectorMenu(input.value); menu.classList.add("open"); };
+  input.addEventListener("focus", open);
+  input.addEventListener("input", open);
+  // Changing the lookup kind clears the subject + result and reopens the menu.
+  kindSel.addEventListener("change", () => {
+    input.value = "";
+    $("pi-result").textContent = "pick a user, role, or resource to see its current permissions.";
+    open();
+  });
+  document.addEventListener("click", (e) => {
+    if (!$("pi-combo").contains(e.target)) menu.classList.remove("open");
+  });
+}
+
 // -- admin: revoke / grant --------------------------------------------
 
 async function adminChange(kind) {
@@ -651,63 +678,110 @@ async function adminChange(kind) {
   } catch (e) { toast(e.message, true); }
 }
 
-// -- admin: upload document -------------------------------------------
+// -- permissions inspector (read-only "who can access what") ----------
 
-async function uploadDocument() {
-  const resource_id = $("up-resource").value.trim();
-  const title = $("up-title").value.trim();
-  const content = $("up-content").value.trim();
-  const rolesStr = $("up-roles").value.trim();
-  if (!resource_id || !title || !content) {
-    toast("resource_id, title, and content required", true);
-    return;
-  }
-  let allowed_roles = null;
-  if (rolesStr) {
-    allowed_roles = rolesStr.split(",").map((s) => s.trim()).filter(Boolean);
-  }
-  try {
-    const r = await api("/upload", {
-      method: "POST",
-      body: JSON.stringify({ resource_id, title, content, allowed_roles }),
-    });
-    toast(r.message);
-    $("upload-status").textContent = `uploaded: ${r.title} — ${r.indexed_resources} indexed`;
-    $("up-resource").value = "";
-    $("up-title").value = "";
-    $("up-content").value = "";
-    $("up-roles").value = "";
-  } catch (e) { toast(e.message, true); }
+// Option lists for the inspector combo, built from /users at boot.
+let _piUsers = [];   // [{user_id, name}]
+let _piRoles = [];   // ["engineer", ...]
+let _piResources = []; // ["confluence:db-migration-plan", ...]
+
+function buildInspectorOptions(users, resources) {
+  _piUsers = users.map((u) => ({ value: u.user_id, label: `${u.name} (${u.user_id})` }));
+  const roles = new Set();
+  users.forEach((u) => (u.roles || []).forEach((r) => roles.add(r)));
+  _piRoles = [...roles].sort();
+  _piResources = (resources || []).slice().sort();
 }
 
-async function listUploads() {
+function piOptionsFor(kind) {
+  if (kind === "user") return _piUsers.map((u) => ({ value: u.value, label: u.label }));
+  if (kind === "role") return _piRoles.map((r) => ({ value: r, label: r }));
+  return _piResources.map((r) => ({ value: r, label: r }));
+}
+
+function renderInspectorMenu(filter = "") {
+  const kind = $("pi-kind").value;
+  const f = filter.trim().toLowerCase();
+  const opts = piOptionsFor(kind).filter((o) => o.label.toLowerCase().includes(f));
+  const menu = $("pi-menu");
+  if (!opts.length) {
+    menu.innerHTML = `<div class="combo-option" style="color:#8a7f68;cursor:default;">no match</div>`;
+    return;
+  }
+  menu.innerHTML = opts.map((o) =>
+    `<div class="combo-option" data-value="${esc(o.value)}"><span>${esc(o.label)}</span></div>`
+  ).join("");
+  menu.querySelectorAll(".combo-option[data-value]").forEach((el) => {
+    el.onclick = () => {
+      $("pi-subject").value = el.dataset.value;
+      menu.classList.remove("open");
+      runInspector();
+    };
+  });
+}
+
+async function runInspector() {
+  const kind = $("pi-kind").value;
+  const subject = $("pi-subject").value.trim();
+  const out = $("pi-result");
+  if (!subject) { out.textContent = "pick a user, role, or resource to see its current permissions."; return; }
   try {
-    const r = await api("/upload");
-    const listEl = $("upload-list");
-    if (!r.count) {
-      $("upload-status").textContent = "no uploaded documents";
-      if (listEl) listEl.innerHTML = "";
-      toast("no uploaded documents");
-      return;
-    }
-    $("upload-status").textContent = `${r.count} document${r.count === 1 ? "" : "s"} uploaded`;
-    if (listEl) {
-      listEl.innerHTML = "";
-      r.documents.forEach((d) => {
-        const card = document.createElement("div");
-        card.className = "doc-card";
-        const when = d.updated ? d.updated.replace("T", " ").slice(0, 16) : "";
-        card.innerHTML =
-          `<div class="doc-icon">${sourceIcon("upload")}</div>` +
-          `<div class="doc-body">` +
-          `<div class="doc-title">${esc(d.title)}</div>` +
-          `<div class="doc-meta">${esc(d.resource_id)}${when ? " · " + esc(when) : ""}</div>` +
-          `</div>`;
-        listEl.appendChild(card);
-      });
-    }
-    toast(`${r.count} documents listed`);
-  } catch (e) { toast(e.message, true); }
+    const path = `/admin/permissions/${kind}/${encodeURIComponent(subject)}`;
+    const r = await api(path);
+    out.innerHTML = kind === "user" ? renderUserPerms(r)
+                  : kind === "role" ? renderRolePerms(r)
+                  : renderResourcePerms(r);
+  } catch (e) {
+    out.innerHTML = `<span style="color:#c47a7a;">${esc(e.message)}</span>`;
+  }
+}
+
+function _permRow(left, right) {
+  return `<div class="log-row"><span style="flex:1;">${left}</span>${right || ""}</div>`;
+}
+
+function renderUserPerms(r) {
+  const roles = r.roles.map((x) => `<span class="role-tag" style="color:#ffb000;">${esc(x)}</span>`).join(" ");
+  let html = `<div style="margin-bottom:8px;color:#f0e6d2;">${esc(r.name)} <span style="color:#9a8e78;">(${esc(r.user_id)})</span> — roles: ${roles || "none"}</div>`;
+  html += `<div style="font-size:11px;color:#9a8e78;margin-bottom:8px;">can read ${r.readable_count} of ${r.resources.length} resources</div>`;
+  html += r.resources.map((a) => {
+    const dot = a.can_read ? `<span style="color:#3a8a5a;">●</span>` : `<span style="color:#c47a7a;">●</span>`;
+    const viaTag = a.can_read
+      ? `<span class="kind-tag" style="color:#8a7f68;">${esc(a.via)}</span>`
+      : `<span class="kind-tag" style="color:#8a7f68;">no access</span>`;
+    const dl = a.can_read && a.can_export ? ` <span style="color:#5fb87f;font-size:9px;">↓dl</span>` : "";
+    return _permRow(
+      `${dot} ${sourceIcon(a.source)} <span style="color:#cdbfa6;">${esc(a.resource_id)}</span>${dl}`,
+      viaTag,
+    );
+  }).join("");
+  return html;
+}
+
+function renderRolePerms(r) {
+  let html = `<div style="margin-bottom:8px;color:#f0e6d2;">role <span style="color:#ffb000;">${esc(r.role)}</span></div>`;
+  html += `<div class="section-label mb-2" style="margin-top:8px;">members (${r.members.length})</div>`;
+  html += r.members.length
+    ? `<div style="color:#cdbfa6;margin-bottom:10px;">${r.members.map(esc).join(", ")}</div>`
+    : `<div style="color:#8a7f68;margin-bottom:10px;">no users hold this role</div>`;
+  html += `<div class="section-label mb-2">grants access to (${r.resources.length})</div>`;
+  html += r.resources.length
+    ? r.resources.map((x) => _permRow(`<span style="color:#cdbfa6;">${esc(x)}</span>`)).join("")
+    : `<div style="color:#8a7f68;">no resources grant via this role</div>`;
+  return html;
+}
+
+function renderResourcePerms(r) {
+  let html = `<div style="margin-bottom:8px;color:#f0e6d2;">${sourceIcon(r.source)} ${esc(r.title)}</div>`;
+  html += `<div style="font-size:11px;color:#9a8e78;margin-bottom:8px;">${esc(r.resource_id)} · ACL v${r.acl_version}</div>`;
+  const line = (label, arr, color) =>
+    `<div class="log-row"><span class="section-label" style="flex:0 0 120px;">${label}</span>` +
+    `<span style="flex:1;color:${color};">${arr.length ? arr.map(esc).join(", ") : "—"}</span></div>`;
+  html += line("allowed roles", r.allowed_roles, "#cdbfa6");
+  html += line("allowed users", r.allowed_users, "#cdbfa6");
+  html += line("denied users", r.denied_users, "#c47a7a");
+  html += line("effective readers", r.effective_readers, "#3a8a5a");
+  return html;
 }
 
 // -- boot --------------------------------------------------------------
@@ -727,6 +801,10 @@ async function boot() {
     });
     // Build the subject-combo options (roles + users) for access control.
     buildSubjectOptions(users);
+    // Seed the permissions-inspector options with users+roles now; resources
+    // are fetched lazily when a privileged persona opens the admin tab (the
+    // resource list endpoint is gated).
+    buildInspectorOptions(users, []);
     // loadPersonas selects the first persona, which runs applyAdminGate ->
     // refreshAudit only if that persona is privileged (avoids a boot 403).
     await loadPersonas();
@@ -761,10 +839,9 @@ async function boot() {
   $("audit-pagesize").addEventListener("change", (e) => setAuditPageSize(e.target.value));
   $("revoke-btn").onclick = () => adminChange("revoke");
   $("grant-btn").onclick = () => adminChange("grant");
-  $("upload-btn").onclick = () => uploadDocument();
-  $("upload-list-btn").onclick = () => listUploads();
   $("preview-close").onclick = () => resetPreviewToEmpty();
   wireSubjectCombo();
+  wireInspectorCombo();
 
   // Persona dropdown
   $("persona-trigger").onclick = (e) => { e.stopPropagation(); togglePersonaMenu(); };
