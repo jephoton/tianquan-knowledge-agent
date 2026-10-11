@@ -233,6 +233,15 @@
 
 ---
 
+### 2026-10-10 — Removed upload UI, added permissions inspector
+
+- **Tool:** Kiro
+- **Task:** Decide the fate of the document-upload panel (user flagged it as debug-ish and off-thesis) and repurpose the space. Agreed: remove the upload UI (keep the backend connector, which proves extensibility), and add a read-only permissions inspector in its place — a live "who can access what" view that strengthens the core access-control story.
+- **Summary:** Removed the document-ingestion panel from the admin tab and its `uploadDocument`/`listUploads` JS; kept the backend `UploadConnector` + `/upload` routes unsurfaced (extensibility is an architecture/pitch point, not a UI feature). Built `backend/policy/inspector.py` — a `PermissionsInspector` with three read-only lookups computed via the real PolicyEngine (not raw ACL membership): by user (every resource with can_read/can_export + how access is granted: user-grant vs role:<name> vs denied, plus the user's roles), by role (member users + granted resources), by resource (raw ACL + effective readers). Exposed as `/admin/permissions/{user,role,resource}/…` + a `/admin/permissions/resources` picker list, all gated by `manage_permissions` (bob → 403 verified). Frontend: a lookup-kind dropdown + searchable combo + rich result rendering in the old upload slot; resource options fetched lazily when a manage-capable persona opens the admin tab. Live-verified the demo loop: revoke `engineer` from db-migration-plan → alice leaves effective_readers (frank/jdoe remain) → grant restores. 12 inspector unit tests; 244 total pass; no new diagnostics.
+- **Screenshot captured:** N — capture the permissions inspector (user/role/resource lookups) and the revoke→inspector live update for the submission.
+
+---
+
 ### YYYY-MM-DD — Mn: milestone/task
 
 - **Tool:** CodeBuddy / WorkBuddy / Miora

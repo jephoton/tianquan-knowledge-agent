@@ -2,6 +2,30 @@
 
 > **Last updated:** 2026-10-10 (NL audit search + preview/tab gating + answer-text expand)
 
+## Removed upload UI, added permissions inspector (2026-10-10, pass 5)
+
+- **Removed the document-upload panel from the UI.** It read as a debugging
+  side-door, not a connector — and the thesis is permission-aware retrieval over
+  *existing* systems (Confluence/Jira/Slack/GDrive). The clunky
+  upload-then-grant-in-another-panel workflow reinforced that. The backend
+  `UploadConnector` and `/upload` routes are KEPT (unsurfaced) — they prove the
+  system is connector-extensible via one `BaseConnector` interface, which is a
+  pitch/architecture point, not a UI feature.
+- **Added a permissions inspector** in the freed space (`backend/policy/
+  inspector.py` + `/admin/permissions/*` endpoints, gated by
+  `manage_permissions`). Three read-only lookups, all computed by evaluating the
+  *real* PolicyEngine (not raw ACL membership), so what it shows is exactly what
+  a query could retrieve:
+  - **by user** → every resource, can_read/can_export, and *how* access is
+    granted (user-grant vs role:<name> vs denied/no-match); also lists the
+    user's roles.
+  - **by role** → member users + resources the role grants.
+  - **by resource** → raw ACL (allowed_users/roles, denied_users) + the
+    *effective readers* (who the engine actually allows).
+  12 inspector unit tests. Live-verified the demo loop: revoke `engineer` from
+  db-migration-plan → alice drops out of `effective_readers` (frank, jdoe
+  remain) → grant restores. 244 tests pass.
+
 ## Preview-panel presence model + query-clear on switch (2026-10-10, pass 4)
 
 - **Source-preview panel is now presence-gated, not click-gated.** The panel is
