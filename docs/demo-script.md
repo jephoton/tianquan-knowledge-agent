@@ -15,10 +15,6 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 - Start with a clean demo state. Restarting the backend resets seed ACLs/uploads and starts a fresh audit log; save any evidence you need first.
 - Use one browser window and switch personas from the account menu.
 
-## 0. Clean mode — 10s
-- Start on the dashboard and toggle **clean mode** before the introduction.
-- Briefly point out readability, keyboard navigation and screen-reader support.
-
 ## 1. Track + hook (≈60s, no screen)
 
 > "This is Tianquan, which roughly translates to "Heavenly Authority".
@@ -42,6 +38,10 @@ clicks and recovery steps: [demo-runbook.md](demo-runbook.md).
 ## 2. Architecture — 20s
 - Show architecture: search → live permission checks → filtered ADP context → cited answer + audit.
 - Demo uses mock platform connectors; ADP supplies the live model when available.
+
+### First UI reveal: clean mode — 10s
+- Switch from the architecture diagram to the dashboard and toggle **clean mode**.
+- Briefly point out readability, keyboard navigation and screen-reader support before Alice's first query.
 
 ## 3. Unified answer + freshness (required scenarios ①②) — 60s
 - Alice: ask “What's the status of the database migration and were there blockers raised in Slack?”

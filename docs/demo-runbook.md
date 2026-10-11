@@ -3,8 +3,8 @@
 > **This file = the mechanical reference** (every scenario, exact inputs,
 > expected outputs, verified against seed data). It is NOT the video script.
 >
-> **For the video, follow [demo-script.md](demo-script.md)**. Start in clean
-> mode; show the unified answer, Bob's denial and Charlie's permitted access,
+> **For the video, follow [demo-script.md](demo-script.md)**. After the introduction and
+> architecture diagram, enter the UI and toggle clean mode; show the unified answer, Bob's denial and Charlie's permitted access,
 > source preview/export and missing Q5 report; then revocation, audit and formal
 > assurance. Finish with the outro and reflection.
 >
