@@ -136,6 +136,10 @@ class ADPClient:
             stream=True,
         )
         resp.raise_for_status()
+        # The SSE stream is UTF-8, but without a charset in its Content-Type
+        # requests decodes text/* as ISO-8859-1 — turning "—" into "â€”" and
+        # mangling any Chinese. Decode as UTF-8 explicitly.
+        resp.encoding = "utf-8"
 
         # Accumulate text from SSE events.
         # Official ADP events carry answer text in `Text` (capital T) on

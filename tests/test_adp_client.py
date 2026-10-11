@@ -116,6 +116,28 @@ def test_adp_client_generate_sends_official_payload():
     assert payload["Contents"][0]["Text"] == "test prompt"
     assert payload["Stream"] == "enable"
 
+class _Latin1DefaultResponse(_FakeSSEResponse):
+    """Like requests for a text/event-stream with no charset: the body is UTF-8
+    bytes, but `encoding` defaults to ISO-8859-1 and iter_lines(decode_unicode)
+    decodes with it — turning "—" into "â€”" unless the client sets UTF-8."""
+
+    def __init__(self, lines):
+        super().__init__(lines)
+        self.encoding = "ISO-8859-1"
+
+    def iter_lines(self, decode_unicode=True):
+        for line in self._lines:
+            yield line.encode("utf-8").decode(self.encoding)
+
+
+def test_adp_client_decodes_stream_as_utf8():
+    client = ADPClient(app_key="fake-key")
+    fake_resp = _Latin1DefaultResponse([
+        'data: {"Type": "text.delta", "Text": "cluster — resolved. 天权"}',
+    ])
+    with patch.object(client._session, "post", return_value=fake_resp):
+        assert client.generate("q") == "cluster — resolved. 天权"
+
 
 def test_each_generate_call_uses_a_fresh_conversation():
     """One ADPClient serves every user's query in the API process. Reusing an
