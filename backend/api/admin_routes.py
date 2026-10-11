@@ -18,6 +18,7 @@ from backend.api.schemas import (
     RoleReportModel,
     UserAccessReportModel,
 )
+from backend.models import User
 from backend.policy.admin import ResourceNotFound
 from backend.policy.inspector import PermissionsInspector
 
@@ -51,22 +52,31 @@ def _to_model(change) -> ACLChangeModel:
     )
 
 
-@router.post("/revoke", response_model=ACLChangeModel)
-def revoke(req: RevokeGrantRequest, request: Request) -> ACLChangeModel:
-    admin = request.app.state.tianquan.orchestrator.admin
+def _change(request: Request, actor: User, action: str, req: RevokeGrantRequest):
+    """Apply a revoke/grant and record it in the audit trail."""
+    orchestrator = request.app.state.tianquan.orchestrator
     try:
-        return _to_model(_apply(admin, "revoke", req))
+        change = _apply(orchestrator.admin, action, req)
     except ResourceNotFound:
         raise HTTPException(status_code=404, detail=f"unknown resource: {req.resource_id}")
+    orchestrator.record_acl_change(actor, change)
+    return _to_model(change)
+
+
+@router.post("/revoke", response_model=ACLChangeModel)
+def revoke(
+    req: RevokeGrantRequest, request: Request,
+    actor: User = Depends(require_permission("manage_permissions")),
+) -> ACLChangeModel:
+    return _change(request, actor, "revoke", req)
 
 
 @router.post("/grant", response_model=ACLChangeModel)
-def grant(req: RevokeGrantRequest, request: Request) -> ACLChangeModel:
-    admin = request.app.state.tianquan.orchestrator.admin
-    try:
-        return _to_model(_apply(admin, "grant", req))
-    except ResourceNotFound:
-        raise HTTPException(status_code=404, detail=f"unknown resource: {req.resource_id}")
+def grant(
+    req: RevokeGrantRequest, request: Request,
+    actor: User = Depends(require_permission("manage_permissions")),
+) -> ACLChangeModel:
+    return _change(request, actor, "grant", req)
 
 
 # -- permissions inspector (read-only "who can access what") -----------

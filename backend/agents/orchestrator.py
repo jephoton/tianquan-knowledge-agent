@@ -144,6 +144,29 @@ class Orchestrator:
             "all_allowed": len(denied) == 0 and len(allowed) > 0,
         }
 
+    def record_acl_change(self, actor: User, change) -> None:
+        """Append a revoke/grant to the audit chain.
+
+        Permission changes are part of the tamper-evident history, so the
+        trail shows not just who could see what, but who changed it and when.
+        `decision` is "change" so these never count as allows or denials.
+        """
+        from backend.audit.event_schema import AuditEvent
+
+        self._audit.append(AuditEvent(
+            event_id=str(uuid.uuid4()),
+            user_id=actor.user_id,
+            query_id=str(uuid.uuid4()),
+            action=f"acl_{change.change}",
+            decision="change",
+            reason=f"{change.change}_{change.subject_kind}:{change.subject}",
+            acl_version=change.new_version,
+            policy_version=0,
+            resource_id=change.resource_id,
+            detail=(f"{change.change} {change.subject_kind}:{change.subject}"
+                    f" · ACL {change.version_transition}"),
+        ))
+
     def preview(self, user: User, resource_id: str) -> dict | None:
         """Return a resource's raw content for the source preview, or None.
 
