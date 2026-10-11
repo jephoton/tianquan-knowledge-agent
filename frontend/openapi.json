@@ -1,7 +1,7 @@
 ﻿{
   "openapi": "3.1.0",
   "info": {
-    "title": "Tianquan 天权 API",
+    "title": "Tianquan \u5929\u6743 API",
     "description": "Permission-aware enterprise knowledge agent.",
     "version": "0.1.0"
   },
@@ -35,7 +35,7 @@
           "meta"
         ],
         "summary": "Users",
-        "description": "List seed users for the demo persona switcher.",
+        "description": "List seed users for the demo persona switcher.\n\n`privileged` tells the frontend whether the persona may access the\nadmin/audit surfaces \u2014 the same check the server enforces, surfaced\nso the UI can reflect (not define) the boundary.",
         "operationId": "users_users_get",
         "responses": {
           "200": {
@@ -49,6 +49,63 @@
                   },
                   "type": "array",
                   "title": "Response Users Users Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resource/{resource_id}": {
+      "get": {
+        "tags": [
+          "query"
+        ],
+        "summary": "Get Resource Content",
+        "description": "Return a resource's raw content for the source-preview panel.\n\nAn access-control and audit boundary in its own right:\n- the acting user comes from the X-User-Id header (401 without it);\n- it requires `export` \u2014 once you can read the raw source you can copy it\n  out, so viewing it IS exporting (403 otherwise);\n- READ is re-checked against the live ACL and every view is audited;\n- denied and nonexistent resources get the identical 404, so the\n  response never confirms that a restricted resource exists.",
+        "operationId": "get_resource_content_resource__resource_id__get",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -103,6 +160,7 @@
           "audit"
         ],
         "summary": "Query Audit",
+        "description": "Query the audit trail. `since`/`until` are ISO-8601 timestamps (or a\nplain date like 2026-10-01) bounding the event time \u2014 this is what lets a\ncompliance officer ask 'what did alice access last week?'.",
         "operationId": "query_audit_audit_get",
         "parameters": [
           {
@@ -184,6 +242,54 @@
               ],
               "title": "Action"
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
           }
         ],
         "responses": {
@@ -210,23 +316,235 @@
         }
       }
     },
-    "/audit/verify": {
+    "/audit/search": {
       "get": {
         "tags": [
           "audit"
         ],
-        "summary": "Verify Chain",
-        "description": "Report whether the audit chain is intact (tamper-evidence).",
-        "operationId": "verify_chain_audit_verify_get",
+        "summary": "Search Audit",
+        "description": "Natural-language audit search.\n\nParse a plain-English compliance question (\"what did alice access last\nweek?\") into a structured query and run it. The parse is deterministic\n(no LLM dependency), so it works offline and returns the same result\nevery time \u2014 and the `interpretation` is sent back so the inspector can\nsee exactly what the system understood.",
+        "operationId": "search_audit_audit_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
+                  "$ref": "#/components/schemas/AuditSearchResponseModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/verify": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Verify Chain",
+        "description": "Report whether the in-memory audit chain is intact (tamper-evidence).",
+        "operationId": "verify_chain_audit_verify_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
                   "type": "object",
+                  "additionalProperties": true,
                   "title": "Response Verify Chain Audit Verify Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/verify-file": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Verify File",
+        "description": "Re-read the on-disk audit log and verify it from scratch.\n\nUnlike /verify (in-memory), this parses the actual JSON log file and\nrecomputes every hash over its current contents \u2014 so a hand-edit of the\nfile (the realistic insider-tamper scenario) is detected. This is the\nendpoint behind the \"verify log file\" demo.",
+        "operationId": "verify_file_audit_verify_file_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Verify File Audit Verify File Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/tamper": {
+      "post": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Tamper Chain",
+        "description": "Tamper with an audit event to demonstrate chain breakage (Demo 6).\n\nMutates a single field on the event at the given index. The next\n/audit/verify call will report CHAIN TAMPERED with the break index.",
+        "operationId": "tamper_chain_audit_tamper_post",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Index"
+            }
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "resource_id",
+              "title": "Field"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Tamper Chain Audit Tamper Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -241,15 +559,33 @@
         ],
         "summary": "Revoke",
         "operationId": "revoke_admin_revoke_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RevokeGrantRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -282,15 +618,33 @@
         ],
         "summary": "Grant",
         "operationId": "grant_admin_grant_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RevokeGrantRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -299,6 +653,411 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ACLChangeModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/resources": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List All Resources",
+        "description": "List every resource id/title/source (to populate the inspector picker).",
+        "operationId": "list_all_resources_admin_permissions_resources_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List All Resources Admin Permissions Resources Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/user/{user_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Permissions For User",
+        "description": "Which resources this user can read/export, and via which grant.",
+        "operationId": "permissions_for_user_admin_permissions_user__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccessReportModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/role/{role}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Permissions For Role",
+        "description": "Which users hold this role and which resources it grants.",
+        "operationId": "permissions_for_role_admin_permissions_role__role__get",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Role"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleReportModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/resource/{resource_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Permissions For Resource",
+        "description": "Who can access this resource (raw ACL + effective readers).",
+        "operationId": "permissions_for_resource_admin_permissions_resource__resource_id__get",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceReportModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "tags": [
+          "upload"
+        ],
+        "summary": "Upload Document",
+        "description": "Upload a document to the upload connector and reindex.",
+        "operationId": "upload_document_upload_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Upload Document Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "upload"
+        ],
+        "summary": "List Uploads",
+        "description": "List all uploaded documents.",
+        "operationId": "list_uploads_upload_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Uploads Upload Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/export": {
+      "post": {
+        "tags": [
+          "export"
+        ],
+        "summary": "Export Resources",
+        "description": "Re-check EXPORT per cited resource for the acting user and audit it.\n\nRequest body: {\"resource_ids\": [...]}. Returns which resources may be\nexported and which were denied (per-resource EXPORT re-evaluation).",
+        "operationId": "export_resources_export_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Export Resources Export Post"
                 }
               }
             }
@@ -403,6 +1162,16 @@
             "type": "string",
             "title": "Reason"
           },
+          "question": {
+            "type": "string",
+            "title": "Question",
+            "default": ""
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          },
           "acl_version": {
             "type": "integer",
             "title": "Acl Version"
@@ -478,6 +1247,72 @@
         ],
         "title": "AuditQueryResponseModel"
       },
+      "AuditSearchResponseModel": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "allow_count": {
+            "type": "integer",
+            "title": "Allow Count"
+          },
+          "deny_count": {
+            "type": "integer",
+            "title": "Deny Count"
+          },
+          "chain_valid": {
+            "type": "boolean",
+            "title": "Chain Valid"
+          },
+          "chain_status": {
+            "type": "string",
+            "title": "Chain Status"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventModel"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "interpretation": {
+            "type": "string",
+            "title": "Interpretation",
+            "default": ""
+          },
+          "matched": {
+            "type": "boolean",
+            "title": "Matched",
+            "default": false
+          },
+          "parts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Parts"
+          },
+          "unparsed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unparsed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "allow_count",
+          "deny_count",
+          "chain_valid",
+          "chain_status",
+          "events"
+        ],
+        "title": "AuditSearchResponseModel",
+        "description": "Audit query result plus how the natural-language question was parsed."
+      },
       "CitationModel": {
         "properties": {
           "marker": {
@@ -495,6 +1330,17 @@
           "title": {
             "type": "string",
             "title": "Title"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
           }
         },
         "type": "object",
@@ -633,9 +1479,24 @@
             "type": "integer",
             "title": "Deny Count"
           },
+          "viewer_privileged": {
+            "type": "boolean",
+            "title": "Viewer Privileged",
+            "default": false
+          },
+          "viewer_can_export": {
+            "type": "boolean",
+            "title": "Viewer Can Export",
+            "default": false
+          },
           "audit_chain_head": {
             "type": "string",
             "title": "Audit Chain Head"
+          },
+          "grounding_removed": {
+            "type": "integer",
+            "title": "Grounding Removed",
+            "default": 0
           }
         },
         "type": "object",
@@ -650,6 +1511,105 @@
           "audit_chain_head"
         ],
         "title": "QueryResponseModel"
+      },
+      "ResourceAccessModel": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "can_read": {
+            "type": "boolean",
+            "title": "Can Read"
+          },
+          "can_export": {
+            "type": "boolean",
+            "title": "Can Export"
+          },
+          "via": {
+            "type": "string",
+            "title": "Via"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_id",
+          "source",
+          "title",
+          "can_read",
+          "can_export",
+          "via",
+          "reason"
+        ],
+        "title": "ResourceAccessModel"
+      },
+      "ResourceReportModel": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "acl_version": {
+            "type": "integer",
+            "title": "Acl Version"
+          },
+          "allowed_users": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Users"
+          },
+          "allowed_roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Roles"
+          },
+          "denied_users": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Denied Users"
+          },
+          "effective_readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Effective Readers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_id",
+          "source",
+          "title",
+          "acl_version"
+        ],
+        "title": "ResourceReportModel"
       },
       "RevokeGrantRequest": {
         "properties": {
@@ -675,6 +1635,121 @@
           "subject"
         ],
         "title": "RevokeGrantRequest"
+      },
+      "RoleReportModel": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "members": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "resources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "RoleReportModel"
+      },
+      "UploadDocument": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "allowed_roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Roles"
+          },
+          "denied_users": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denied Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource_id",
+          "title",
+          "content"
+        ],
+        "title": "UploadDocument"
+      },
+      "UserAccessReportModel": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "readable_count": {
+            "type": "integer",
+            "title": "Readable Count",
+            "default": 0
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceAccessModel"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name"
+        ],
+        "title": "UserAccessReportModel"
       },
       "ValidationError": {
         "properties": {
