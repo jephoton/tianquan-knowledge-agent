@@ -39,7 +39,7 @@ Cloud hosting: `render.yaml` (one free-tier instance, `--workers 1`); see the [d
 | `retrieval/` | Indexing, TF-IDF/n-gram search, ACL filter and context assembly |
 | `agents/` | Orchestrator, ADP/stub, answer/citation checks, grounding and injection flags |
 | `audit/` | Event schema, hash chain, file verification and audit search |
-| `seed/` | Synthetic source data |
+| `seed/` | Readable reference copy of the 20 synthetic documents (one `.txt` per resource). Not loaded at runtime — the connectors in `connectors/` embed the same text, which is what the app serves. |
 
 ## State and recovery
 
