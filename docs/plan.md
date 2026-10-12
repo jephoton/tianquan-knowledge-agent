@@ -30,7 +30,7 @@ The implemented demo uses synthetic source data and seeded personas. It demonstr
 | M13 Injection detection | Complete: suspicious-query audit flags, not an authorization mechanism |
 | M14 Review | Implementation review/fixes complete; known gaps retained in current state |
 | M15 Submission | Complete: submitted 2026-10-12 with demo video, project description, cover image and live link |
-| Hosting | Complete: https://tianquan.vercel.app (Vercel) + Render backend — [deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) |
+| Hosting | Complete: https://tianquan.vercel.app (Vercel) + Render backend — [deployment plan](deployment-plan.md) |
 
 ## Formal assurance
 

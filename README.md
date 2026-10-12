@@ -107,7 +107,7 @@ want to run the TLA+ model checker.
    `ADP_APP_KEY` in `.env` to answer with the live Tencent Cloud ADP agent
    (without it, or offline, answers come from the extractive fallback).
 
-Hosted at https://tianquan.vercel.app (Vercel static UI) with the API on Render (`https://tianquan-api.onrender.com`, one free-tier instance) — see the [deployment plan](docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+Hosted at https://tianquan.vercel.app (Vercel static UI) with the API on Render (`https://tianquan-api.onrender.com`, one free-tier instance) — see the [deployment plan](docs/deployment-plan.md).
 Run one backend worker/instance. Restart resets ACL mutations/uploads and clears
 the audit log; local disk is not restart persistence.
 

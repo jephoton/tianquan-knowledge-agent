@@ -10,7 +10,7 @@ The demo is recorded and the full app needs a shareable URL. An all-serverless d
 
 ## Decision
 
-Serve the static frontend on Vercel and run the existing Python backend on one long-running cloud instance with one Uvicorn worker. Propose Render as the concrete host in the [deployment plan](../superpowers/plans/2026-10-11-cloud-demo-deployment.md); account/tier selection is pending. No database or shared-storage migration in this step. The user's laptop can be off.
+Serve the static frontend on Vercel and run the existing Python backend on one long-running cloud instance with one Uvicorn worker. Propose Render as the concrete host in the [deployment plan](../deployment-plan.md); account/tier selection is pending. No database or shared-storage migration in this step. The user's laptop can be off.
 
 ## Rationale
 

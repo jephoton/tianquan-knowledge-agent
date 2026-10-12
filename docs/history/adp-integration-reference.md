@@ -2,7 +2,7 @@
 
 <!-- Generated reconciliation, 2026-10-11. Original setup plan preserved in ../history/adp-setup-plan.md. -->
 
-The adapter and published ADP agent already exist; registration, publishing and response-format discovery are not pending implementation tasks. The [original setup plan](../history/adp-setup-plan.md) is historical. Cloud application hosting remains [planned](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+The adapter and published ADP agent already exist; registration, publishing and response-format discovery are not pending implementation tasks. The [original setup plan](../history/adp-setup-plan.md) is historical. Cloud application hosting remains [planned](../deployment-plan.md).
 
 ## Implemented flow
 

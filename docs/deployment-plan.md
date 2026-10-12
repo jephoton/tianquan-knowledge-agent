@@ -6,13 +6,13 @@
 
 **Goal:** Host Tianquan's static UI on Vercel and its existing FastAPI backend on a cloud web service, so the laptop can be off while judges use the demo.
 
-**Architecture:** One backend process/worker/instance retains the current in-memory seed connectors, ACL changes, uploads and audit chain during its lifetime. Vercel serves static assets and public API-origin configuration. The backend alone calls ADP. Restart resets demo state and truncates the audit log. This plan intentionally requires no shared database or storage migration; see [ADR-0009](../../decisions/0009-cloud-demo-with-process-local-state.md).
+**Architecture:** One backend process/worker/instance retains the current in-memory seed connectors, ACL changes, uploads and audit chain during its lifetime. Vercel serves static assets and public API-origin configuration. The backend alone calls ADP. Restart resets demo state and truncates the audit log. This plan intentionally requires no shared database or storage migration; see [ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md).
 
 **Tech stack:** Existing Python/FastAPI and pinned requirements; static HTML/JS with vendored Tailwind; a small Node build script for frontend runtime config. Render is the proposed backend host, not an already selected/provisioned account. An equivalent long-running host can use the same start command and one-instance constraints.
 
 ## Read before executing
 
-- [Current state](../../current-state.md), [architecture](../../architecture.md), [demo runbook](../../demo-runbook.md).
+- [Current state](current-state.md), [architecture](architecture.md), [demo runbook](demo-runbook.md).
 - `backend/api/app.py`, `backend/api/state.py`, `backend/audit/hash_chain.py`, `frontend/app.js`, `frontend/index.html`, `requirements.txt`, `.gitignore`.
 - Baseline: 292 passing Python tests, no cloud frontend configuration yet, backend CORS allows all origins. Preserve the user-provided untracked `docs/cover_image.png`.
 - The direct ADP experience URL is not the permission-aware app. Do not use it as the full app deployment URL.
@@ -124,7 +124,7 @@ origins = [
 
 - [ ] Use `allow_origins=origins`, `allow_methods=["GET", "POST"]`, `allow_headers=["Content-Type", "X-User-Id"]`, `allow_credentials=False` in the existing CORS middleware. Preserve API authorization logic.
 - [ ] Add meaningful preflight coverage: an allowed local/configured HTTPS origin receives matching `Access-Control-Allow-Origin`; an unlisted origin does not. Cover the `X-User-Id` header used by inspector/audit/export/admin requests. Set test origins via `monkeypatch` before `create_app()`.
-- [ ] Run the complete suite with an isolated `TIANQUAN_AUDIT_LOG` as documented in [tests README](../../../tests/README.md). Tests must stay stubbed and not alter a running demo's audit file.
+- [ ] Run the complete suite with an isolated `TIANQUAN_AUDIT_LOG` as documented in [tests README](../tests/README.md). Tests must stay stubbed and not alter a running demo's audit file.
 - [ ] Document that CORS is a browser restriction, not identity verification. Keep selectable personas for the synthetic demo; do not add SSO or rewrite policy.
 
 Atomic commit: `fix(deploy): restrict API CORS to configured frontend origins`.

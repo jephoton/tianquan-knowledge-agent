@@ -105,4 +105,4 @@ If the backend is not running, the footer shows `api: offline` — the UI degrad
 
 ## Deployment status
 
-Deployed at https://tianquan.vercel.app (Vercel project `tianquan`, built with `scripts/build.cjs`); the API runs on Render at `https://tianquan-api.onrender.com`. Redeploy: `vercel deploy --prod --cwd frontend --build-env TIANQUAN_API_BASE=https://tianquan-api.onrender.com`. See the [deployment plan](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). Browser localStorage remembers clean mode; it does not store authoritative ACLs or shared audit state.
+Deployed at https://tianquan.vercel.app (Vercel project `tianquan`, built with `scripts/build.cjs`); the API runs on Render at `https://tianquan-api.onrender.com`. Redeploy: `vercel deploy --prod --cwd frontend --build-env TIANQUAN_API_BASE=https://tianquan-api.onrender.com`. See the [deployment plan](../docs/deployment-plan.md). Browser localStorage remembers clean mode; it does not store authoritative ACLs or shared audit state.

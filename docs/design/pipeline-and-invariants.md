@@ -34,4 +34,4 @@ TLA+ checks six active invariants in a finite abstract model, independently of t
 
 The index supplies content and an ACL-version snapshot. For supported connector resources, the current ACL replaces the snapshot before policy evaluation; freshness compares versions for observability. Content is refreshed by reindexing, not each query. If `connector.get_acl()` returns `None`, the filter currently returns the indexed resource and the engine may permit it. Future connector failure/deletion handling needs an explicit deny and regression coverage. This documented gap must not be described as fail-closed retrieval.
 
-The [current-state limitations](../current-state.md#known-boundaries-and-follow-ups) also cover concurrency, restart persistence, demo identity and grounding. Deployment is [planned only](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+The [current-state limitations](../current-state.md#known-boundaries-and-follow-ups) also cover concurrency, restart persistence, demo identity and grounding. Deployment is [planned only](../deployment-plan.md).

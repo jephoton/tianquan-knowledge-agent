@@ -26,7 +26,7 @@ Alternatively install `requirements.txt` in a virtual environment and run `pytho
 | `TIANQUAN_AUDIT_LOG` | Path of the append-only audit log (default `audit_log.jsonl`). |
 | `TIANQUAN_ALLOWED_ORIGINS` | Comma-separated exact browser origins allowed by CORS (default `http://127.0.0.1:5500,http://localhost:5500`). A browser restriction only — not identity verification. |
 
-Cloud hosting: `render.yaml` (one free-tier instance, `--workers 1`); see the [deployment plan](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+Cloud hosting: `render.yaml` (one free-tier instance, `--workers 1`); see the [deployment plan](../docs/deployment-plan.md).
 
 ## Structure
 
@@ -45,4 +45,4 @@ Cloud hosting: `render.yaml` (one free-tier instance, `--workers 1`); see the [d
 
 Use one worker and one instance. ACL mutations, uploads and audit memory are local to that process. Restart resets them and **truncates the audit file**; save needed evidence first. A persistent disk alone does not provide restart recovery. Stop the backend in its own terminal and rerun the command; leave the frontend running.
 
-Tests must use a separate audit path when a demo is running: see [test instructions](../tests/README.md). Deployed on Render (`https://tianquan-api.onrender.com`, from `render.yaml`) behind the Vercel UI at https://tianquan.vercel.app; see the [deployment plan](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). Known ACL, concurrency and grounding gaps are in [current state](../docs/current-state.md#known-boundaries-and-follow-ups).
+Tests must use a separate audit path when a demo is running: see [test instructions](../tests/README.md). Deployed on Render (`https://tianquan-api.onrender.com`, from `render.yaml`) behind the Vercel UI at https://tianquan.vercel.app; see the [deployment plan](../docs/deployment-plan.md). Known ACL, concurrency and grounding gaps are in [current state](../docs/current-state.md#known-boundaries-and-follow-ups).
