@@ -2,7 +2,7 @@
 
 <!-- Generated from the user's deployment choice on 2026-10-11. -->
 
-**Status:** Accepted architecture direction; implementation pending.
+**Status:** Accepted; implemented 2026-10-11 — UI at https://tianquan.vercel.app (Vercel), backend on Render's free tier.
 
 ## Context
 

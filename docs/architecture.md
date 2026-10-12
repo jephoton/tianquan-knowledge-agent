@@ -152,8 +152,11 @@ Routes are thin adapters over the layers below.
 
 ### `frontend/`
 
-`index.html` + `app.js`, no build step. Tailwind's browser build is vendored
-and pinned in `frontend/vendor/` so the demo never depends on a CDN. Panels
+`index.html` + `app.js`, no build step locally. The API origin comes from
+`config.js` (local default `http://localhost:8000`); for Vercel,
+`scripts/build.cjs` copies the UI to `dist/` and writes `config.js` from
+`TIANQUAN_API_BASE`. Tailwind's browser build is vendored and pinned in
+`frontend/vendor/` so the demo never depends on a CDN. Panels
 render by permission: the source preview only for `export`, the audit explorer
 for `audit_query`, revoke/grant and the inspector for `manage_permissions`.
 In the audit explorer each query's logged answer shows which document every
@@ -262,7 +265,7 @@ decide (with audit) → retrieve → answer — with revocation able to fire at 
 up to retrieval. TLC checks INV1–INV4, INV6, and INV7 over every reachable
 state of the configured two-user/two-resource model; the naive variant (trusting the decide-time snapshot) leaks under a
 revoke-after-decide race. The spec is an abstract model; the implementation is
-tested against corresponding properties (292 tests verified on 2026-10-11).
+tested against corresponding properties (294 tests verified on 2026-10-12).
 There is no verified refinement from TLA+ to Python. INV5 is deferred; INV8 is
 a Python grounding heuristic, outside the six modeled invariants.
 
@@ -276,10 +279,11 @@ a Python grounding heuristic, outside the six modeled invariants.
 | Formal model | TLA+ / TLC | Best fit for temporal safety properties such as revocation races |
 | Audit log    | Hash-chained JSONL on disk | Simple, transparent, demonstrable tamper-evidence |
 | Dev tool     | CodeBuddy | Required proof of usage |
+| Hosting      | Vercel (static UI) + Render (one backend instance) | Simple, free-tier demo hosting; no shared-storage migration needed ([ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md)) |
 
 ## 10. Prototype limits and deployment boundary
 
-The [deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) is not implemented. It proposes Vercel static hosting plus one long-running cloud backend, with no shared-storage migration. The laptop can be off; backend restart resets demo state and truncates the audit file, even on persistent disk. `/health` reports configured mode rather than successful live generation.
+The demo is deployed ([deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md), [ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md)): the static UI on Vercel at https://tianquan.vercel.app and one backend instance on Render's free tier at `https://tianquan-api.onrender.com`, with no shared-storage migration. CORS allows only the configured frontend origins (`TIANQUAN_ALLOWED_ORIGINS`) — a browser restriction, not authentication. The free tier sleeps after ~15 idle minutes; a restart, redeploy or wake resets demo state and truncates the audit file. `/health` reports configured mode rather than successful live generation.
 
 The current implementation has no production authentication, synchronization for concurrent audit appends, externally anchored ledger or durable startup recovery. ACL retrieval and context assembly are separate operations; the model does not establish all concurrent Python schedules are safe. A missing connector ACL returns the indexed resource, which can still be permitted by the policy engine. All-rejected grounding restores the original answer. These gaps and their follow-ups are tracked in [current state](current-state.md#known-boundaries-and-follow-ups).
 
