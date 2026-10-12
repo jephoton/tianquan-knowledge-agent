@@ -22,7 +22,7 @@ so the page renders with no internet access. Icons are inline SVG.
 - `scripts/build.cjs` + `vercel.json` — Vercel build: copies the UI to `dist/` and writes `dist/config.js` from `TIANQUAN_API_BASE` (must be a bare HTTPS origin).
 
 - `index.html` — layout + CRT styling (from Miora), with hooks/IDs for wiring.
-- `app.js` — API client + rendering. `API_BASE` constant points at the backend.
+- `app.js` — API client + rendering. `API_BASE` comes from `config.js`.
 - `vendor/` — pinned Tailwind browser build + its licence.
 - `MIORA_PROMPT.md` — the prompt used to generate the UI.
 - `openapi.json` — exported backend API spec.
@@ -86,8 +86,9 @@ again on the server).
    python -m http.server 5500
    ```
 
-   Then visit `http://127.0.0.1:5500/`. (CORS is open on the backend, so any
-   local port works.)
+   Then visit `http://127.0.0.1:5500/`. The backend's CORS allows
+   `http://127.0.0.1:5500` and `http://localhost:5500` by default; set
+   `TIANQUAN_ALLOWED_ORIGINS` on the backend for any other origin.
 
 If the backend is not running, the footer shows `api: offline` — the UI degrades gracefully.
 
@@ -104,4 +105,4 @@ If the backend is not running, the footer shows `api: offline` — the UI degrad
 
 ## Deployment status
 
-The API origin is currently hardcoded to localhost. Vercel hosting with public API-origin configuration is [planned, not implemented](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). The backend needs a separate single-instance cloud host. Browser localStorage remembers clean mode; it does not store authoritative ACLs or shared audit state.
+Deployed at https://tianquan.vercel.app (Vercel project `tianquan`, built with `scripts/build.cjs`); the API runs on Render at `https://tianquan-api.onrender.com`. Redeploy: `vercel deploy --prod --cwd frontend --build-env TIANQUAN_API_BASE=https://tianquan-api.onrender.com`. See the [deployment plan](../docs/superpowers/plans/2026-10-11-cloud-demo-deployment.md). Browser localStorage remembers clean mode; it does not store authoritative ACLs or shared audit state.
