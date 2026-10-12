@@ -23,4 +23,4 @@ The permission gate precedes prompt construction and remains independent of the 
 - Each ADP call creates a fresh conversation ([ADR-0007](0007-stateless-llm-calls.md)); do not attach an unfiltered agent knowledge base.
 - Runtime generation errors fall back to the stub; `/health` reports key configuration, not per-answer provenance or provider availability.
 - Citation validation and lexical grounding are implementation checks, not proof of generated truth. Known fallbacks/gaps are tracked in [current state](../current-state.md#known-boundaries-and-follow-ups).
-- See the [completed integration reference](../design/adp-integration-plan.md) and [deployment plan](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).
+- See the [completed integration reference](../history/adp-integration-reference.md) and [deployment plan](../superpowers/plans/2026-10-11-cloud-demo-deployment.md).
