@@ -27,7 +27,7 @@ Technical: static dashboard designed with Miora; Python/FastAPI backend; TF-IDF 
 Prompts: the question plus only the permission-filtered, numbered sources are sent to Tencent Cloud ADP (fresh conversation per call, no knowledge base), instructing it to answer only from those sources and cite inline. Citations outside the context are stripped and unsupported sentences are removed by a grounding check.
 
 BUSINESS VALUE
-Unblocks internal AI where it is currently too risky: restricted content never reaches the model. Targets the 30% search time with one cited answer across four systems. Revocation is immediate (no reindex window). Audit-ready: every question, allow/deny decision, answer, citation and permission change is recorded, and tampering is flagged at the exact event. Evidence: 6 model-checked safety invariants and 292 passing automated tests. Built with CodeBuddy (development), Tencent Cloud ADP (answers) and Miora (design). Live demo: https://tianquan.vercel.app
+Unblocks internal AI where it is currently too risky: restricted content never reaches the model. Targets the 30% search time with one cited answer across four systems. Revocation is immediate (no reindex window). Audit-ready: every question, allow/deny decision, answer, citation and permission change is recorded, and tampering is flagged at the exact event. Evidence: 6 model-checked safety invariants and 294 passing automated tests. Built with CodeBuddy (development), Tencent Cloud ADP (answers) and Miora (design). Live demo: https://tianquan.vercel.app
 ```
 
 ---
@@ -76,7 +76,7 @@ Tianquan (天权, "heavenly authority") is an internal AI assistant that answers
 - **Targets the 30% search tax** cited in the challenge: one cited answer across four systems instead of a manual hunt through pages, tickets, threads and files.
 - **Revocation is immediate.** Off-boarding or pulling a clearance applies on the next query — no reindex window during which stale access is served.
 - **Audit-ready by construction.** Each question is one record: who asked, every document allowed or denied, the exact answer and which document each citation came from — plus who changed which permission and when. Tampering is flagged at the exact event.
-- **Evidence, not assertion:** 4 platform types and 20 seeded resources, 7 personas, 6 model-checked safety invariants, and **292 passing automated tests**.
+- **Evidence, not assertion:** 4 platform types and 20 seeded resources, 7 personas, 6 model-checked safety invariants, and **294 passing automated tests**.
 
 Productivity savings have not yet been measured; a pilot would compare time-to-answer and access-incident rates against the organisation's current workflow.
 

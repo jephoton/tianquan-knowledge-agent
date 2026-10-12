@@ -2,7 +2,7 @@
 
 <!-- Generated verification reference; updated after a fresh run on 2026-10-11. -->
 
-**Baseline: 292 passed**, one dependency deprecation warning. Tests cover policy grants/denials, revocation, no-match/denial parity, Q-number matching, API privilege gates, preview/export auditing, audit tamper detection, citations, lexical grounding, query flags and the ADP adapter.
+**Baseline: 294 passed**, one dependency deprecation warning. Tests cover policy grants/denials, revocation, no-match/denial parity, Q-number matching, API privilege gates, preview/export auditing, audit tamper detection, citations, lexical grounding, query flags and the ADP adapter.
 
 ## Run
 

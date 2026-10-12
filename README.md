@@ -82,7 +82,7 @@ want to run the TLA+ model checker.
    pip install -r requirements.txt
    ```
 
-2. Run the tests (292 passing on 2026-10-11). If a demo is running, use the
+2. Run the tests (294 passing on 2026-10-12). If a demo is running, use the
    [isolated audit-path command](tests/README.md#run) to protect its log:
 
    ```powershell
