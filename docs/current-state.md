@@ -6,7 +6,7 @@ Read this first when continuing the project. [Architecture](architecture.md) des
 
 ## Status and next step
 
-The demo video is complete, as reported by the user. Submission copy (blurb + project description, following the handbook's four required headings) is in [project-description.md](project-description.md); pasting it into the submission portal is the user's step. CodeBuddy usage evidence is summarised, with all five screenshots embedded, at the top of the [development log](dev-log/dev-log.md#codebuddy-usage-evidence). Remaining: hosting. Do not recreate the demo or assume older screenshot checklists are outstanding.
+**Submitted 2026-10-12.** The submission included the demo video (https://youtu.be/2sPXMDbFf7A), the project description ([project-description.md](project-description.md), with a short form version), the cover image (`docs/cover_image.png`), CodeBuddy evidence (top of the [development log](dev-log/dev-log.md#codebuddy-usage-evidence)) and the live link. There is no outstanding required work; further changes are optional polish or the known follow-ups below.
 
 **Deployed 2026-10-11.** Frontend: https://tianquan.vercel.app (Vercel project `tianquan`, account `jettan17`; `frontend/vercel.json` + `scripts/build.cjs`, `TIANQUAN_API_BASE` passed as a build env). Backend: https://tianquan-api.onrender.com (Render free web service from `render.yaml`; `ADP_APP_KEY` and `TIANQUAN_ALLOWED_ORIGINS=https://tianquan.vercel.app` set in the dashboard). Verified in production: CORS allows only the Vercel origin; Alice's cited 4-source answer via ADP, Bob's denial, Charlie's Q3 report/preview/export, identical Q5 message, revoke → next-query exclusion (grant restored), audit groups/search/[VERIFIED], Bob 403 on /audit. Free tier sleeps after ~15 idle minutes (30–60 s cold start; state resets). Redeploy frontend: `vercel deploy --prod --cwd frontend --build-env TIANQUAN_API_BASE=https://tianquan-api.onrender.com`; backend: Render manual deploy (autoDeploy off). The plan below remains the reference. No database, Redis or shared-storage migration is required for this demo ([ADR-0009](decisions/0009-cloud-demo-with-process-local-state.md)). Backend host/plan and any paid provisioning remain to be selected.
 
@@ -51,7 +51,7 @@ try {
 }
 ```
 
-Fresh verification on 2026-10-11: **292 passed**, one FastAPI/Starlette dependency deprecation warning. `tests/conftest.py` forces the stub and ADP adapter tests mock HTTP; this suite does not prove the cloud deployment or live ADP availability. Historical live API checks covered Bob's Q3 denial, Charlie's Q3 citations/preview/export and identical missing-Q5 response.
+Fresh verification on 2026-10-12: **294 passed**, one FastAPI/Starlette dependency deprecation warning. `tests/conftest.py` forces the stub and ADP adapter tests mock HTTP; this suite does not prove the cloud deployment or live ADP availability. Historical live API checks covered Bob's Q3 denial, Charlie's Q3 citations/preview/export and identical missing-Q5 response.
 
 TLC setup and safe/broken harness commands: [formal README](../formal/README.md). The demo opens `access_control.tla`, `MC_tianquan.tla`, `MC_tianquan.cfg` and prepared TLC output.
 
@@ -78,5 +78,3 @@ The [published ADP experience](https://adp.tencentcloud.com/webim_exp/#/chat/ULz
 ## Demo decisions to preserve
 
 Opening hook and formal-methods elevator pitch → architecture → first UI reveal/clean mode → Alice's unified answer → Bob's denial → Charlie repeats Bob's query, previews/exports, then asks for missing Q5 → revoke/inspector refresh → audit/tamper → TLA+ assurance (live mutation optional) → spoken feature recap → reflection last. New-source showcase and timing/recovery section were removed. Keep the user's intro/outro and current sequence when making future changes.
-
-`docs/cover_image.png` is currently a user-provided untracked asset; leave it intact and do not include it in unrelated commits.

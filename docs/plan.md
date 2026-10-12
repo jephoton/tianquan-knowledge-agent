@@ -29,8 +29,8 @@ The implemented demo uses synthetic source data and seeded personas. It demonstr
 | M12 Freshness | Complete: source timestamps and citation age labels; content remains indexed |
 | M13 Injection detection | Complete: suspicious-query audit flags, not an authorization mechanism |
 | M14 Review | Implementation review/fixes complete; known gaps retained in current state |
-| M15 Submission | In progress: user reports video complete; final blurb/description and hosting remain |
-| Hosting | Planned only: [Vercel frontend + cloud backend plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) |
+| M15 Submission | Complete: submitted 2026-10-12 with demo video, project description, cover image and live link |
+| Hosting | Complete: https://tianquan.vercel.app (Vercel) + Render backend — [deployment plan](superpowers/plans/2026-10-11-cloud-demo-deployment.md) |
 
 ## Formal assurance
 
@@ -42,22 +42,22 @@ The recorded outline is [demo-script.md](demo-script.md); exact inputs and expec
 
 ## Submission checklist
 
-This is a delivery checklist, not evidence that files were uploaded. The user's latest status is that only the two text fields and deployment remain. Do not treat older dev-log capture reminders as new outstanding work.
+Submitted 2026-10-12.
 
 | Item | Status / location |
 |---|---|
 | Title | Tianquan 天权 |
-| Short blurb (<10 words) | Draft: “Permission-safe AI retrieval backed by formal verification.” (7 words) |
-| Project description | Revised draft: [project-description.md](project-description.md), covering target users/scenarios, pain points, architecture/prompts and defined impact |
-| CodeBuddy usage proof | Historical evidence inventory: [development log](dev-log/dev-log.md); final upload not inspected |
-| Cover | User asset exists locally; final upload not inspected |
-| Demo video | Completed, user-reported; reflection at the end |
-| App link | Full application not deployed; direct ADP chat is a separate experience |
+| Short blurb (<10 words) | “Permission-safe AI retrieval backed by formal verification.” (7 words) |
+| Project description | [project-description.md](project-description.md) — full version plus a short form version |
+| CodeBuddy usage proof | [Development log — CodeBuddy usage evidence](dev-log/dev-log.md#codebuddy-usage-evidence) (5 screenshots) |
+| Cover image | [docs/cover_image.png](cover_image.png) |
+| Demo video | https://youtu.be/2sPXMDbFf7A |
+| App link | https://tianquan.vercel.app (Vercel UI + Render backend) |
 | Repository | [jephoton/tianquan-knowledge-agent](https://github.com/jephoton/tianquan-knowledge-agent) |
 | Architecture | [PNG](architecture.png) and [SVG](architecture.svg) |
 | Worked examples | [Runbook](demo-runbook.md), including allowed, denied, revocation, audit and formal cases |
 
-The earlier internal target was 12 October and the recorded event deadline was 16 October 2026. Treat those as planning notes and confirm the submission portal's deadline before submitting.
+The event deadline was 16 October 2026; the finalist announcement is 23 October and Demo Day 3 November (TBC).
 
 ## Deferred scope
 
